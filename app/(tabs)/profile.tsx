@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, ScrollView, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import { useGleanStore } from '../../store/useGleanStore';
 
 import { Heading } from '@/components/ui/heading';
@@ -12,8 +12,6 @@ import { Button, ButtonText } from '@/components/ui/button';
 
 export default function ProfileScreen() {
   const { inventory, importCSV, signOut } = useGleanStore();
-  const router = useRouter();
-
   const handleSignOut = () => {
     Alert.alert('Sign out', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
