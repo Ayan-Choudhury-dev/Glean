@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../lib/supabase';
 
 // ─── UUID helper ──────────────────────────────────────────────────────────────
@@ -244,8 +245,6 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     if (error) return error.message;
     if (!data.url) return 'Could not get Google sign-in URL.';
 
-    // Open the OAuth URL in a system browser
-    const WebBrowser = require('expo-web-browser');
     const result = await WebBrowser.openAuthSessionAsync(data.url, 'glean://');
 
     if (result.type !== 'success' || !result.url) {
@@ -288,7 +287,11 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   },
 
   signOut: async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error('[auth] signOut error:', e);
+    }
     get().clearSession();
   },
 
