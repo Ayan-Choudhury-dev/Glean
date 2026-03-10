@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, KeyboardAvoidingView, Platform, Pressable, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useGleanStore } from '../store/useGleanStore';
 
@@ -14,8 +14,6 @@ type Mode = 'sign_up' | 'sign_in';
 
 export default function OnboardingScreen() {
   const { profile, signUp, signIn } = useGleanStore();
-  const router = useRouter();
-
   const [mode,     setMode]     = useState<Mode>('sign_up');
   const [name,     setName]     = useState('');
   const [email,    setEmail]    = useState('');
