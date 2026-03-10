@@ -35,7 +35,7 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { loadSession, signOut } = useGleanStore();
+  const { loadSession, clearSession } = useGleanStore();
 
   // Restore session on cold start
   useEffect(() => {
@@ -45,7 +45,7 @@ function RootLayoutNav() {
   // Listen for auth changes (token refresh, sign-out from another device, etc.)
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') signOut();
+      if (event === 'SIGNED_OUT') clearSession();
     });
     return () => subscription.unsubscribe();
   }, []);
