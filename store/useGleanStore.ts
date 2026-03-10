@@ -94,8 +94,9 @@ interface GleanState {
   // Auth
   signUp:   (name: string, email: string, password: string) => Promise<string | null>;
   signIn:   (email: string, password: string)               => Promise<string | null>;
-  signOut:  ()                                              => Promise<void>;
-  loadSession: ()                                           => Promise<void>;
+  signOut:      ()                                              => Promise<void>;
+  clearSession: ()                                              => void;
+  loadSession:  ()                                              => Promise<void>;
 
   // House
   createHouse: (name: string) => Promise<House | string>; // returns House or error string
@@ -232,6 +233,10 @@ export const useGleanStore = create<GleanState>((set, get) => ({
 
   signOut: async () => {
     await supabase.auth.signOut();
+    get().clearSession();
+  },
+
+  clearSession: () => {
     set({ profile: null, house: null, inventory: [], shoppingList: [], consumptionLogs: [] });
   },
 
