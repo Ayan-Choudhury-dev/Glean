@@ -13,7 +13,7 @@ import { HStack } from '@/components/ui/hstack';
 type Mode = 'sign_up' | 'sign_in';
 
 export default function OnboardingScreen() {
-  const { profile, signUp, signIn } = useGleanStore();
+  const { profile, signUp, signIn, signInWithGoogle } = useGleanStore();
   const [mode,     setMode]     = useState<Mode>('sign_up');
   const [name,     setName]     = useState('');
   const [email,    setEmail]    = useState('');
@@ -45,6 +45,20 @@ export default function OnboardingScreen() {
       mode === 'sign_up'
         ? await signUp(name.trim(), email.trim(), password)
         : await signIn(email.trim(), password);
+    setBusy(false);
+
+    if (error) {
+      Alert.alert('Error', error);
+      return;
+    }
+
+    const { profile: p } = useGleanStore.getState();
+    router.replace(p?.house_id ? '/(tabs)' : '/house-setup');
+  };
+
+  const handleGoogleSignIn = async () => {
+    setBusy(true);
+    const error = await signInWithGoogle();
     setBusy(false);
 
     if (error) {
@@ -138,6 +152,25 @@ export default function OnboardingScreen() {
               {busy ? 'Please wait…' : mode === 'sign_up' ? 'Create account' : 'Sign in'}
             </ButtonText>
           </Button>
+
+          {/* Divider */}
+          <HStack className="items-center my-2">
+            <View className="flex-1 h-px bg-gray-200" />
+            <Text className="mx-4 text-xs text-gray-400">or</Text>
+            <View className="flex-1 h-px bg-gray-200" />
+          </HStack>
+
+          {/* Google sign-in */}
+          <Pressable
+            className="flex-row items-center justify-center bg-white border border-gray-200 rounded-xl h-12"
+            onPress={handleGoogleSignIn}
+            disabled={busy}
+          >
+            <Ionicons name="logo-google" size={18} color="#4285F4" />
+            <Text className="ml-2 text-sm font-semibold text-gray-700">
+              Continue with Google
+            </Text>
+          </Pressable>
 
           {__DEV__ && (
             <Pressable onPress={() => router.replace('/(tabs)')} className="items-center py-2">
