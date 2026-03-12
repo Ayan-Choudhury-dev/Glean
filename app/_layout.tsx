@@ -1,7 +1,8 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
+import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -35,7 +36,7 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { loadSession, clearSession } = useGleanStore();
+  const { loadSession, clearSession, handleAuthRedirect } = useGleanStore();
 
   // Restore session on cold start
   useEffect(() => {
@@ -48,6 +49,28 @@ function RootLayoutNav() {
       if (event === 'SIGNED_OUT') clearSession();
     });
     return () => subscription.unsubscribe();
+  }, []);
+
+  // Handle deep link redirects (magic link auth)
+  useEffect(() => {
+    const onUrl = async ({ url }: { url: string }) => {
+      if (url.includes('access_token')) {
+        await handleAuthRedirect(url);
+        const { profile } = useGleanStore.getState();
+        if (profile) {
+          router.replace(profile.house_id ? '/(tabs)' : '/house-setup');
+        }
+      }
+    };
+
+    const sub = Linking.addEventListener('url', onUrl);
+
+    // Handle cold-start deep link
+    Linking.getInitialURL().then(url => {
+      if (url) onUrl({ url });
+    });
+
+    return () => sub.remove();
   }, []);
 
   return (

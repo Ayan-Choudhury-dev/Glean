@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../lib/supabase';
 
 // ─── UUID helper ──────────────────────────────────────────────────────────────
@@ -95,7 +94,8 @@ interface GleanState {
   // Auth
   signUp:   (name: string, email: string, password: string) => Promise<string | null>;
   signIn:           (email: string, password: string)               => Promise<string | null>;
-  signInWithGoogle: ()                                              => Promise<string | null>;
+  signInWithMagicLink: (email: string)                              => Promise<string | null>;
+  handleAuthRedirect:  (url: string)                               => Promise<void>;
   signOut:      ()                                              => Promise<void>;
   clearSession: ()                                              => void;
   loadSession:  ()                                              => Promise<void>;
@@ -233,57 +233,44 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     return null;
   },
 
-  signInWithGoogle: async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: 'glean://',
-        skipBrowserRedirect: true,
-      },
+  signInWithMagicLink: async (email) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: 'glean://' },
     });
-
     if (error) return error.message;
-    if (!data.url) return 'Could not get Google sign-in URL.';
+    return null;
+  },
 
-    const result = await WebBrowser.openAuthSessionAsync(data.url, 'glean://');
-
-    if (result.type !== 'success' || !result.url) {
-      return result.type === 'cancel' ? null : 'Google sign-in failed.';
-    }
-
-    // Extract tokens from the redirect URL fragment
-    const url = new URL(result.url);
+  handleAuthRedirect: async (url) => {
+    const parsed = new URL(url);
     // Supabase puts tokens in the hash fragment: #access_token=...&refresh_token=...
-    const params = new URLSearchParams(url.hash.substring(1));
+    const fragment = parsed.hash.substring(1);
+    if (!fragment) return;
+
+    const params = new URLSearchParams(fragment);
     const access_token = params.get('access_token');
     const refresh_token = params.get('refresh_token');
+    if (!access_token || !refresh_token) return;
 
-    if (!access_token || !refresh_token) return 'Missing tokens from Google sign-in.';
-
-    const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+    const { data: sessionData, error } = await supabase.auth.setSession({
       access_token,
       refresh_token,
     });
+    if (error || !sessionData.user) return;
 
-    if (sessionError) return sessionError.message;
-    if (!sessionData.user) return 'Google sign-in failed.';
-
-    // Load or create profile
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', sessionData.user.id)
       .single();
 
-    if (!profile) return 'Profile not found.';
+    if (!profile) return;
 
     set({ profile });
-
     if (profile.house_id) {
       await get().loadHouseData(profile.house_id);
     }
-
-    return null;
   },
 
   signOut: async () => {

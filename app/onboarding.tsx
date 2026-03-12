@@ -13,13 +13,14 @@ import { HStack } from '@/components/ui/hstack';
 type Mode = 'sign_up' | 'sign_in';
 
 export default function OnboardingScreen() {
-  const { profile, signUp, signIn, signInWithGoogle } = useGleanStore();
+  const { profile, signUp, signIn, signInWithMagicLink } = useGleanStore();
   const [mode,     setMode]     = useState<Mode>('sign_up');
   const [name,     setName]     = useState('');
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [busy,     setBusy]     = useState(false);
   const [showPwd,  setShowPwd]  = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   // Already authenticated — skip onboarding
   useEffect(() => {
@@ -56,18 +57,20 @@ export default function OnboardingScreen() {
     router.replace(p?.house_id ? '/(tabs)' : '/house-setup');
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleMagicLink = async () => {
+    if (!email.trim()) {
+      Alert.alert('Required', 'Please enter your email.');
+      return;
+    }
     setBusy(true);
-    const error = await signInWithGoogle();
+    const error = await signInWithMagicLink(email.trim());
     setBusy(false);
 
     if (error) {
       Alert.alert('Error', error);
       return;
     }
-
-    const { profile: p } = useGleanStore.getState();
-    router.replace(p?.house_id ? '/(tabs)' : '/house-setup');
+    setMagicLinkSent(true);
   };
 
   return (
@@ -160,17 +163,30 @@ export default function OnboardingScreen() {
             <View className="flex-1 h-px bg-gray-200" />
           </HStack>
 
-          {/* Google sign-in */}
-          <Pressable
-            className="flex-row items-center justify-center bg-white border border-gray-200 rounded-xl h-12"
-            onPress={handleGoogleSignIn}
-            disabled={busy}
-          >
-            <Ionicons name="logo-google" size={18} color="#4285F4" />
-            <Text className="ml-2 text-sm font-semibold text-gray-700">
-              Continue with Google
-            </Text>
-          </Pressable>
+          {/* Magic link */}
+          {magicLinkSent ? (
+            <VStack className="items-center py-4" space="sm">
+              <Ionicons name="mail-outline" size={28} color="#475569" />
+              <Text className="text-sm font-semibold text-slate-700">Check your email</Text>
+              <Text className="text-xs text-slate-400 text-center">
+                We sent a sign-in link to {email}
+              </Text>
+              <Pressable onPress={() => setMagicLinkSent(false)}>
+                <Text className="text-xs text-blue-500 mt-1">Use a different email</Text>
+              </Pressable>
+            </VStack>
+          ) : (
+            <Pressable
+              className="flex-row items-center justify-center bg-white border border-gray-200 rounded-xl h-12"
+              onPress={handleMagicLink}
+              disabled={busy}
+            >
+              <Ionicons name="mail-outline" size={18} color="#475569" />
+              <Text className="ml-2 text-sm font-semibold text-gray-700">
+                Sign in with magic link
+              </Text>
+            </Pressable>
+          )}
 
           {__DEV__ && (
             <Pressable onPress={() => router.replace('/(tabs)')} className="items-center py-2">
