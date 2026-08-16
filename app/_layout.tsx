@@ -26,17 +26,11 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
+  const colorScheme = useColorScheme();
+  const { loadSession, clearSession, handleAuthRedirect } = useGleanStore();
 
   useEffect(() => { if (error) throw error; }, [error]);
   useEffect(() => { if (loaded) SplashScreen.hideAsync(); }, [loaded]);
-
-  if (!loaded) return null;
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-  const { loadSession, clearSession, handleAuthRedirect } = useGleanStore();
 
   // Restore session on cold start
   useEffect(() => {
@@ -81,7 +75,6 @@ function RootLayoutNav() {
           <Stack.Screen name="house-setup" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)"      options={{ headerShown: false }} />
           <Stack.Screen name="item-form"   options={{ headerShown: false, presentation: 'modal' }} />
-          <Stack.Screen name="modal"       options={{ presentation: 'modal' }} />
         </Stack>
       </ThemeProvider>
     </GluestackUIProvider>

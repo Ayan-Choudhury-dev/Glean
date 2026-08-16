@@ -177,11 +177,11 @@ const DEV_INVENTORY: InventoryItem[] = __DEV__ ? [
 // ─── Dev seed consumption logs ────────────────────────────────────────────────
 
 const DEV_LOGS: ConsumptionLog[] = __DEV__ ? [
-  { id: 'log-1', inventory_id: 'dev-1', item_name: 'Whole Milk',      house_id: '', qty: 1, consumed_at: new Date(Date.now() - 2  * 3600000).toISOString() },
-  { id: 'log-2', inventory_id: 'dev-1', item_name: 'Whole Milk',      house_id: '', qty: 2, consumed_at: new Date(Date.now() - 26 * 3600000).toISOString() },
-  { id: 'log-3', inventory_id: 'dev-3', item_name: 'Basmati Rice',    house_id: '', qty: 1, consumed_at: new Date(Date.now() - 5  * 3600000).toISOString() },
-  { id: 'log-4', inventory_id: 'dev-5', item_name: 'Cumin Seeds',     house_id: '', qty: 1, consumed_at: new Date(Date.now() - 3  * 86400000).toISOString() },
-  { id: 'log-5', inventory_id: 'dev-8', item_name: 'Tomatoes',        house_id: '', qty: 3, consumed_at: new Date(Date.now() - 1  * 86400000).toISOString() },
+  { id: 'log-1', inventory_id: 'dev-1', item_name: 'Whole Milk',      house_id: '', qty: 1, action: 'used', consumed_at: new Date(Date.now() - 2  * 3600000).toISOString() },
+  { id: 'log-2', inventory_id: 'dev-1', item_name: 'Whole Milk',      house_id: '', qty: 2, action: 'used', consumed_at: new Date(Date.now() - 26 * 3600000).toISOString() },
+  { id: 'log-3', inventory_id: 'dev-3', item_name: 'Basmati Rice',    house_id: '', qty: 1, action: 'used', consumed_at: new Date(Date.now() - 5  * 3600000).toISOString() },
+  { id: 'log-4', inventory_id: 'dev-5', item_name: 'Cumin Seeds',     house_id: '', qty: 1, action: 'used', consumed_at: new Date(Date.now() - 3  * 86400000).toISOString() },
+  { id: 'log-5', inventory_id: 'dev-8', item_name: 'Tomatoes',        house_id: '', qty: 3, action: 'used', consumed_at: new Date(Date.now() - 1  * 86400000).toISOString() },
 ] : [];
 
 // ─── Store ────────────────────────────────────────────────────────────────────

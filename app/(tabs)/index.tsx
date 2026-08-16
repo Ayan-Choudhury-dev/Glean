@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, SectionList, TextInput, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import { useGleanStore } from '../../store/useGleanStore';
 
 import { Heading } from '@/components/ui/heading';
@@ -10,8 +10,7 @@ import { HStack } from '@/components/ui/hstack';
 import { Button, ButtonText } from '@/components/ui/button';
 
 export default function InventoryScreen() {
-  const { inventory } = useGleanStore();
-  const router = useRouter();
+  const { inventory, updateQty, logConsumption } = useGleanStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -57,14 +56,6 @@ export default function InventoryScreen() {
               onPress={() => router.push('/item-form')}
             >
               <ButtonText className="text-white">Add new item</ButtonText>
-            </Button>
-            <Button
-              size="md"
-              variant="outline"
-              className="rounded-xl border-slate-300"
-              onPress={() => {}}
-            >
-              <ButtonText className="text-slate-700">Add using CSV</ButtonText>
             </Button>
           </View>
         </View>
@@ -174,25 +165,56 @@ export default function InventoryScreen() {
         )}
         renderItem={({ item, index, section }) => (
           <View>
-            <Pressable onPress={() => router.push(`/item-form?itemId=${item.id}`)}>
-              <HStack className="items-center px-6 py-4">
-                <Text className="flex-1 text-sm font-medium text-gray-900">{item.name}</Text>
-                {item.qty === 0 ? (
-                  <View className="bg-red-100 rounded-full px-2 py-0.5">
-                    <Text className="text-xs font-medium text-red-500">Out of stock</Text>
-                  </View>
-                ) : item.qty === 1 ? (
-                  <View className="bg-amber-100 rounded-full px-2 py-0.5">
-                    <Text className="text-xs font-medium text-amber-600">Low stock</Text>
-                  </View>
-                ) : (
-                  <Text className="w-8 text-center text-sm text-gray-700">{item.qty}</Text>
-                )}
-                <Text className="w-32 text-right text-sm text-gray-400" numberOfLines={1}>
-                  {item.location ?? '—'}
-                </Text>
-              </HStack>
-            </Pressable>
+            <HStack className="items-center px-6 py-4">
+              <Pressable
+                onPress={() => router.push(`/item-form?itemId=${item.id}`)}
+                className="flex-1"
+              >
+                <HStack className="items-center">
+                  <Text className="flex-1 text-sm font-medium text-gray-900">{item.name}</Text>
+                  {item.qty === 0 ? (
+                    <View className="bg-red-100 rounded-full px-2 py-0.5">
+                      <Text className="text-xs font-medium text-red-500">Out of stock</Text>
+                    </View>
+                  ) : item.qty === 1 ? (
+                    <View className="bg-amber-100 rounded-full px-2 py-0.5">
+                      <Text className="text-xs font-medium text-amber-600">Low stock</Text>
+                    </View>
+                  ) : (
+                    <Text className="w-8 text-center text-sm text-gray-700">{item.qty}</Text>
+                  )}
+                </HStack>
+              </Pressable>
+
+              <View className="ml-3 flex-row items-center gap-2">
+                <Pressable
+                  onPress={() => {
+                    updateQty(item.id, -1);
+                    logConsumption(item.id, item.name, 1, 'used');
+                  }}
+                  disabled={item.qty === 0}
+                  style={{ opacity: item.qty === 0 ? 0.3 : 1 }}
+                  hitSlop={8}
+                  className="w-7 h-7 rounded-full bg-gray-100 items-center justify-center"
+                >
+                  <Ionicons name="remove" size={14} color="#374151" />
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    updateQty(item.id, 1);
+                    logConsumption(item.id, item.name, 1, 'restocked');
+                  }}
+                  hitSlop={8}
+                  className="w-7 h-7 rounded-full bg-slate-900 items-center justify-center"
+                >
+                  <Ionicons name="add" size={14} color="#fff" />
+                </Pressable>
+              </View>
+
+              <Text className="w-20 ml-2 text-right text-sm text-gray-400" numberOfLines={1}>
+                {item.location ?? '—'}
+              </Text>
+            </HStack>
 
             {index < section.data.length - 1 && (
               <View className="h-px bg-gray-100 mx-6" />

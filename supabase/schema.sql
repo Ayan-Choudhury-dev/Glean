@@ -52,6 +52,8 @@ CREATE TABLE IF NOT EXISTS consumption_logs (
   inventory_id UUID NOT NULL REFERENCES inventory(id) ON DELETE CASCADE,
   item_name    TEXT NOT NULL,
   qty          INTEGER NOT NULL,
+  action       TEXT NOT NULL DEFAULT 'used'
+                 CHECK (action IN ('used', 'restocked', 'added')),
   consumed_at  TIMESTAMPTZ DEFAULT now()
 );
 

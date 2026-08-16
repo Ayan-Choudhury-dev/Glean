@@ -92,30 +92,33 @@ BEGIN
     (v_house_id, 'Mixed Nuts',     1, 'Snacks',      'Cupboard');
 
   -- ── 5. Some consumption logs (for Recent Activity testing) ──────────────────
-  INSERT INTO consumption_logs (house_id, inventory_id, item_name, qty, consumed_at)
+  INSERT INTO consumption_logs (house_id, inventory_id, item_name, qty, action, consumed_at)
   SELECT
     v_house_id,
     id,
     name,
     1,
+    'used',
     now() - interval '2 hours'
   FROM inventory WHERE house_id = v_house_id AND name = 'Orange Juice';
 
-  INSERT INTO consumption_logs (house_id, inventory_id, item_name, qty, consumed_at)
+  INSERT INTO consumption_logs (house_id, inventory_id, item_name, qty, action, consumed_at)
   SELECT
     v_house_id,
     id,
     name,
     2,
+    'used',
     now() - interval '1 day'
   FROM inventory WHERE house_id = v_house_id AND name = 'Orange Juice';
 
-  INSERT INTO consumption_logs (house_id, inventory_id, item_name, qty, consumed_at)
+  INSERT INTO consumption_logs (house_id, inventory_id, item_name, qty, action, consumed_at)
   SELECT
     v_house_id,
     id,
     name,
     1,
+    'used',
     now() - interval '3 days'
   FROM inventory WHERE house_id = v_house_id AND name = 'Whole Milk';
 

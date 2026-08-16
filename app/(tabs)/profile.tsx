@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, ScrollView, Pressable, Alert } from 'react-native';
+import { View, TextInput, ScrollView, Pressable, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useGleanStore } from '../../store/useGleanStore';
@@ -11,7 +11,8 @@ import { VStack } from '@/components/ui/vstack';
 import { Button, ButtonText } from '@/components/ui/button';
 
 export default function ProfileScreen() {
-  const { inventory, importCSV, signOut } = useGleanStore();
+  const { house, inventory, importCSV, signOut } = useGleanStore();
+  const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
   const handleSignOut = () => {
     Alert.alert('Sign out', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
@@ -27,6 +28,9 @@ export default function ProfileScreen() {
   };
   const [csvText, setCsvText] = useState('');
   const [importing, setImporting] = useState(false);
+
+  const memberCount = house?.member_ids?.length ?? 1;
+  const membersLabel = memberCount === 1 ? '1 member' : `${memberCount} members`;
 
   const handleImport = () => {
     if (!csvText.trim()) {
@@ -69,17 +73,17 @@ export default function ProfileScreen() {
       {/* ── Household ──────────────────────────────────────────────────── */}
       <SectionHeader title="Household" />
       <Card>
-        <SettingRow icon="home-outline" label="House name" value="My Home" />
+        <SettingRow icon="home-outline" label="House name" value={house?.name ?? 'No house'} />
         <Divider />
-        <SettingRow icon="people-outline" label="Members" value="1 member" />
+        <SettingRow icon="people-outline" label="Members" value={membersLabel} />
         <Divider />
-        <Pressable>
+        <Pressable onPress={() => setInviteSheetOpen(true)}>
           <HStack className="items-center px-4 py-3">
             <View className="w-8 h-8 rounded-lg bg-slate-100 items-center justify-center mr-3">
               <Ionicons name="person-add-outline" size={16} color="#475569" />
             </View>
             <Text className="flex-1 text-sm font-medium text-slate-600">Invite a member</Text>
-            <Text className="text-xs text-slate-400">Coming soon</Text>
+            <Text className="text-xs text-slate-400">Share invite code</Text>
           </HStack>
         </Pressable>
       </Card>
@@ -154,6 +158,40 @@ export default function ProfileScreen() {
           </HStack>
         </Pressable>
       </Card>
+
+      {/* Invite modal */}
+      <Modal
+        visible={inviteSheetOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setInviteSheetOpen(false)}
+      >
+        <Pressable className="flex-1 bg-black/40" onPress={() => setInviteSheetOpen(false)} />
+        <View className="bg-white rounded-t-2xl">
+          <View className="items-center pt-3 pb-1">
+            <View className="w-10 h-1 bg-gray-300 rounded-full" />
+          </View>
+          <VStack className="px-6 pt-4 pb-10" space="lg">
+            <VStack space="xs">
+              <Heading size="md">Invite a member</Heading>
+              <Text className="text-sm text-gray-500">
+                Share this invite code with housemates so they can join{' '}
+                {house?.name ?? 'your household'}.
+              </Text>
+            </VStack>
+            <View className="bg-slate-100 border border-slate-200 rounded-xl py-6 items-center">
+              <Text className="text-3xl font-bold text-slate-900 tracking-[0.3em]">
+                {house?.invite_code ?? '—'}
+              </Text>
+            </View>
+            <VStack space="sm">
+              <Button size="lg" className="bg-slate-900 rounded-xl" onPress={() => setInviteSheetOpen(false)}>
+                <ButtonText className="text-white">Got it</ButtonText>
+              </Button>
+            </VStack>
+          </VStack>
+        </View>
+      </Modal>
 
     </ScrollView>
   );

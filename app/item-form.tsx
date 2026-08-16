@@ -11,7 +11,7 @@ import {
   Platform,
   FlatList,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useGleanStore } from '../store/useGleanStore';
 
@@ -33,7 +33,6 @@ const LOCATIONS = [
 
 export default function ItemFormScreen() {
   const { itemId } = useLocalSearchParams<{ itemId?: string }>();
-  const router     = useRouter();
   const { inventory, consumptionLogs, addInventoryItem, editInventoryItem, deleteInventoryItem,
           addToShoppingList, logConsumption } = useGleanStore();
 

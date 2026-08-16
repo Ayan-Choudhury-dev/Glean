@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { View, SectionList, Pressable, Modal, TextInput, FlatList } from 'react-native';
+import { View, SectionList, SectionListData, Pressable, Modal, TextInput, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useGleanStore, InventoryItem } from '../../store/useGleanStore';
+import { useGleanStore, InventoryItem, ShoppingItem } from '../../store/useGleanStore';
 
 import { Heading } from '@/components/ui/heading';
 import { Text } from '@/components/ui/text';
@@ -44,6 +44,44 @@ function daysLabel(date: Date): string {
   return `in ${Math.ceil(diff)} days`;
 }
 
+// ─── Prediction fallback (works with sparse consumption history) ─────────────
+//
+// When there aren't ≥2 'used' logs, estimate a finish date from a default
+// consumption rate per category: perishables ~1 unit/day, staples ~1/3 day.
+// Also flags stale restocks (last_restocked > 21 days ago, low stock).
+
+const PERISHABLE_CATEGORIES = new Set(['Dairy', 'Meat & Fish', 'Vegetables', 'Fruits', 'Beverages']);
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function estimateFinishDate(
+  itemName: string,
+  currentQty: number,
+  category: string,
+  lastRestocked: string | undefined,
+  logs: ReturnType<typeof useGleanStore.getState>['consumptionLogs']
+): Date | null {
+  // Prefer the history-based estimate when enough logs exist
+  const predicted = predictedFinishDate(itemName, currentQty, logs);
+  if (predicted) return predicted;
+
+  if (currentQty <= 0) return new Date();
+
+  // Stale stock fallback: restocked a while back and running low
+  if (lastRestocked) {
+    const restockedDays = (Date.now() - new Date(lastRestocked).getTime()) / DAY_MS;
+    if (restockedDays > 21 && currentQty <= 3) {
+      return new Date(Date.now() + Math.max(1, currentQty) * DAY_MS);
+    }
+  }
+
+  // Category-rate fallback
+  const ratePerDay = PERISHABLE_CATEGORIES.has(category) ? 1.0 : 1 / 3;
+  const finish = Math.max(currentQty, 1) / ratePerDay;
+  // Only surface when it's plausibly running low (avoids suggesting everything)
+  if (finish > 3) return null;
+  return new Date(Date.now() + finish * DAY_MS);
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function ShoppingScreen() {
@@ -68,7 +106,13 @@ export default function ShoppingScreen() {
       if (queuedIds.has(item.id)) return false;
       if (queuedNames.has(item.name.toLowerCase())) return false;
       if (item.qty === 0) return true;
-      const predicted = predictedFinishDate(item.name, item.qty, consumptionLogs);
+      const predicted = estimateFinishDate(
+        item.name,
+        item.qty,
+        item.category,
+        item.last_restocked,
+        consumptionLogs
+      );
       if (!predicted) return false;
       return predicted.getTime() - now <= TWO_DAYS;
     });
@@ -83,7 +127,7 @@ export default function ShoppingScreen() {
   }, [inventory, addItemSearch]);
 
   // SectionList data for To Buy tab
-  const toBuySections = useMemo(() => {
+  const toBuySections = useMemo<SectionListData<InventoryItem | ShoppingItem>[]>(() => {
     const sections = [];
     if (suggested.length > 0) sections.push({ key: 'suggested', title: 'Suggested', data: suggested });
     sections.push({ key: 'to_buy', title: toBuy.length > 0 ? 'To Buy' : '', data: toBuy });
@@ -153,7 +197,13 @@ export default function ShoppingScreen() {
               renderItem={({ item, section }) => {
                 if (section.key === 'suggested') {
                   const inv = item as InventoryItem;
-                  const predicted = predictedFinishDate(inv.name, inv.qty, consumptionLogs);
+                  const predicted = estimateFinishDate(
+                    inv.name,
+                    inv.qty,
+                    inv.category,
+                    inv.last_restocked,
+                    consumptionLogs
+                  );
                   return (
                     <HStack className="items-center px-6 py-3">
                       <VStack className="flex-1">
@@ -299,9 +349,27 @@ export default function ShoppingScreen() {
             contentContainerStyle={{ paddingBottom: 40 }}
             ItemSeparatorComponent={() => <View className="h-px bg-gray-100 mx-6" />}
             ListEmptyComponent={
-              <View className="items-center py-10">
-                <Text className="text-sm text-gray-400">No items found</Text>
-              </View>
+              addItemSearch.trim().length > 0 ? (
+                <Pressable
+                  className="flex-row items-center px-6 py-4"
+                  onPress={() => {
+                    addToShoppingList(addItemSearch.trim());
+                    setAddItemSheet(false);
+                  }}
+                >
+                  <VStack className="flex-1">
+                    <Text className="text-sm font-medium text-gray-900">
+                      Add "{addItemSearch.trim()}"
+                    </Text>
+                    <Text className="text-xs text-gray-400">Not in your inventory</Text>
+                  </VStack>
+                  <Ionicons name="add-circle-outline" size={22} color="#141C2D" />
+                </Pressable>
+              ) : (
+                <View className="items-center py-10">
+                  <Text className="text-sm text-gray-400">No items found</Text>
+                </View>
+              )
             }
             renderItem={({ item }) => {
               const alreadyQueued = queuedIds.has(item.id) || queuedNames.has(item.name.toLowerCase());

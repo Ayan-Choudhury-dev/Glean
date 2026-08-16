@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useGleanStore } from '../store/useGleanStore';
 
@@ -14,7 +14,6 @@ type Mode = 'pick' | 'create' | 'join';
 
 export default function HouseSetupScreen() {
   const { profile, createHouse, joinHouse } = useGleanStore();
-  const router = useRouter();
   const [mode,        setMode]        = useState<Mode>('pick');
   const [houseName,   setHouseName]   = useState('');
   const [inviteCode,  setInviteCode]  = useState('');
