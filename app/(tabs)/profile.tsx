@@ -13,6 +13,8 @@ import { Button, ButtonText } from '@/components/ui/button';
 export default function ProfileScreen() {
   const { house, inventory, importCSV, signOut } = useGleanStore();
   const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
+  const [dataSheetOpen, setDataSheetOpen] = useState(false);
+  const [dataTab, setDataTab] = useState<'import' | 'export'>('import');
   const handleSignOut = () => {
     Alert.alert('Sign out', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
@@ -88,50 +90,17 @@ export default function ProfileScreen() {
         </Pressable>
       </Card>
 
-      {/* ── CSV Import ─────────────────────────────────────────────────── */}
-      <SectionHeader title="Import data" />
+      {/* ── Data (import / export) ─────────────────────────────────────── */}
+      <SectionHeader title="Data" />
       <Card>
-        <VStack className="p-4" space="sm">
-          <Text className="text-xs text-slate-500">
-            Paste a CSV with headers: <Text className="font-mono font-semibold">Name, Quantity, Category, Location</Text>
-          </Text>
-          <Text className="text-xs text-slate-400">
-            Upsert logic: existing items get their quantity incremented; new items are created.
-          </Text>
-          <TextInput
-            className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-gray-800 font-mono"
-            style={{ minHeight: 120, textAlignVertical: 'top' }}
-            multiline
-            placeholder={'Name,Quantity,Category,Location\nMilk,2,Dairy,Fridge\nRice,5,Grains,Pantry'}
-            placeholderTextColor="#94A3B8"
-            value={csvText}
-            onChangeText={setCsvText}
-            autoCorrect={false}
-            autoCapitalize="none"
-          />
-          <Button
-            size="sm"
-            className="bg-slate-900 rounded-lg"
-            onPress={handleImport}
-            disabled={importing}
-          >
-            <Ionicons name="cloud-upload-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
-            <ButtonText className="text-white">Import CSV</ButtonText>
-          </Button>
-        </VStack>
-      </Card>
-
-      {/* ── Export ─────────────────────────────────────────────────────── */}
-      <SectionHeader title="Export data" />
-      <Card>
-        <Pressable onPress={handleExport}>
+        <Pressable onPress={() => setDataSheetOpen(true)}>
           <HStack className="items-center px-4 py-3">
             <View className="w-8 h-8 rounded-lg bg-slate-100 items-center justify-center mr-3">
-              <Ionicons name="download-outline" size={16} color="#475569" />
+              <Ionicons name="swap-horizontal-outline" size={16} color="#475569" />
             </View>
             <VStack className="flex-1">
-              <Text className="text-sm font-medium text-gray-900">Export inventory</Text>
-              <Text className="text-xs text-gray-400">{inventory.length} items · CSV format</Text>
+              <Text className="text-sm font-medium text-slate-600">Import / export data</Text>
+              <Text className="text-xs text-slate-400">{inventory.length} items · CSV format</Text>
             </VStack>
             <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
           </HStack>
@@ -190,6 +159,95 @@ export default function ProfileScreen() {
               </Button>
             </VStack>
           </VStack>
+        </View>
+      </Modal>
+
+      {/* Import / export data sheet */}
+      <Modal
+        visible={dataSheetOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDataSheetOpen(false)}
+      >
+        <Pressable className="flex-1 bg-black/40" onPress={() => setDataSheetOpen(false)} />
+        <View className="bg-white rounded-t-2xl" style={{ maxHeight: '80%' }}>
+          <View className="items-center pt-3 pb-1">
+            <View className="w-10 h-1 bg-gray-300 rounded-full" />
+          </View>
+
+          {/* Header + tabs */}
+          <View className="px-6 pt-2 pb-4">
+            <HStack className="items-center mb-4">
+              <Heading size="md" className="flex-1">Import / export data</Heading>
+              <Pressable onPress={() => setDataSheetOpen(false)} hitSlop={12}>
+                <Ionicons name="close" size={20} color="#6B7280" />
+              </Pressable>
+            </HStack>
+            <HStack className="bg-slate-100 rounded-xl p-1">
+              {(['import', 'export'] as const).map(tab => (
+                <Pressable
+                  key={tab}
+                  className={`flex-1 py-2 rounded-lg items-center ${dataTab === tab ? 'bg-white shadow-sm' : ''}`}
+                  onPress={() => setDataTab(tab)}
+                >
+                  <Text className={`text-sm font-semibold capitalize ${dataTab === tab ? 'text-slate-900' : 'text-slate-400'}`}>
+                    {tab === 'import' ? 'Import' : 'Export'}
+                  </Text>
+                </Pressable>
+              ))}
+            </HStack>
+          </View>
+
+          {dataTab === 'import' ? (
+            <VStack className="px-6 pb-10" space="sm">
+              <Text className="text-xs text-slate-500">
+                Paste a CSV with headers:{' '}
+                <Text className="font-mono font-semibold">Name, Quantity, Category, Location</Text>
+              </Text>
+              <Text className="text-xs text-slate-400">
+                Upsert logic: existing items get their quantity incremented; new items are created.
+              </Text>
+              <TextInput
+                className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-gray-800 font-mono"
+                style={{ minHeight: 140, textAlignVertical: 'top' }}
+                multiline
+                placeholder={'Name,Quantity,Category,Location\nMilk,2,Dairy,Fridge\nRice,5,Grains,Pantry'}
+                placeholderTextColor="#94A3B8"
+                value={csvText}
+                onChangeText={setCsvText}
+                autoCorrect={false}
+                autoCapitalize="none"
+              />
+              <Button
+                size="md"
+                className="bg-slate-900 rounded-xl mt-1"
+                onPress={handleImport}
+                disabled={importing}
+              >
+                <Ionicons name="cloud-upload-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+                <ButtonText className="text-white">{importing ? 'Importing…' : 'Import CSV'}</ButtonText>
+              </Button>
+            </VStack>
+          ) : (
+            <VStack className="px-6 pb-10" space="sm">
+              <Text className="text-xs text-slate-500">
+                Your inventory will be exported as a CSV file you can back up or share.
+              </Text>
+              <Pressable className="bg-slate-100 border border-slate-200 rounded-lg px-4 py-2">
+                <Text className="text-xs text-slate-400 font-mono" numberOfLines={2}>
+                  Name,Quantity,Category,Location · {inventory.length} rows
+                </Text>
+              </Pressable>
+              <Button
+                size="md"
+                className="bg-slate-900 rounded-xl mt-1"
+                onPress={() => { handleExport(); setDataSheetOpen(false); }}
+              >
+                <Ionicons name="download-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+                <ButtonText className="text-white">Export inventory</ButtonText>
+              </Button>
+            </VStack>
+          )}
         </View>
       </Modal>
 
