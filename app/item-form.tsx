@@ -219,39 +219,40 @@ export default function ItemFormScreen() {
           onPress={pickImage}
           accessibilityRole="button"
           accessibilityLabel={imageUri ? 'Change item photo' : 'Add item photo'}
-          style={{ alignSelf: 'center', marginTop: 8, marginBottom: 20 }}
+          style={{ marginTop: 8, marginBottom: 20 }}
         >
           {imageUri ? (
             <Image
               source={{ uri: imageUri }}
-              style={{ width: 128, height: 128, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken }}
+              resizeMode="cover"
+              style={{ width: '100%', height: 220, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken }}
             />
           ) : (
-            <View style={{ width: 128, height: 128, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <View style={{ width: '100%', height: 160, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Ionicons name="camera-outline" size={28} color={colors.textMuted} />
-              <Text style={{ fontSize: 12, color: colors.textMuted }}>Add photo</Text>
+              <Text style={{ fontSize: 13, color: colors.textMuted }}>Add photo</Text>
             </View>
           )}
         </Tappable>
 
         {/* Low-stock suggestion */}
         {isEdit && (parseInt(qty, 10) || 0) === 1 && (
-          <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: colors.warningBg, borderWidth: 1, borderColor: colors.warningBorder, borderRadius: 16, padding: 16 }}>
+          <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: colors.warningBg, borderWidth: 1, borderColor: colors.warningBorder, borderRadius: theme.radii.lg, padding: 16 }}>
             <Ionicons name="alert-circle-outline" size={20} color={colors.warning} style={{ marginTop: 1 }} />
         <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.warningText }}>Running low</Text>
-              <Text style={{ fontSize: 12, color: colors.warningText, lineHeight: 20 }}>Only 1 left — consider restocking soon.</Text>
+              <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: colors.warningText }}>Running low</Text>
+              <Text style={{ fontSize: theme.type.caption, color: colors.warningText, lineHeight: 20 }}>Only 1 left — consider restocking soon.</Text>
               {isInShoppingList ? (
-                <View style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.success, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <View style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.success, borderRadius: theme.radii.sm, paddingHorizontal: 12, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Ionicons name="checkmark" size={12} color={colors.surface} />
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.surface }}>Added to shopping list</Text>
+                  <Text style={{ fontSize: theme.type.caption, fontWeight: '600', color: colors.surface }}>Added to shopping list</Text>
                 </View>
               ) : (
                 <Tappable
                   onPress={() => { addToShoppingList(existing!.name, existing!.id); router.dismiss(); }}
-                  style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.warning, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
+                  style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.warning, borderRadius: theme.radii.sm, paddingHorizontal: 12, paddingVertical: 6 }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.surface }}>Add to shopping list</Text>
+                  <Text style={{ fontSize: theme.type.caption, fontWeight: '600', color: colors.surface }}>Add to shopping list</Text>
                 </Tappable>
               )}
             </View>
@@ -260,22 +261,22 @@ export default function ItemFormScreen() {
 
         {/* Out-of-stock suggestion */}
         {isEdit && (parseInt(qty, 10) || 0) === 0 && (
-          <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: colors.dangerBg, borderWidth: 1, borderColor: colors.dangerBorder, borderRadius: 16, padding: 16 }}>
+          <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: colors.dangerBg, borderWidth: 1, borderColor: colors.dangerBorder, borderRadius: theme.radii.lg, padding: 16 }}>
             <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={{ marginTop: 1 }} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.dangerText }}>Out of stock</Text>
-              <Text style={{ fontSize: 12, color: colors.dangerText, lineHeight: 20 }}>You've used all of {existing!.name}.</Text>
+              <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: colors.dangerText }}>Out of stock</Text>
+              <Text style={{ fontSize: theme.type.caption, color: colors.dangerText, lineHeight: 20 }}>You've used all of {existing!.name}.</Text>
               {isInShoppingList ? (
-                <View style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.success, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <View style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.success, borderRadius: theme.radii.sm, paddingHorizontal: 12, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Ionicons name="checkmark" size={12} color={colors.surface} />
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.surface }}>Added to shopping list</Text>
+                  <Text style={{ fontSize: theme.type.caption, fontWeight: '600', color: colors.surface }}>Added to shopping list</Text>
                 </View>
               ) : (
                 <Tappable
                   onPress={() => { addToShoppingList(existing!.name, existing!.id); router.dismiss(); }}
-                  style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.danger, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
+                  style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.danger, borderRadius: theme.radii.sm, paddingHorizontal: 12, paddingVertical: 6 }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.surface }}>Add to shopping list</Text>
+                  <Text style={{ fontSize: theme.type.caption, fontWeight: '600', color: colors.surface }}>Add to shopping list</Text>
                 </Tappable>
               )}
             </View>
@@ -285,7 +286,7 @@ export default function ItemFormScreen() {
         {/* Item name */}
         <Field label="Item name">
           <TextInput
-            style={{ backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: nameError ? colors.danger : colors.border, borderRadius: 12, paddingHorizontal: 16, height: 48, fontSize: 14, color: colors.text, fontFamily: theme.fonts.regular }}
+            style={{ backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: nameError ? colors.danger : colors.border, borderRadius: theme.radii.md, paddingHorizontal: 16, height: 48, fontSize: theme.type.label, color: colors.text, fontFamily: theme.fonts.regular }}
             placeholder='"Atta" or "Rice"'
             placeholderTextColor={colors.textFaint}
             value={name}
@@ -303,10 +304,10 @@ export default function ItemFormScreen() {
         <Field label="Category">
           <Tappable
             onPress={() => setCategorySheet(true)}
-            style={{ backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, height: 48, flexDirection: 'row', alignItems: 'center' }}
+            style={{ backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: theme.radii.md, paddingHorizontal: 16, height: 48, flexDirection: 'row', alignItems: 'center' }}
           >
             {category && <Ionicons name={(categoryOptions.find(option => option.name === category)?.icon ?? 'pricetag-outline') as React.ComponentProps<typeof Ionicons>['name']} size={18} color={colors.textMuted} style={{ marginRight: 10 }} />}
-            <Text style={{ flex: 1, fontSize: 14, color: category ? colors.text : colors.textFaint }}>{category || 'Select a category'}</Text>
+            <Text style={{ flex: 1, fontSize: theme.type.label, color: category ? colors.text : colors.textFaint }}>{category || 'Select a category'}</Text>
             <Ionicons name="chevron-down" size={16} color={colors.textFaint} />
           </Tappable>
         </Field>
@@ -315,29 +316,29 @@ export default function ItemFormScreen() {
         <Field label="Location">
           <Tappable
             onPress={() => setLocationSheet(true)}
-            style={{ backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, height: 48, flexDirection: 'row', alignItems: 'center' }}
+            style={{ backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: theme.radii.md, paddingHorizontal: 16, height: 48, flexDirection: 'row', alignItems: 'center' }}
           >
             {location && <Ionicons name={(locationOptions.find(option => option.name === location)?.icon ?? 'location-outline') as React.ComponentProps<typeof Ionicons>['name']} size={18} color={colors.textMuted} style={{ marginRight: 10 }} />}
-            <Text style={{ flex: 1, fontSize: 14, color: location ? colors.text : colors.textFaint }}>{location || 'Where is it stored?'}</Text>
+            <Text style={{ flex: 1, fontSize: theme.type.label, color: location ? colors.text : colors.textFaint }}>{location || 'Where is it stored?'}</Text>
             <Ionicons name="chevron-down" size={16} color={colors.textFaint} />
           </Tappable>
         </Field>
 
         {/* Quantity */}
-        <View style={{ backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 20, marginTop: 8 }}>
-          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>Quantity</Text>
+        <View style={{ backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: theme.radii.lg, padding: 20, marginTop: 8 }}>
+          <Text style={{ fontSize: theme.type.caption, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>Quantity</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Tappable
               onPress={() => setQty(String(Math.max(0, (parseInt(qty, 10) || 0) - 1)))}
               disabled={(parseInt(qty, 10) || 0) === 0}
-              style={{ width: 56, height: 56, borderRadius: 999, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', opacity: (parseInt(qty, 10) || 0) === 0 ? 0.5 : 1 }}
+              style={{ width: 56, height: 56, borderRadius: theme.radii.pill, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', opacity: (parseInt(qty, 10) || 0) === 0 ? 0.5 : 1 }}
             >
               <Ionicons name="remove" size={22} color={colors.text} />
             </Tappable>
-            <Text style={{ fontSize: 32, fontWeight: '700', color: colors.text, fontFamily: theme.fonts.monoMedium }}>{parseInt(qty, 10) || 0}</Text>
+            <Text style={{ fontSize: theme.type.display, fontWeight: '700', color: colors.text, fontFamily: theme.fonts.monoMedium }}>{parseInt(qty, 10) || 0}</Text>
             <Tappable
               onPress={() => setQty(String((parseInt(qty, 10) || 0) + 1))}
-              style={{ width: 56, height: 56, borderRadius: 999, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: 56, height: 56, borderRadius: theme.radii.pill, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}
             >
               <Ionicons name="add" size={22} color={colors.surface} />
             </Tappable>
@@ -352,9 +353,9 @@ export default function ItemFormScreen() {
             .slice(0, 8);
           if (logs.length === 0) return null;
           return (
-            <View style={{ marginTop: 8, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
+            <View style={{ marginTop: 8, borderRadius: theme.radii.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
               <View style={{ backgroundColor: colors.surfaceSunken, paddingHorizontal: 16, justifyContent: 'center', height: 36 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5 }}>Recent Activity</Text>
+                <Text style={{ fontSize: theme.type.caption, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5 }}>Recent Activity</Text>
               </View>
               {logs.map((log, i) => {
                 const action = log.action ?? 'used';
@@ -365,11 +366,11 @@ export default function ItemFormScreen() {
                 return (
                   <View key={log.id} style={{ backgroundColor: colors.surface, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', height: 56, borderBottomWidth: i < logs.length - 1 ? 1 : 0, borderBottomColor: colors.border }}>
                     <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                      <View style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: dotColor }} />
+                      <View style={{ width: 8, height: 8, borderRadius: theme.radii.pill, backgroundColor: dotColor }} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 14, color: colors.primary, fontWeight: '500' }}>{label}</Text>
-                      <Text style={{ fontSize: 12, color: colors.textMuted }}>{formatActivityDate(log.consumed_at)}</Text>
+                      <Text style={{ fontSize: theme.type.label, color: colors.primary, fontWeight: '500' }}>{label}</Text>
+                      <Text style={{ fontSize: theme.type.caption, color: colors.textMuted }}>{formatActivityDate(log.consumed_at)}</Text>
                     </View>
                   </View>
                 );
@@ -384,10 +385,11 @@ export default function ItemFormScreen() {
         <Tappable
           onPress={handleSave}
           disabled={!isDirty}
+          haptic
           style={{
             flex: 1,
             backgroundColor: isDirty ? colors.accent : colors.border,
-            borderRadius: 12,
+            borderRadius: theme.radii.md,
             paddingVertical: 14,
             alignItems: 'center',
             opacity: isDirty ? 1 : 0.6,
@@ -403,7 +405,7 @@ export default function ItemFormScreen() {
               flex: 1,
               borderWidth: 1,
               borderColor: colors.border,
-              borderRadius: 12,
+              borderRadius: theme.radii.md,
               paddingVertical: 14,
               alignItems: 'center',
               opacity: isDirty ? 1 : 0.6,
@@ -441,13 +443,13 @@ export default function ItemFormScreen() {
       {/* Zero-qty shopping list sheet */}
       <NativeSheet visible={zeroQtySheet} onClose={handleZeroQtyNotNow}>
         <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 }}>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text }}>Item finished!</Text>
-          <Text style={{ fontSize: 14, color: colors.textMuted, marginTop: 4 }}>Add {pendingZeroQty?.itemName} to your shopping list?</Text>
+          <Text style={{ fontSize: theme.type.title, fontWeight: '600', color: colors.text }}>Item finished!</Text>
+          <Text style={{ fontSize: theme.type.label, color: colors.textMuted, marginTop: 4 }}>Add {pendingZeroQty?.itemName} to your shopping list?</Text>
           <View style={{ marginTop: 24, gap: 12 }}>
-            <Tappable onPress={handleZeroQtyAddToList} style={{ backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}>
+            <Tappable onPress={handleZeroQtyAddToList} style={{ backgroundColor: colors.accent, borderRadius: theme.radii.md, paddingVertical: 14, alignItems: 'center' }}>
               <Text style={{ color: colors.surface, fontWeight: '600' }}>Add to shopping list</Text>
             </Tappable>
-            <Tappable onPress={handleZeroQtyNotNow} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}>
+            <Tappable onPress={handleZeroQtyNotNow} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: theme.radii.md, paddingVertical: 14, alignItems: 'center' }}>
               <Text style={{ color: colors.text }}>Not now</Text>
             </Tappable>
           </View>
@@ -458,14 +460,14 @@ export default function ItemFormScreen() {
       <Modal visible={deleteConfirm} transparent animationType="fade" onRequestClose={() => setDeleteConfirm(false)}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Tappable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.25)' }} onPress={() => setDeleteConfirm(false)} />
-          <Tappable style={{ backgroundColor: colors.surface, borderRadius: 16, marginHorizontal: 32, padding: 24, width: 288 }} onPress={() => {}}>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Delete "{existing?.name}"?</Text>
-            <Text style={{ fontSize: 14, color: colors.textMuted, marginBottom: 24 }}>This will also remove it from your shopping list.</Text>
+          <Tappable style={{ backgroundColor: colors.surface, borderRadius: theme.radii.lg, marginHorizontal: 32, padding: 24, width: 288 }} onPress={() => {}}>
+            <Text style={{ fontSize: theme.type.body, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Delete "{existing?.name}"?</Text>
+            <Text style={{ fontSize: theme.type.label, color: colors.textMuted, marginBottom: 24 }}>This will also remove it from your shopping list.</Text>
             <View style={{ gap: 12 }}>
-              <Tappable onPress={confirmDelete} style={{ backgroundColor: colors.danger, borderRadius: 12, paddingVertical: 12, alignItems: 'center' }}>
+              <Tappable onPress={confirmDelete} style={{ backgroundColor: colors.danger, borderRadius: theme.radii.md, paddingVertical: 12, alignItems: 'center' }}>
                 <Text style={{ color: colors.surface, fontWeight: '500' }}>Delete</Text>
               </Tappable>
-              <Tappable onPress={() => setDeleteConfirm(false)} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingVertical: 12, alignItems: 'center' }}>
+              <Tappable onPress={() => setDeleteConfirm(false)} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: theme.radii.md, paddingVertical: 12, alignItems: 'center' }}>
                 <Text style={{ color: colors.text }}>Cancel</Text>
               </Tappable>
             </View>
@@ -475,9 +477,9 @@ export default function ItemFormScreen() {
 
       {/* Toast */}
       <Animated.View pointerEvents="none" style={{ opacity: toastOpacity, position: 'absolute', bottom: 112, left: 24, right: 24, alignItems: 'center' }}>
-        <View style={{ backgroundColor: colors.primary, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ backgroundColor: colors.primary, borderRadius: theme.radii.md, paddingHorizontal: 20, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Ionicons name="checkmark-circle" size={16} color={colors.successBright} />
-          <Text style={{ color: colors.surface, fontSize: 14, fontWeight: '500' }}>{toastMsg}</Text>
+          <Text style={{ color: colors.surface, fontSize: theme.type.label, fontWeight: '500' }}>{toastMsg}</Text>
         </View>
       </Animated.View>
     </KeyboardAvoidingView>
@@ -503,7 +505,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   const colors = useColors();
   return (
     <View style={{ marginBottom: 16 }}>
-      <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 8 }}>{label}</Text>
+      <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: colors.text, marginBottom: 8 }}>{label}</Text>
       {children}
     </View>
   );
@@ -535,12 +537,12 @@ function PickerSheet({
     <NativeSheet visible={visible} onClose={onClose} snapPoints={['50%', '90%']}>
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 }}>
-          <Text style={{ flex: 1, fontSize: 16, fontWeight: '600', color: colors.text }}>{title}</Text>
+          <Text style={{ flex: 1, fontSize: theme.type.body, fontWeight: '600', color: colors.text }}>{title}</Text>
           <Tappable onPress={onClose} hitSlop={12}>
             <Ionicons name="close" size={20} color={colors.textMuted} />
           </Tappable>
         </View>
-        <View style={{ marginHorizontal: 16, marginBottom: 8, height: 44, borderRadius: 12, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 }}>
+        <View style={{ marginHorizontal: 16, marginBottom: 8, height: 44, borderRadius: theme.radii.md, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 }}>
           <Ionicons name="search-outline" size={18} color={colors.textFaint} />
           <TextInput
             value={query}
@@ -548,7 +550,7 @@ function PickerSheet({
             placeholder={`Search ${type}s`}
             placeholderTextColor={colors.textFaint}
             autoCapitalize="words"
-            style={{ flex: 1, marginLeft: 8, fontSize: 14, color: colors.text, fontFamily: theme.fonts.regular }}
+            style={{ flex: 1, marginLeft: 8, fontSize: theme.type.label, color: colors.text, fontFamily: theme.fonts.regular }}
           />
         </View>
         <FlatList
@@ -561,16 +563,16 @@ function PickerSheet({
           renderItem={({ item }) => (
             <Tappable onPress={() => onSelect(item.name)} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16 }}>
               <Ionicons name={item.icon as React.ComponentProps<typeof Ionicons>['name']} size={20} color={colors.textMuted} style={{ marginRight: 12 }} />
-              <Text style={{ flex: 1, fontSize: 14, color: colors.text }}>{item.name}</Text>
+              <Text style={{ flex: 1, fontSize: theme.type.label, color: colors.text }}>{item.name}</Text>
               {selected === item.name && <Ionicons name="checkmark" size={18} color={colors.accent} />}
             </Tappable>
           )}
           ListEmptyComponent={normalizedQuery && exactMatch ? null : <Text style={{ padding: 24, textAlign: 'center', color: colors.textFaint }}>No {type}s found</Text>}
         />
         {normalizedQuery && !exactMatch && (
-          <Tappable onPress={() => onCreate(query)} style={{ height: 44, marginHorizontal: 16, marginBottom: 16, borderRadius: 12, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <Tappable onPress={() => onCreate(query)} style={{ height: 44, marginHorizontal: 16, marginBottom: 16, borderRadius: theme.radii.md, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <Ionicons name="add-circle-outline" size={18} color={colors.surface} />
-            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.surface }}>Add “{query.trim()}”</Text>
+            <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: colors.surface }}>Add “{query.trim()}”</Text>
           </Tappable>
         )}
       </View>

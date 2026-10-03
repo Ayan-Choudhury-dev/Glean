@@ -160,7 +160,7 @@ function SyncErrorBanner() {
       }}
     >
       <Ionicons name="cloud-offline-outline" size={18} color={colors.danger} />
-      <Text style={{ flex: 1, fontSize: 14, color: colors.text }}>{syncError}</Text>
+      <Text style={{ flex: 1, fontSize: theme.type.label, color: colors.text }}>{syncError}</Text>
       <Tappable onPress={clearSyncError} hitSlop={10} accessibilityRole="button" accessibilityLabel="Dismiss error">
         <Ionicons name="close" size={18} color={colors.textMuted} />
       </Tappable>

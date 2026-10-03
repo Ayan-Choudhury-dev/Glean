@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { View, TextInput, ScrollView, Alert, Share, Linking, RefreshControl, Animated } from 'react-native';
+import { View, TextInput, ScrollView, Alert, Share, Linking, RefreshControl, Animated, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
 import { Tappable } from '../../components/ui/tappable';
 import { CollapsibleHeaderBar, LargeTitle, useCollapsibleHeader, useHeaderContentInset } from '../../components/CollapsibleHeader';
+import { uploadAvatar } from '@/lib/upload';
 import { useGleanStore } from '../../store/useGleanStore';
 
 import { Heading } from '@/components/ui/heading';
@@ -30,7 +32,7 @@ function initialsFor(name: string): string {
 }
 
 export default function ProfileScreen() {
-  const { profile, house, inventory, importCSV, signOut, loadHouseData } = useGleanStore();
+  const { profile, house, inventory, importCSV, signOut, loadHouseData, setAvatar } = useGleanStore();
   const colors = useColors();
   const appearanceMode = useAppearance(s => s.mode);
   const setAppearanceMode = useAppearance(s => s.setMode);
@@ -58,6 +60,24 @@ export default function ProfileScreen() {
     await Share.share({
       message: `Join my household "${house.name ?? 'Glean'}" on Glean with invite code ${house.invite_code}`,
     });
+  };
+
+  const pickAvatar = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Permission needed', 'Allow photo access to set your profile photo.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (result.canceled || !result.assets[0] || !profile) return;
+    const uri = result.assets[0].uri;
+    const url = await uploadAvatar(uri, profile.id);
+    setAvatar(url ?? uri);
   };
 
   const handleSignOut = () => {
@@ -142,12 +162,21 @@ export default function ProfileScreen() {
       >
         <LargeTitle title="Settings" scrollY={scrollY} />
 
-      <View style={{ marginHorizontal: 24, marginTop: 16, marginBottom: 8, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.borderLight, padding: 16, flexDirection: 'row', alignItems: 'center' }}>
-        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: colors.surface, fontSize: 20, fontWeight: '700' }}>{initialsFor(profile?.name ?? '')}</Text>
-        </View>
+      <View style={{ marginHorizontal: 24, marginTop: 16, marginBottom: 8, backgroundColor: colors.surface, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: colors.borderLight, padding: 16, flexDirection: 'row', alignItems: 'center' }}>
+        <Tappable onPress={pickAvatar} accessibilityRole="button" accessibilityLabel="Change profile photo">
+          {profile?.avatar_url ? (
+            <Image
+              source={{ uri: profile.avatar_url }}
+              style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.surfaceSunken }}
+            />
+          ) : (
+            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: colors.surface, fontSize: 20, fontWeight: '700' }}>{initialsFor(profile?.name ?? '')}</Text>
+            </View>
+          )}
+        </Tappable>
         <View style={{ flex: 1, marginLeft: 14 }}>
-          <Text style={{ fontSize: 12, color: colors.textFaint, marginBottom: 4 }}>Signed in as</Text>
+          <Text style={{ fontSize: theme.type.caption, color: colors.textFaint, marginBottom: 4 }}>Signed in as</Text>
           <Text style={{ fontSize: 20, fontWeight: '600', color: colors.primary }} numberOfLines={1}>{profile?.name ?? 'User'}</Text>
         </View>
       </View>
@@ -202,7 +231,7 @@ export default function ProfileScreen() {
                 accessibilityLabel={`Appearance: ${m}`}
                 style={{ flex: 1, height: 40, borderRadius: theme.radii.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: active ? colors.accent : colors.chipBg }}
               >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: active ? colors.onAccent : colors.text, textTransform: 'capitalize' }}>
+                <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: active ? colors.onAccent : colors.text, textTransform: 'capitalize' }}>
                   {m}
                 </Text>
               </Tappable>
@@ -224,10 +253,10 @@ export default function ProfileScreen() {
       <Card>
         <Tappable onPress={handleSignOut}>
           <HStack className="items-center px-4 py-3">
-            <View className="w-8 h-8 rounded-lg bg-red-50 items-center justify-center mr-3">
+            <View className="w-8 h-8 rounded-lg bg-red-50 dark:bg-[#3A1E1E] items-center justify-center mr-3">
               <Ionicons name="log-out-outline" size={16} color={colors.danger} />
             </View>
-            <Text className="flex-1 text-sm font-medium text-red-500">Sign out</Text>
+            <Text className="flex-1 text-sm font-medium text-red-500 dark:text-[#FF6B6B]">Sign out</Text>
           </HStack>
         </Tappable>
       </Card>
@@ -355,7 +384,7 @@ function SectionHeader({ title }: { title: string }) {
 function Card({ children }: { children: React.ReactNode }) {
   const colors = useColors();
   return (
-    <View style={{ marginHorizontal: 24, backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.borderLight, overflow: 'hidden' }}>
+    <View style={{ marginHorizontal: 24, backgroundColor: colors.surface, borderRadius: theme.radii.md, borderWidth: 1, borderColor: colors.borderLight, overflow: 'hidden' }}>
       {children}
     </View>
   );

@@ -30,7 +30,8 @@ async function restore() {
 
 async function exec(op: Op) {
   if (op.kind === 'insert') {
-    return supabase.from(op.table).insert(op.payload as never);
+    // Upsert on the primary key so a retried insert can't duplicate a row.
+    return supabase.from(op.table).upsert(op.payload as never, { onConflict: 'id' });
   }
   if (op.kind === 'update') {
     return supabase.from(op.table).update(op.payload as never).eq('id', op.id!);

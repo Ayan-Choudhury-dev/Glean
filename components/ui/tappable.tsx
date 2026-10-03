@@ -8,6 +8,9 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useColors } from '@/lib/appearance';
+import * as Haptics from 'expo-haptics';
+
+type TappableProps = PressableProps & { haptic?: boolean };
 
 /**
  * Shared tappable surface. Android gets a bounded Material ripple, iOS gets a
@@ -23,8 +26,8 @@ import { useColors } from '@/lib/appearance';
 
 export const Tappable = React.forwardRef<
   React.ComponentRef<typeof Pressable>,
-  PressableProps
->(function Tappable({ style, android_ripple, onPressIn, onPressOut, onFocus, onBlur, ...props }, ref) {
+  TappableProps
+>(function Tappable({ style, android_ripple, onPressIn, onPressOut, onFocus, onBlur, haptic, ...props }, ref) {
   const [pressed, setPressed] = useState(false);
   const [focused, setFocused] = useState(false);
   const colors = useColors();
@@ -50,6 +53,7 @@ export const Tappable = React.forwardRef<
       }
       style={merged}
       onPressIn={event => {
+        if (haptic) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setPressed(true);
         onPressIn?.(event);
       }}

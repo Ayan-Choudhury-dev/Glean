@@ -42,6 +42,30 @@ export async function uploadItemImage(
   }
 }
 
+/** Upload a locally-picked avatar and return its public URL (null on failure). */
+export async function uploadAvatar(uri: string, userId: string): Promise<string | null> {
+  try {
+    const ext = (uri.split('?')[0].split('.').pop() ?? 'jpg').toLowerCase();
+    const path = `avatars/${userId}.${ext}`;
+    const bytes = await new File(uri).arrayBuffer();
+
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, bytes, { upsert: true, contentType: contentTypeFor(uri) });
+
+    if (error) {
+      console.error('[upload] avatar:', error.message);
+      return null;
+    }
+
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    return data.publicUrl;
+  } catch (e) {
+    console.error('[upload] avatar failed:', e);
+    return null;
+  }
+}
+
 /** Remove an item's stored image(s) when the item is deleted. */
 export async function deleteItemImage(houseId: string, itemId: string): Promise<void> {
   try {

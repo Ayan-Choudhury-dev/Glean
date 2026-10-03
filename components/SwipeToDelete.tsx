@@ -40,7 +40,7 @@ export function SwipeToDelete({
           }}
         >
           <Ionicons name="trash-outline" size={20} color={colors.surface} />
-          <Text style={{ color: colors.surface, fontSize: 12, fontWeight: '600' }}>{label}</Text>
+          <Text style={{ color: colors.surface, fontSize: theme.type.caption, fontWeight: '600' }}>{label}</Text>
         </Tappable>
       )}
     >

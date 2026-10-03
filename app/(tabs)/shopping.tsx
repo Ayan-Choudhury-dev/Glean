@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, ScrollView, TextInput, FlatList, Alert, RefreshControl, Animated } from 'react-native';
+import { View, ScrollView, TextInput, FlatList, Alert, RefreshControl, Animated, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tappable } from '../../components/ui/tappable';
@@ -51,7 +51,7 @@ const ShoppingRow = React.memo(function ShoppingRow({
         accessibilityState={{ checked: purchased }}
         accessibilityLabel={purchased ? `Mark ${item.name} as not purchased` : `Mark ${item.name} as purchased`}
       >
-        <View style={{ width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: purchased ? C.accent : colors.borderStrong, backgroundColor: purchased ? C.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 26, height: 26, borderRadius: theme.radii.sm, borderWidth: 2, borderColor: purchased ? C.accent : colors.borderStrong, backgroundColor: purchased ? C.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
           {purchased && <Ionicons name="checkmark" size={15} color={C.onAccent} />}
         </View>
       </Tappable>
@@ -59,9 +59,9 @@ const ShoppingRow = React.memo(function ShoppingRow({
       <View style={{ flex: 1, gap: 3 }}>
         <Text style={{ fontSize: theme.type.body, fontWeight: '600', color: purchased ? C.faint : C.text, textDecorationLine: purchased ? 'line-through' : 'none' }} numberOfLines={1}>{item.name}</Text>
         {purchased ? (
-          <Text style={{ fontSize: 14, color: C.faint }}>Quantity {item.target_qty}</Text>
+          <Text style={{ fontSize: theme.type.label, color: C.faint }}>Quantity {item.target_qty}</Text>
         ) : subtitle ? (
-          <Text style={{ fontSize: 14, color: C.muted }} numberOfLines={1}>{subtitle}</Text>
+          <Text style={{ fontSize: theme.type.label, color: C.muted }} numberOfLines={1}>{subtitle}</Text>
         ) : null}
       </View>
 
@@ -77,7 +77,7 @@ const ShoppingRow = React.memo(function ShoppingRow({
           >
             <Ionicons name="remove" size={15} color={C.text} />
           </Tappable>
-          <Text style={{ fontSize: 16, fontWeight: '600', color: C.text, fontFamily: theme.fonts.monoMedium, minWidth: 22, textAlign: 'center' }}>{item.target_qty}</Text>
+          <Text style={{ fontSize: theme.type.body, fontWeight: '600', color: C.text, fontFamily: theme.fonts.monoMedium, minWidth: 22, textAlign: 'center' }}>{item.target_qty}</Text>
           <Tappable
             onPress={() => onAdjust(item.id, 1)}
             accessibilityRole="button"
@@ -108,7 +108,7 @@ const SuggestionRow = React.memo(function SuggestionRow({
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 15, fontWeight: '500', color: C.text }}>{suggestion.name}</Text>
-        <Text style={{ fontSize: 12, color: C.warning, marginTop: 2 }}>Predicted to finish {suggestion.label}</Text>
+        <Text style={{ fontSize: theme.type.caption, color: C.warning, marginTop: 2 }}>Predicted to finish {suggestion.label}</Text>
       </View>
       <Tappable
         onPress={() => onAdd(suggestion)}
@@ -128,7 +128,7 @@ function SectionLabel({ label }: { label: string }) {
   const C = useC();
   return (
     <View style={{ paddingHorizontal: PAD, paddingTop: 16, paddingBottom: 4 }}>
-      <Text style={{ fontSize: 12, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5 }}>{label}</Text>
+      <Text style={{ fontSize: theme.type.caption, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5 }}>{label}</Text>
     </View>
   );
 }
@@ -202,6 +202,12 @@ export default function ShoppingScreen() {
     ]);
   }, [purchased.length, clearPurchased]);
 
+  const shareList = useCallback(async () => {
+    if (toBuy.length === 0) return;
+    const message = `Shopping list (${toBuy.length})\n` + toBuy.map(i => `• ${i.name} ×${i.target_qty}`).join('\n');
+    await Share.share({ message });
+  }, [toBuy]);
+
   const onRefresh = useCallback(async () => {
     if (!house) return;
     setRefreshing(true);
@@ -221,15 +227,27 @@ export default function ShoppingScreen() {
         title="Shopping list"
         scrollY={scrollY}
         right={
-          <Tappable
-            onPress={() => { setAddItemSearch(''); setAddItemSheet(true); }}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel="Add item to list"
-            style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Ionicons name="add" size={26} color={C.accent} />
-          </Tappable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <Tappable
+              onPress={shareList}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Share shopping list"
+              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="share-outline" size={22} color={C.text} />
+            </Tappable>
+            <Tappable
+              onPress={() => { setAddItemSearch(''); setAddItemSheet(true); }}
+              haptic
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Add item to list"
+              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="add" size={26} color={C.accent} />
+            </Tappable>
+          </View>
         }
       />
 
@@ -257,7 +275,7 @@ export default function ShoppingScreen() {
                 accessibilityLabel={`${t.label}, ${t.count}`}
                 style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: theme.radii.sm, backgroundColor: active ? colors.surface : 'transparent', ...(active ? theme.elevation.raised : null) }}
               >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: active ? C.text : C.muted }}>{t.label}</Text>
+                <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: active ? C.text : C.muted }}>{t.label}</Text>
                 <View style={{ minWidth: 20, paddingHorizontal: 6, paddingVertical: 1, borderRadius: theme.radii.pill, backgroundColor: active ? colors.primary : C.border }}>
                   <Text style={{ fontSize: 11, fontWeight: '700', textAlign: 'center', color: active ? C.onAccent : C.muted }}>{t.count}</Text>
                 </View>
@@ -342,12 +360,13 @@ export default function ShoppingScreen() {
               updatePantry();
               setSnackbar({ message: `${count} item${count !== 1 ? 's' : ''} added to pantry`, canUndo: true });
             }}
+            haptic
             accessibilityRole="button"
             accessibilityLabel={`Update pantry with ${purchased.length} items`}
             style={{ flex: 1, backgroundColor: C.accent, borderRadius: theme.radii.md, height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 24 }}
           >
             <Ionicons name="checkmark-circle-outline" size={18} color={C.onAccent} />
-            <Text style={{ color: C.onAccent, fontWeight: '600', fontSize: 16 }}>
+            <Text style={{ color: C.onAccent, fontWeight: '600', fontSize: theme.type.body }}>
               Update Pantry ({purchased.length})
             </Text>
           </Tappable>
@@ -356,7 +375,7 @@ export default function ShoppingScreen() {
 
       {snackbar && (
         <View style={{ position: 'absolute', left: PAD, right: PAD, bottom: insets.bottom + 148, minHeight: 52, borderRadius: theme.radii.md, backgroundColor: colors.snackbarBg, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 8, gap: 12 }}>
-          <Text style={{ flex: 1, color: colors.surface, fontSize: 14 }} numberOfLines={1}>{snackbar.message}</Text>
+          <Text style={{ flex: 1, color: colors.surface, fontSize: theme.type.label }} numberOfLines={1}>{snackbar.message}</Text>
           {snackbar.canUndo && (
             <Tappable
               onPress={() => { undoLastPantryUpdate(); setSnackbar(null); }}
@@ -365,7 +384,7 @@ export default function ShoppingScreen() {
               accessibilityLabel="Undo"
               style={{ paddingHorizontal: 10, paddingVertical: 8 }}
             >
-              <Text style={{ color: colors.infoSoft, fontSize: 14, fontWeight: '700' }}>Undo</Text>
+              <Text style={{ color: colors.infoSoft, fontSize: theme.type.label, fontWeight: '700' }}>Undo</Text>
             </Tappable>
           )}
         </View>

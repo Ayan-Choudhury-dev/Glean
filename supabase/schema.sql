@@ -160,3 +160,15 @@ CREATE POLICY "item-images: insert" ON storage.objects
 DROP POLICY IF EXISTS "item-images: update" ON storage.objects;
 CREATE POLICY "item-images: update" ON storage.objects
   FOR UPDATE TO authenticated USING (bucket_id = 'item-images');
+
+
+-- ── Realtime ───────────────────────────────────────────────────────────────────
+-- Publish household tables so members see each other's changes live.
+
+ALTER PUBLICATION supabase_realtime ADD TABLE inventory;
+ALTER PUBLICATION supabase_realtime ADD TABLE shopping_list;
+ALTER PUBLICATION supabase_realtime ADD TABLE consumption_logs;
+ALTER PUBLICATION supabase_realtime ADD TABLE house_options;
+
+-- Add avatar support to profiles.
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;

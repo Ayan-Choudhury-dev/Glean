@@ -30,10 +30,10 @@ const EMAIL_RE = /^\S+@\S+\.\S+$/;
 const makeInputStyle = (colors: AppColors) => ({
   backgroundColor: colors.surfaceMuted,
   borderWidth: 1,
-  borderRadius: 12,
+  borderRadius: theme.radii.md,
   paddingHorizontal: 16,
   height: 48,
-  fontSize: 14,
+  fontSize: theme.type.label,
   color: colors.text,
   fontFamily: theme.fonts.regular,
 });
@@ -41,7 +41,7 @@ const makeInputStyle = (colors: AppColors) => ({
 function FieldError({ message }: { message: string }) {
   const colors = useColors();
   return (
-    <Text style={{ color: colors.danger, fontSize: 12, marginTop: 4, marginLeft: 4 }}>
+    <Text style={{ color: colors.danger, fontSize: theme.type.caption, marginTop: 4, marginLeft: 4 }}>
       {message}
     </Text>
   );
@@ -141,15 +141,15 @@ export default function OnboardingScreen() {
       <View style={{ flex: 1, paddingHorizontal: 32, justifyContent: 'center' }}>
         {/* App mark */}
         <View style={{ alignItems: 'center', marginBottom: 40 }}>
-          <View style={{ width: 80, height: 80, backgroundColor: colors.accent, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <View style={{ width: 80, height: 80, backgroundColor: colors.accent, borderRadius: theme.radii.lg, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             <Ionicons name="cube" size={40} color={colors.surface} />
           </View>
           <Text style={{ fontSize: 30, fontWeight: '700', color: colors.text }}>Glean</Text>
-          <Text style={{ color: colors.textFaint, fontSize: 14, marginTop: 4 }}>Your household inventory</Text>
+          <Text style={{ color: colors.textFaint, fontSize: theme.type.label, marginTop: 4 }}>Your household inventory</Text>
         </View>
 
         {/* Mode toggle */}
-        <View style={{ flexDirection: 'row', backgroundColor: colors.borderLight, borderRadius: 12, padding: 4, marginBottom: 24 }}>
+        <View style={{ flexDirection: 'row', backgroundColor: colors.borderLight, borderRadius: theme.radii.md, padding: 4, marginBottom: 24 }}>
           {(['sign_up', 'sign_in'] as Mode[]).map(m => {
             const active = mode === m;
             return (
@@ -159,7 +159,7 @@ export default function OnboardingScreen() {
                 style={{
                   flex: 1,
                   paddingVertical: 8,
-                  borderRadius: 8,
+                  borderRadius: theme.radii.sm,
                   alignItems: 'center',
                   backgroundColor: active ? colors.surface : 'transparent',
                   shadowColor: active ? colors.shadow : 'transparent',
@@ -169,7 +169,7 @@ export default function OnboardingScreen() {
                   elevation: active ? 2 : 0,
                 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: active ? colors.accent : colors.textFaint }}>
+                <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: active ? colors.accent : colors.textFaint }}>
                   {m === 'sign_up' ? 'Sign up' : 'Sign in'}
                 </Text>
               </Tappable>
@@ -243,7 +243,7 @@ export default function OnboardingScreen() {
             disabled={busy}
             style={{
               backgroundColor: colors.accent,
-              borderRadius: 12,
+              borderRadius: theme.radii.md,
               height: 48,
               marginTop: 8,
               alignItems: 'center',
@@ -264,19 +264,19 @@ export default function OnboardingScreen() {
             <>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
                 <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-                <Text style={{ marginHorizontal: 16, fontSize: 12, color: colors.textFaint }}>or</Text>
+                <Text style={{ marginHorizontal: 16, fontSize: theme.type.caption, color: colors.textFaint }}>or</Text>
                 <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
               </View>
 
               {magicLinkSent ? (
                 <View style={{ alignItems: 'center', paddingVertical: 16 }}>
                   <Ionicons name="mail-outline" size={28} color={colors.textMuted} />
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginTop: 8 }}>Check your email</Text>
-                  <Text style={{ fontSize: 12, color: colors.textFaint, textAlign: 'center', marginTop: 4 }}>
+                  <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: colors.text, marginTop: 8 }}>Check your email</Text>
+                  <Text style={{ fontSize: theme.type.caption, color: colors.textFaint, textAlign: 'center', marginTop: 4 }}>
                     We sent a sign-in link to {email}
                   </Text>
                   <Tappable onPress={() => setMagicLinkSent(false)}>
-                    <Text style={{ fontSize: 12, color: colors.info, marginTop: 4 }}>Use a different email</Text>
+                    <Text style={{ fontSize: theme.type.caption, color: colors.info, marginTop: 4 }}>Use a different email</Text>
                   </Tappable>
                 </View>
               ) : (
@@ -290,12 +290,12 @@ export default function OnboardingScreen() {
                     backgroundColor: colors.surface,
                     borderWidth: 1,
                     borderColor: colors.border,
-                    borderRadius: 12,
+                    borderRadius: theme.radii.md,
                     height: 48,
                   }}
                 >
                   <Ionicons name="mail-outline" size={18} color={colors.textMuted} />
-                  <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: '600', color: colors.text }}>
+                  <Text style={{ marginLeft: 8, fontSize: theme.type.label, fontWeight: '600', color: colors.text }}>
                     Sign in with magic link
                   </Text>
                 </Tappable>

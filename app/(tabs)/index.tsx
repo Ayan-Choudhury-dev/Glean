@@ -91,7 +91,7 @@ function Chip({
       ) : icon ? (
         <Ionicons name={icon} size={15} color={active ? C.text : C.muted} />
       ) : null}
-      <Text style={{ fontSize: 14, fontWeight: active ? '600' : '500', color: C.text }}>
+      <Text style={{ fontSize: theme.type.label, fontWeight: active ? '600' : '500', color: C.text }}>
         {label}
       </Text>
     </Tappable>
@@ -150,7 +150,7 @@ const InventoryRow = React.memo(function InventoryRow({
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {item.location ? (
-            <Text style={{ fontSize: 14, color: C.muted }} numberOfLines={1}>{item.location}</Text>
+            <Text style={{ fontSize: theme.type.label, color: C.muted }} numberOfLines={1}>{item.location}</Text>
           ) : null}
           {item.qty === 0 ? (
             <Text style={{ fontSize: 13, fontWeight: '600', color: C.danger }}>Out of stock</Text>
@@ -172,7 +172,7 @@ const InventoryRow = React.memo(function InventoryRow({
         >
           <Ionicons name="remove" size={15} color={C.text} />
         </Tappable>
-        <Text style={{ fontSize: 16, fontWeight: '600', color: C.text, fontFamily: theme.fonts.monoMedium, minWidth: 22, textAlign: 'center' }}>
+        <Text style={{ fontSize: theme.type.body, fontWeight: '600', color: C.text, fontFamily: theme.fonts.monoMedium, minWidth: 22, textAlign: 'center' }}>
           {item.qty}
         </Text>
         <Tappable
@@ -194,10 +194,10 @@ function SectionHeader({ title, count }: { title: string; count?: number }) {
   const C = useC();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: PAD, paddingTop: 20, paddingBottom: 8 }}>
-      <Text style={{ fontSize: 12, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 1.2 }}>
+      <Text style={{ fontSize: theme.type.caption, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 1.2 }}>
         {title}
       </Text>
-      {count != null ? <Text style={{ fontSize: 12, color: C.muted }}>{count}</Text> : null}
+      {count != null ? <Text style={{ fontSize: theme.type.caption, color: C.muted }}>{count}</Text> : null}
     </View>
   );
 }
@@ -381,6 +381,7 @@ export default function InventoryScreen() {
       </Text>
       <Tappable
         onPress={() => router.push('/item-form')}
+        haptic
         accessibilityRole="button"
         accessibilityLabel="Add new item"
         style={{ marginTop: 24, backgroundColor: C.accent, borderRadius: theme.radii.md, paddingHorizontal: 24, paddingVertical: 14 }}
@@ -392,7 +393,7 @@ export default function InventoryScreen() {
     <View style={{ alignItems: 'center', paddingTop: 72, paddingHorizontal: PAD }}>
       <Ionicons name="search-outline" size={40} color={C.faint} />
       <Text style={{ fontSize: 17, fontWeight: '600', color: C.text, marginTop: 16 }}>No items found</Text>
-      <Text style={{ fontSize: 14, color: C.muted, marginTop: 4 }}>Try a different search or filter</Text>
+      <Text style={{ fontSize: theme.type.label, color: C.muted, marginTop: 4 }}>Try a different search or filter</Text>
     </View>
   );
 

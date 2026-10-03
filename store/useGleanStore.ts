@@ -22,6 +22,7 @@ export interface Profile {
   id:       string;
   name:     string;
   house_id: string | null;
+  avatar_url?: string | null;
 }
 
 export interface House {
@@ -142,6 +143,7 @@ interface GleanState {
   signOut:      ()                                              => Promise<void>;
   clearSession: ()                                              => void;
   clearSyncError: ()                                            => void;
+  setAvatar:    (url: string | null)                            => void;
   loadSession:  ()                                              => Promise<void>;
 
   // House
@@ -274,6 +276,60 @@ function sbDelete(table: string, id: string) {
 
 function generateInviteCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+// ─── Realtime sync (multi-user) ────────────────────────────────────────────────
+
+type RealtimeTable = 'inventory' | 'shopping_list' | 'consumption_logs';
+
+let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+
+function applyRealtimeChange(
+  state: GleanState,
+  table: RealtimeTable,
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE',
+  row: { id: string },
+): Partial<GleanState> {
+  const key = table === 'inventory' ? 'inventory'
+    : table === 'shopping_list' ? 'shoppingList'
+      : 'consumptionLogs';
+  const list = state[key] as { id: string }[];
+  if (eventType === 'DELETE') {
+    return { [key]: list.filter(x => x.id !== row.id) } as Partial<GleanState>;
+  }
+  const exists = list.some(x => x.id === row.id);
+  return {
+    [key]: exists ? list.map(x => (x.id === row.id ? row : x)) : [...list, row],
+  } as Partial<GleanState>;
+}
+
+interface RealtimeChannelLike {
+  on: (
+    event: string,
+    filter: unknown,
+    cb: (p: { eventType: 'INSERT' | 'UPDATE' | 'DELETE'; new: { id: string }; old: { id: string } }) => void,
+  ) => RealtimeChannelLike;
+  subscribe: () => unknown;
+}
+
+function startRealtime(houseId: string) {
+  if (realtimeChannel) return;
+  const channel = supabase.channel(`house:${houseId}`) as unknown as RealtimeChannelLike;
+  const handle = (table: RealtimeTable) => (p: { eventType: 'INSERT' | 'UPDATE' | 'DELETE'; new: { id: string }; old: { id: string } }) =>
+    useGleanStore.setState(s => applyRealtimeChange(s, table, p.eventType, p.eventType === 'DELETE' ? p.old : p.new));
+
+  realtimeChannel = channel
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory', filter: `house_id=eq.${houseId}` }, handle('inventory'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list', filter: `house_id=eq.${houseId}` }, handle('shopping_list'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'consumption_logs', filter: `house_id=eq.${houseId}` }, handle('consumption_logs'))
+    .subscribe() as ReturnType<typeof supabase.channel>;
+}
+
+function stopRealtime() {
+  if (realtimeChannel) {
+    supabase.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -411,10 +467,23 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   },
 
   clearSession: () => {
+    stopRealtime();
     set({ profile: null, house: null, inventory: [], shoppingList: [], consumptionLogs: [], houseOptions: [], lastPantryUpdate: null });
   },
 
   clearSyncError: () => set({ syncError: null }),
+
+  setAvatar: (url) => {
+    const { profile } = get();
+    if (!profile) return;
+    set({ profile: { ...profile, avatar_url: url } });
+    supabase.from('profiles').update({ avatar_url: url }).eq('id', profile.id).then(({ error }) => {
+      if (error) {
+        console.error('[sb] update profiles.avatar_url:', error.message);
+        reportSyncError("Couldn't save your photo — check your connection.");
+      }
+    });
+  },
 
   loadSession: async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -521,6 +590,8 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       houseOptions,
       loading: false,
     });
+
+    startRealtime(houseId);
   },
 
   addHouseOption: (type, name, icon) => {
