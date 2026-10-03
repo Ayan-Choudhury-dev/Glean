@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Tappable } from '../../components/ui/tappable';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { useGleanStore } from '../../store/useGleanStore';
 
 import { Heading } from '@/components/ui/heading';
@@ -14,6 +14,7 @@ import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Button, ButtonText } from '@/components/ui/button';
 import { NativeSheet } from '../../components/NativeSheet';
+import { theme } from '@/constants/theme';
 
 function initialsFor(name: string): string {
   const initials = name
@@ -27,7 +28,6 @@ function initialsFor(name: string): string {
 }
 
 export default function ProfileScreen() {
-  const insets = useSafeAreaInsets();
   const { profile, house, inventory, importCSV, signOut } = useGleanStore();
   const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
   const [dataSheetOpen, setDataSheetOpen] = useState(false);
@@ -103,21 +103,17 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
-      <View style={{ height: 64 + insets.top, paddingTop: insets.top }}>
-        <View style={{ height: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24 }}>
-          <Text style={{ fontSize: 20, fontWeight: '600', color: '#0F172A' }}>Profile</Text>
-        </View>
-      </View>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <ScreenHeader title="Profile" />
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 8, paddingBottom: 48 }}>
 
-      <View style={{ marginHorizontal: 24, marginTop: 16, marginBottom: 8, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#F1F5F9', padding: 16, flexDirection: 'row', alignItems: 'center' }}>
-        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#0F172A', alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '700' }}>{initialsFor(profile?.name ?? '')}</Text>
+      <View style={{ marginHorizontal: 24, marginTop: 16, marginBottom: 8, backgroundColor: theme.colors.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.borderLight, padding: 16, flexDirection: 'row', alignItems: 'center' }}>
+        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: theme.colors.surface, fontSize: 20, fontWeight: '700' }}>{initialsFor(profile?.name ?? '')}</Text>
         </View>
         <View style={{ flex: 1, marginLeft: 14 }}>
-          <Text style={{ fontSize: 12, color: '#94A3B8', marginBottom: 4 }}>Signed in as</Text>
-          <Text style={{ fontSize: 20, fontWeight: '600', color: '#0F172A' }} numberOfLines={1}>{profile?.name ?? 'User'}</Text>
+          <Text style={{ fontSize: 12, color: theme.colors.textFaint, marginBottom: 4 }}>Signed in as</Text>
+          <Text style={{ fontSize: 20, fontWeight: '600', color: theme.colors.primary }} numberOfLines={1}>{profile?.name ?? 'User'}</Text>
         </View>
       </View>
 
@@ -131,7 +127,7 @@ export default function ProfileScreen() {
         <Tappable onPress={() => setInviteSheetOpen(true)}>
           <HStack className="items-center px-4 py-3">
             <View className="w-8 h-8 rounded-lg bg-slate-100 items-center justify-center mr-3">
-              <Ionicons name="person-add-outline" size={16} color="#475569" />
+              <Ionicons name="person-add-outline" size={16} color={theme.colors.textMuted} />
             </View>
             <Text className="flex-1 text-sm font-medium text-slate-600">Invite a member</Text>
             <Text className="text-xs text-slate-400">Share invite code</Text>
@@ -145,13 +141,13 @@ export default function ProfileScreen() {
         <Tappable onPress={() => setDataSheetOpen(true)}>
           <HStack className="items-center px-4 py-3">
             <View className="w-8 h-8 rounded-lg bg-slate-100 items-center justify-center mr-3">
-              <Ionicons name="swap-horizontal-outline" size={16} color="#475569" />
+              <Ionicons name="swap-horizontal-outline" size={16} color={theme.colors.textMuted} />
             </View>
             <VStack className="flex-1">
               <Text className="text-sm font-medium text-slate-600">Import / export data</Text>
               <Text className="text-xs text-slate-400">{inventory.length} items · CSV format</Text>
             </VStack>
-            <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+            <Ionicons name="chevron-forward" size={16} color={theme.colors.borderStrong} />
           </HStack>
         </Tappable>
       </Card>
@@ -170,7 +166,7 @@ export default function ProfileScreen() {
         <Tappable onPress={handleSignOut}>
           <HStack className="items-center px-4 py-3">
             <View className="w-8 h-8 rounded-lg bg-red-50 items-center justify-center mr-3">
-              <Ionicons name="log-out-outline" size={16} color="#EF4444" />
+              <Ionicons name="log-out-outline" size={16} color={theme.colors.danger} />
             </View>
             <Text className="flex-1 text-sm font-medium text-red-500">Sign out</Text>
           </HStack>
@@ -207,7 +203,7 @@ export default function ProfileScreen() {
           <HStack className="items-center mb-4">
             <Heading size="md" className="flex-1">Import / export data</Heading>
             <Tappable onPress={() => setDataSheetOpen(false)} hitSlop={12}>
-              <Ionicons name="close" size={20} color="#6B7280" />
+              <Ionicons name="close" size={20} color={theme.colors.textMuted} />
             </Tappable>
           </HStack>
           <HStack className="bg-slate-100 rounded-xl p-1">
@@ -215,7 +211,7 @@ export default function ProfileScreen() {
               <Tappable
                 key={tab}
                 className={`flex-1 py-2 rounded-lg items-center ${dataTab === tab ? 'bg-white' : ''}`}
-                style={dataTab === tab ? { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 } : undefined}
+                style={dataTab === tab ? { shadowColor: theme.colors.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 } : undefined}
                 onPress={() => setDataTab(tab)}
               >
                 <Text className={`text-sm font-semibold capitalize ${dataTab === tab ? 'text-slate-900' : 'text-slate-400'}`}>
@@ -239,7 +235,7 @@ export default function ProfileScreen() {
                 style={{ minHeight: 140, textAlignVertical: 'top' }}
                 multiline
                 placeholder={'Name,Quantity,Category,Location\nMilk,2,Dairy,Fridge\nRice,5,Grains,Pantry'}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.colors.textFaint}
                 value={csvText}
                 onChangeText={setCsvText}
                 autoCorrect={false}
@@ -251,7 +247,7 @@ export default function ProfileScreen() {
                 onPress={handleImport}
                 disabled={importing}
               >
-                <Ionicons name="cloud-upload-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+                <Ionicons name="cloud-upload-outline" size={16} color={theme.colors.surface} style={{ marginRight: 6 }} />
                 <ButtonText className="text-white">{importing ? 'Importing…' : 'Import CSV'}</ButtonText>
               </Button>
             </VStack>
@@ -270,7 +266,7 @@ export default function ProfileScreen() {
                 className="bg-slate-900 rounded-xl mt-1"
                 onPress={() => { setDataSheetOpen(false); handleExport(); }}
               >
-                <Ionicons name="download-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+                <Ionicons name="download-outline" size={16} color={theme.colors.surface} style={{ marginRight: 6 }} />
                 <ButtonText className="text-white">Export inventory</ButtonText>
               </Button>
             </VStack>
@@ -287,13 +283,13 @@ export default function ProfileScreen() {
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <Text style={{ fontSize: 20, fontWeight: '600', color: '#0F172A', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12 }}>{title}</Text>
+    <Text style={{ fontSize: 20, fontWeight: '600', color: theme.colors.primary, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12 }}>{title}</Text>
   );
 }
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <View style={{ marginHorizontal: 24, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#F1F5F9', overflow: 'hidden' }}>
+    <View style={{ marginHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.borderLight, overflow: 'hidden' }}>
       {children}
     </View>
   );
@@ -315,11 +311,11 @@ function SettingRow({
   return (
     <HStack className="items-center px-4 py-3">
       <View className="w-8 h-8 rounded-lg bg-slate-100 items-center justify-center mr-3">
-        <Ionicons name={icon} size={16} color="#475569" />
+        <Ionicons name={icon} size={16} color={theme.colors.textMuted} />
       </View>
       <Text className="flex-1 text-sm font-medium text-gray-900">{label}</Text>
       {value && <Text className="text-sm text-gray-400 mr-2">{value}</Text>}
-      <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+      <Ionicons name="chevron-forward" size={16} color={theme.colors.borderStrong} />
     </HStack>
   );
 }

@@ -1,5 +1,6 @@
 import { BottomSheet } from '@expo/ui/community/bottom-sheet';
 import type { ReactNode } from 'react';
+import { theme } from '@/constants/theme';
 
 export function NativeSheet({
   visible,
@@ -18,7 +19,7 @@ export function NativeSheet({
       onClose={onClose}
       snapPoints={snapPoints}
       enablePanDownToClose
-      backgroundStyle={{ backgroundColor: '#FFFFFF' }}
+      backgroundStyle={{ backgroundColor: theme.colors.surface }}
     >
       {children}
     </BottomSheet>

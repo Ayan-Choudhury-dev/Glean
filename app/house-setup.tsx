@@ -9,6 +9,7 @@ import { Text } from '@/components/ui/text';
 import { Button, ButtonText } from '@/components/ui/button';
 import { VStack } from '@/components/ui/vstack';
 import { HStack } from '@/components/ui/hstack';
+import { theme } from '@/constants/theme';
 
 type Mode = 'pick' | 'create' | 'join';
 
@@ -64,7 +65,7 @@ export default function HouseSetupScreen() {
             <TextInput
               className="bg-gray-50 border border-gray-200 rounded-xl px-4 h-12 text-base text-gray-900"
               placeholder="e.g. The Choudhury Home"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.colors.textFaint}
               value={houseName}
               onChangeText={setHouseName}
               autoFocus
@@ -95,7 +96,7 @@ export default function HouseSetupScreen() {
             <TextInput
               className="bg-gray-50 border border-gray-200 rounded-xl px-4 h-12 text-base text-gray-900 tracking-widest uppercase font-mono"
               placeholder="ABC123"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.colors.textFaint}
               value={inviteCode}
               onChangeText={v => setInviteCode(v.toUpperCase())}
               autoFocus
@@ -118,7 +119,7 @@ export default function HouseSetupScreen() {
     <View className="flex-1 bg-white px-8 justify-center">
       <View className="items-center mb-10">
         <View className="w-16 h-16 bg-slate-100 rounded-2xl items-center justify-center mb-4">
-          <Ionicons name="home-outline" size={32} color="#475569" />
+          <Ionicons name="home-outline" size={32} color={theme.colors.textMuted} />
         </View>
         <Heading size="xl" className="text-center">Set up your household</Heading>
         <Text className="text-gray-400 text-sm mt-2 text-center">
@@ -136,7 +137,7 @@ export default function HouseSetupScreen() {
 function BackButton({ onPress }: { onPress: () => void }) {
   return (
     <Button size="sm" variant="link" action="secondary" onPress={onPress} className="self-start -ml-2">
-      <Ionicons name="arrow-back" size={18} color="#475569" />
+      <Ionicons name="arrow-back" size={18} color={theme.colors.textMuted} />
       <ButtonText className="text-slate-500 ml-1">Back</ButtonText>
     </Button>
   );
@@ -150,13 +151,13 @@ function OptionCard({ icon, title, subtitle, onPress }: {
     <Button size="lg" variant="outline" action="secondary" className="rounded-xl border-gray-200 h-auto py-4" onPress={onPress}>
       <HStack className="items-center flex-1 px-1">
         <View className="w-10 h-10 bg-slate-100 rounded-xl items-center justify-center mr-4">
-          <Ionicons name={icon} size={20} color="#475569" />
+          <Ionicons name={icon} size={20} color={theme.colors.textMuted} />
         </View>
         <VStack className="flex-1 items-start">
           <ButtonText className="text-slate-900 font-semibold text-base">{title}</ButtonText>
           <Text className="text-gray-400 text-xs">{subtitle}</Text>
         </VStack>
-        <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+        <Ionicons name="chevron-forward" size={16} color={theme.colors.borderStrong} />
       </HStack>
     </Button>
   );

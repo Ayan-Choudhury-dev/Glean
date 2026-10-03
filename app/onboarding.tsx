@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  Pressable,
   KeyboardAvoidingView,
   Platform,
   Alert,
@@ -13,6 +12,8 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useGleanStore } from '../store/useGleanStore';
+import { Tappable } from '../components/ui/tappable';
+import { theme } from '@/constants/theme';
 
 type Mode = 'sign_up' | 'sign_in';
 
@@ -26,18 +27,18 @@ const isExpoGo =
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
 const inputStyle = {
-  backgroundColor: '#F9FAFB',
+  backgroundColor: theme.colors.surfaceMuted,
   borderWidth: 1,
   borderRadius: 12,
   paddingHorizontal: 16,
   height: 48,
   fontSize: 14,
-  color: '#111827',
+  color: theme.colors.text,
 };
 
 function FieldError({ message }: { message: string }) {
   return (
-    <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
+    <Text style={{ color: theme.colors.danger, fontSize: 12, marginTop: 4, marginLeft: 4 }}>
       {message}
     </Text>
   );
@@ -129,25 +130,25 @@ export default function OnboardingScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#FFFFFF' }}
+      style={{ flex: 1, backgroundColor: theme.colors.surface }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={{ flex: 1, paddingHorizontal: 32, justifyContent: 'center' }}>
         {/* App mark */}
         <View style={{ alignItems: 'center', marginBottom: 40 }}>
-          <View style={{ width: 80, height: 80, backgroundColor: '#0F172A', borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-            <Ionicons name="cube" size={40} color="#FFFFFF" />
+          <View style={{ width: 80, height: 80, backgroundColor: theme.colors.primary, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <Ionicons name="cube" size={40} color={theme.colors.surface} />
           </View>
-          <Text style={{ fontSize: 30, fontWeight: '700', color: '#111827' }}>Glean</Text>
-          <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>Your household inventory</Text>
+          <Text style={{ fontSize: 30, fontWeight: '700', color: theme.colors.text }}>Glean</Text>
+          <Text style={{ color: theme.colors.textFaint, fontSize: 14, marginTop: 4 }}>Your household inventory</Text>
         </View>
 
         {/* Mode toggle */}
-        <View style={{ flexDirection: 'row', backgroundColor: '#F1F5F9', borderRadius: 12, padding: 4, marginBottom: 24 }}>
+        <View style={{ flexDirection: 'row', backgroundColor: theme.colors.borderLight, borderRadius: 12, padding: 4, marginBottom: 24 }}>
           {(['sign_up', 'sign_in'] as Mode[]).map(m => {
             const active = mode === m;
             return (
-              <Pressable
+              <Tappable
                 key={m}
                 onPress={() => setMode(m)}
                 style={{
@@ -155,18 +156,18 @@ export default function OnboardingScreen() {
                   paddingVertical: 8,
                   borderRadius: 8,
                   alignItems: 'center',
-                  backgroundColor: active ? '#FFFFFF' : 'transparent',
-                  shadowColor: active ? '#000' : 'transparent',
+                  backgroundColor: active ? theme.colors.surface : 'transparent',
+                  shadowColor: active ? theme.colors.shadow : 'transparent',
                   shadowOffset: { width: 0, height: 1 },
                   shadowOpacity: active ? 0.05 : 0,
                   shadowRadius: active ? 2 : 0,
                   elevation: active ? 2 : 0,
                 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: active ? '#0F172A' : '#94A3B8' }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: active ? theme.colors.primary : theme.colors.textFaint }}>
                   {m === 'sign_up' ? 'Sign up' : 'Sign in'}
                 </Text>
-              </Pressable>
+              </Tappable>
             );
           })}
         </View>
@@ -175,9 +176,9 @@ export default function OnboardingScreen() {
           {mode === 'sign_up' && (
             <View>
               <TextInput
-                style={[inputStyle, errors.name ? { borderColor: '#FCA5A5' } : { borderColor: '#E5E7EB' }]}
+                style={[inputStyle, errors.name ? { borderColor: theme.colors.dangerBorder } : { borderColor: theme.colors.border }]}
                 placeholder="Your name"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.colors.textFaint}
                 value={name}
                 onChangeText={v => { setName(v); setErrors(p => ({ ...p, name: undefined })); }}
                 onBlur={() => onBlurField('name', name)}
@@ -191,9 +192,9 @@ export default function OnboardingScreen() {
 
           <View>
             <TextInput
-              style={[inputStyle, errors.email ? { borderColor: '#FCA5A5' } : { borderColor: '#E5E7EB' }]}
+              style={[inputStyle, errors.email ? { borderColor: theme.colors.dangerBorder } : { borderColor: theme.colors.border }]}
               placeholder="Email"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.colors.textFaint}
               value={email}
               onChangeText={v => { setEmail(v); setErrors(p => ({ ...p, email: undefined })); }}
               onBlur={() => onBlurField('email', email)}
@@ -210,9 +211,9 @@ export default function OnboardingScreen() {
           <View>
             <View>
               <TextInput
-                style={[inputStyle, { paddingRight: 48 }, errors.password ? { borderColor: '#FCA5A5' } : { borderColor: '#E5E7EB' }]}
+                style={[inputStyle, { paddingRight: 48 }, errors.password ? { borderColor: theme.colors.dangerBorder } : { borderColor: theme.colors.border }]}
                 placeholder="Password"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.colors.textFaint}
                 value={password}
                 onChangeText={v => { setPassword(v); setErrors(p => ({ ...p, password: undefined })); }}
                 onBlur={() => onBlurField('password', password)}
@@ -221,22 +222,22 @@ export default function OnboardingScreen() {
                 autoComplete={mode === 'sign_up' ? 'new-password' : 'current-password'}
                 textContentType={mode === 'sign_up' ? 'newPassword' : 'password'}
               />
-              <Pressable
+              <Tappable
                 onPress={() => setShowPwd(v => !v)}
                 hitSlop={12}
                 style={{ position: 'absolute', right: 16, top: 12 }}
               >
-                <Ionicons name={showPwd ? 'eye-off-outline' : 'eye-outline'} size={20} color="#9CA3AF" />
-              </Pressable>
+                <Ionicons name={showPwd ? 'eye-off-outline' : 'eye-outline'} size={20} color={theme.colors.textFaint} />
+              </Tappable>
             </View>
             {errors.password && <FieldError message={errors.password} />}
           </View>
 
-          <Pressable
+          <Tappable
             onPress={handleSubmit}
             disabled={busy}
             style={{
-              backgroundColor: '#0F172A',
+              backgroundColor: theme.colors.primary,
               borderRadius: 12,
               height: 48,
               marginTop: 8,
@@ -247,52 +248,52 @@ export default function OnboardingScreen() {
               opacity: busy ? 0.5 : 1,
             }}
           >
-            {busy && <ActivityIndicator color="#FFFFFF" />}
-            <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '600' }}>
+            {busy && <ActivityIndicator color={theme.colors.surface} />}
+            <Text style={{ color: theme.colors.surface, fontSize: 15, fontWeight: '600' }}>
               {mode === 'sign_up' ? 'Create account' : 'Sign in'}
             </Text>
-          </Pressable>
+          </Tappable>
 
           {/* Magic link */}
           {!isExpoGo && (
             <>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
-                <View style={{ flex: 1, height: 1, backgroundColor: '#E5E7EB' }} />
-                <Text style={{ marginHorizontal: 16, fontSize: 12, color: '#9CA3AF' }}>or</Text>
-                <View style={{ flex: 1, height: 1, backgroundColor: '#E5E7EB' }} />
+                <View style={{ flex: 1, height: 1, backgroundColor: theme.colors.border }} />
+                <Text style={{ marginHorizontal: 16, fontSize: 12, color: theme.colors.textFaint }}>or</Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: theme.colors.border }} />
               </View>
 
               {magicLinkSent ? (
                 <View style={{ alignItems: 'center', paddingVertical: 16 }}>
-                  <Ionicons name="mail-outline" size={28} color="#475569" />
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#334155', marginTop: 8 }}>Check your email</Text>
-                  <Text style={{ fontSize: 12, color: '#94A3B8', textAlign: 'center', marginTop: 4 }}>
+                  <Ionicons name="mail-outline" size={28} color={theme.colors.textMuted} />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.text, marginTop: 8 }}>Check your email</Text>
+                  <Text style={{ fontSize: 12, color: theme.colors.textFaint, textAlign: 'center', marginTop: 4 }}>
                     We sent a sign-in link to {email}
                   </Text>
-                  <Pressable onPress={() => setMagicLinkSent(false)}>
-                    <Text style={{ fontSize: 12, color: '#3B82F6', marginTop: 4 }}>Use a different email</Text>
-                  </Pressable>
+                  <Tappable onPress={() => setMagicLinkSent(false)}>
+                    <Text style={{ fontSize: 12, color: theme.colors.info, marginTop: 4 }}>Use a different email</Text>
+                  </Tappable>
                 </View>
               ) : (
-                <Pressable
+                <Tappable
                   onPress={handleMagicLink}
                   disabled={busy}
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: theme.colors.surface,
                     borderWidth: 1,
-                    borderColor: '#E5E7EB',
+                    borderColor: theme.colors.border,
                     borderRadius: 12,
                     height: 48,
                   }}
                 >
-                  <Ionicons name="mail-outline" size={18} color="#475569" />
-                  <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: '600', color: '#374151' }}>
+                  <Ionicons name="mail-outline" size={18} color={theme.colors.textMuted} />
+                  <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: '600', color: theme.colors.text }}>
                     Sign in with magic link
                   </Text>
-                </Pressable>
+                </Tappable>
               )}
             </>
           )}

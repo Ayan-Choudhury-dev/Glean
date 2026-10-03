@@ -12,29 +12,31 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Tappable } from '../../components/ui/tappable';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGleanStore, InventoryItem } from '../../store/useGleanStore';
+import { theme } from '@/constants/theme';
 
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 // All hardcoded colors live here so screens stay consistent. When migrating to
 // Color from expo-router, replace these with the semantic equivalents.
 const C = {
-  bg: '#FAFAFA',
-  card: '#FFFFFF',
-  text: '#0A0A0A',
-  muted: '#64748B',
-  faint: '#94A3B8',
-  border: '#E5E7EB',
-  borderLight: '#E2E8F0',
-  chipBg: '#F1F5F9',
-  chipActive: '#0F172A',
-  danger: '#EF4444',
-  dangerBg: '#FEE2E2',
-  warning: '#D97706',
-  warningBg: '#FEF3C7',
-  green: '#10B981',
-  sectionBg: '#F8FAFC',
+  bg: theme.colors.background,
+  card: theme.colors.surface,
+  text: theme.colors.text,
+  muted: theme.colors.textMuted,
+  faint: theme.colors.textFaint,
+  border: theme.colors.border,
+  borderLight: theme.colors.border,
+  chipBg: theme.colors.borderLight,
+  chipActive: theme.colors.primary,
+  danger: theme.colors.danger,
+  dangerBg: theme.colors.dangerBg,
+  warning: theme.colors.warning,
+  warningBg: theme.colors.warningBg,
+  green: theme.colors.success,
+  sectionBg: theme.colors.surfaceMuted,
 } as const;
 
 // ─── Chip ─────────────────────────────────────────────────────────────────────
@@ -56,9 +58,9 @@ function Chip({
         height: 40,
         minWidth: 56,
         borderRadius: 999,
-        backgroundColor: active ? '#0F172A' : '#FFFFFF',
+        backgroundColor: active ? theme.colors.primary : theme.colors.surface,
         borderWidth: 1,
-        borderColor: active ? 'transparent' : '#E5E7EB',
+        borderColor: active ? 'transparent' : theme.colors.border,
         boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08)',
         overflow: 'hidden',
         flexShrink: 0,
@@ -74,8 +76,8 @@ function Chip({
         style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Ionicons name={icon} size={15} color={active ? '#FFFFFF' : '#64748B'} />
-          <Text style={{ fontSize: 14, fontWeight: '500', color: active ? '#FFFFFF' : '#0A0A0A' }}>
+          <Ionicons name={icon} size={15} color={active ? theme.colors.surface : theme.colors.textMuted} />
+          <Text style={{ fontSize: 14, fontWeight: '500', color: active ? theme.colors.surface : theme.colors.text }}>
             {label}
           </Text>
         </View>
@@ -106,7 +108,7 @@ const InventoryRow = React.memo(function InventoryRow({
         paddingVertical: 12,
         gap: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
+        borderBottomColor: theme.colors.border,
       }}
     >
       {/* Name, location, and stock badge */}
@@ -141,9 +143,9 @@ const InventoryRow = React.memo(function InventoryRow({
           onPress={() => onAdjust(item.id, -1)}
           disabled={item.qty === 0}
           hitSlop={6}
-          style={{ width: 28, height: 28, borderRadius: 999, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', opacity: item.qty === 0 ? 0.3 : 1 }}
+          style={{ width: 28, height: 28, borderRadius: 999, backgroundColor: theme.colors.surfaceSunken, alignItems: 'center', justifyContent: 'center', opacity: item.qty === 0 ? 0.3 : 1 }}
         >
-          <Ionicons name="remove" size={14} color="#374151" />
+          <Ionicons name="remove" size={14} color={theme.colors.text} />
         </Tappable>
         <Text style={{ fontSize: 16, fontWeight: '600', color: C.text, fontVariant: ['tabular-nums'], minWidth: 20, textAlign: 'center' }}>
           {item.qty}
@@ -153,7 +155,7 @@ const InventoryRow = React.memo(function InventoryRow({
           hitSlop={6}
           style={{ width: 28, height: 28, borderRadius: 999, backgroundColor: C.chipActive, alignItems: 'center', justifyContent: 'center' }}
         >
-          <Ionicons name="add" size={14} color="#FFFFFF" />
+          <Ionicons name="add" size={14} color={theme.colors.surface} />
         </Tappable>
       </View>
     </Tappable>
@@ -296,16 +298,16 @@ export default function InventoryScreen() {
               onPress={() => router.push('/item-form')}
               style={{ marginTop: 24, backgroundColor: C.chipActive, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 }}
             >
-              <Text style={{ color: '#FFFFFF', fontWeight: '500' }}>Add new item</Text>
+              <Text style={{ color: theme.colors.surface, fontWeight: '500' }}>Add new item</Text>
             </Tappable>
           </View>
         ) : (
           /* ── Main content: header → chips → list → search pill ── */
           <View style={{ flex: 1 }}>
             {/* Header */}
-            <View style={{ height: 64 + insets.top, paddingTop: insets.top  }}>
-              <View style={{ height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24 }}>
-                <Text style={{ fontSize: 20, fontWeight: '600', color: C.chipActive }}>Inventory</Text>
+            <ScreenHeader
+              title="Inventory"
+              right={
                 <Tappable
                   onPress={() => router.push('/item-form')}
                   hitSlop={8}
@@ -313,15 +315,15 @@ export default function InventoryScreen() {
                 >
                   <Ionicons name="add" size={24} color={C.chipActive} />
                 </Tappable>
-              </View>
-            </View>
+              }
+            />
 
             {/* Category filter chips — horizontal scroll */}
             <ScrollView
               horizontal
               style={{ flexGrow: 0, flexShrink: 0 }}
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 24, paddingVertical: 24, gap: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB', backgroundColor: C.card }}
+              contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 24, paddingVertical: 24, gap: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border, backgroundColor: C.card }}
             >
               <Chip label="All" icon="grid-outline" active={selectedCategory === null} onPress={() => setSelectedCategory(null)} />
               <Chip label="Out of stock" icon="alert-circle-outline" active={selectedCategory === 'out-of-stock'} onPress={() => setSelectedCategory('out-of-stock')} />
@@ -333,7 +335,7 @@ export default function InventoryScreen() {
             {/* Section list or no-results */}
             {sections.length === 0 ? (
               <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 64 }}>
-                <Ionicons name="search-outline" size={40} color="#D1D5DB" />
+                <Ionicons name="search-outline" size={40} color={theme.colors.border} />
                 <Text style={{ fontSize: 18, fontWeight: '600', color: C.faint, marginTop: 16 }}>No items found</Text>
                 <Text style={{ fontSize: 14, color: C.faint, marginTop: 4 }}>Try a different search or filter</Text>
               </View>

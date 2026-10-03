@@ -4,6 +4,7 @@ import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { router } from 'expo-router';
 
 import { useGleanStore } from '@/store/useGleanStore';
+import { theme } from '@/constants/theme';
 
 export default function TabLayout() {
   const { profile } = useGleanStore();
@@ -12,7 +13,7 @@ export default function TabLayout() {
     if (!profile) router.replace('/onboarding');
   }, [profile]);
 
-  if (!profile) return <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />;
+  if (!profile) return <View style={{ flex: 1, backgroundColor: theme.colors.surface }} />;
 
   return (
     <NativeTabs>

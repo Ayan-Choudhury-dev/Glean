@@ -5,6 +5,7 @@ import {
   Text as RNText,
   type PressableProps,
 } from 'react-native';
+import { Tappable } from '../tappable';
 
 const SIZE_CLASSES = {
   xs: 'px-3.5 h-8',
@@ -55,7 +56,7 @@ const Button = React.forwardRef<React.ComponentRef<typeof Pressable>, IButtonPro
       .join(' ');
 
     return (
-      <Pressable
+      <Tappable
         ref={ref}
         className={classes}
         disabled={disabled}
