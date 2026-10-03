@@ -57,6 +57,40 @@ export interface ConsumptionLog {
   action:       'used' | 'restocked' | 'added';
 }
 
+export type HouseOptionType = 'category' | 'location';
+
+export interface HouseOption {
+  id: string;
+  house_id: string;
+  type: HouseOptionType;
+  name: string;
+  icon: string;
+  created_by?: string;
+}
+
+export const DEFAULT_HOUSE_OPTIONS: Omit<HouseOption, 'id' | 'house_id' | 'created_by'>[] = [
+  { type: 'category', name: 'Dairy', icon: 'water-outline' },
+  { type: 'category', name: 'Grains', icon: 'layers-outline' },
+  { type: 'category', name: 'Spices', icon: 'flame-outline' },
+  { type: 'category', name: 'Vegetables', icon: 'leaf-outline' },
+  { type: 'category', name: 'Fruits', icon: 'nutrition-outline' },
+  { type: 'category', name: 'Meat & Fish', icon: 'fish-outline' },
+  { type: 'category', name: 'Beverages', icon: 'wine-outline' },
+  { type: 'category', name: 'Snacks', icon: 'fast-food-outline' },
+  { type: 'category', name: 'Cleaning', icon: 'sparkles-outline' },
+  { type: 'category', name: 'Personal Care', icon: 'body-outline' },
+  { type: 'category', name: 'Other', icon: 'pricetag-outline' },
+  { type: 'location', name: 'Fridge', icon: 'snow-outline' },
+  { type: 'location', name: 'Freezer', icon: 'snow-outline' },
+  { type: 'location', name: 'Pantry', icon: 'file-tray-stacked-outline' },
+  { type: 'location', name: 'Cupboard', icon: 'file-tray-stacked-outline' },
+  { type: 'location', name: 'Kitchen', icon: 'home-outline' },
+  { type: 'location', name: 'Kitchen cabinet', icon: 'file-tray-stacked-outline' },
+  { type: 'location', name: 'Counter', icon: 'albums-outline' },
+  { type: 'location', name: 'Bathroom', icon: 'water-outline' },
+  { type: 'location', name: 'Other', icon: 'location-outline' },
+];
+
 // ─── CSV parser ───────────────────────────────────────────────────────────────
 
 type CSVRow = Pick<InventoryItem, 'name' | 'qty' | 'category'> & { location?: string };
@@ -87,9 +121,16 @@ interface GleanState {
   profile:         Profile | null;
   house:           House | null;
   inventory:       InventoryItem[];
+  inventorySearchQuery: string;
   shoppingList:    ShoppingItem[];
   consumptionLogs: ConsumptionLog[];
+  houseOptions: HouseOption[];
   loading:         boolean;
+  lastPantryUpdate: {
+    items: ShoppingItem[];
+    previousInventory: InventoryItem[];
+    createdInventoryIds: string[];
+  } | null;
 
   // Auth
   signUp:   (name: string, email: string, password: string) => Promise<string | null>;
@@ -106,9 +147,12 @@ interface GleanState {
 
   // Data sync: load everything from Supabase for the current house
   loadHouseData: (houseId: string) => Promise<void>;
+  addHouseOption: (type: HouseOptionType, name: string, icon: string) => HouseOption | null;
+  setInventorySearchQuery: (query: string) => void;
 
   // Inventory
   updateQty:           (id: string, delta: number)                          => void;
+  adjustInventoryQty:  (id: string, delta: number, action?: 'used' | 'restocked') => void;
   addInventoryItem:    (item: Omit<InventoryItem, 'id'>)                    => string;
   editInventoryItem:   (id: string, updates: Partial<Omit<InventoryItem, 'id'>>) => void;
   deleteInventoryItem: (id: string)                                         => void;
@@ -119,9 +163,11 @@ interface GleanState {
   // Shopping list
   addToShoppingList:   (name: string, inventoryId?: string, targetQty?: number) => void;
   updateShoppingQty:   (id: string, qty: number) => void;
+  adjustShoppingQty:  (id: string, delta: number) => void;
   markAsPurchased:     (id: string) => void;
   unmarkPurchased:     (id: string) => void;
   updatePantry:        ()            => void;
+  undoLastPantryUpdate: ()            => void;
 
   // CSV
   importCSV: (csvText: string) => { added: number; updated: number };
@@ -141,6 +187,51 @@ function sbUpdate(table: string, id: string, updates: Record<string, unknown>) {
   });
 }
 
+const delayedUpdates = new Map<string, {
+  timer: ReturnType<typeof setTimeout>;
+  updates: Record<string, unknown>;
+}>();
+
+let delayedLogs: ConsumptionLog[] = [];
+let delayedLogsTimer: ReturnType<typeof setTimeout> | null = null;
+
+function sbInsertConsumptionLog(log: ConsumptionLog) {
+  delayedLogs.push(log);
+  if (delayedLogsTimer) clearTimeout(delayedLogsTimer);
+  delayedLogsTimer = setTimeout(() => {
+    const logs = delayedLogs;
+    delayedLogs = [];
+    delayedLogsTimer = null;
+    if (logs.length > 0) {
+      supabase.from('consumption_logs').insert(logs as unknown as Record<string, unknown>[]).then(({ error }) => {
+        if (error) console.error('[sb] insert consumption_logs:', error.message);
+      });
+    }
+  }, 500);
+}
+
+function sbUpdateDelayed(table: string, id: string, updates: Record<string, unknown>) {
+  const key = `${table}:${id}`;
+  const pending = delayedUpdates.get(key);
+  if (pending) clearTimeout(pending.timer);
+  const mergedUpdates = { ...pending?.updates, ...updates };
+
+  const timer = setTimeout(() => {
+    delayedUpdates.delete(key);
+    sbUpdate(table, id, mergedUpdates);
+  }, 500);
+  delayedUpdates.set(key, { timer, updates: mergedUpdates });
+}
+
+function cancelDelayedUpdate(table: string, id: string) {
+  const key = `${table}:${id}`;
+  const pending = delayedUpdates.get(key);
+  if (pending) {
+    clearTimeout(pending.timer);
+    delayedUpdates.delete(key);
+  }
+}
+
 function sbDelete(table: string, id: string) {
   supabase.from(table).delete().eq('id', id).then(({ error }) => {
     if (error) console.error(`[sb] delete ${table}:`, error.message);
@@ -151,86 +242,89 @@ function generateInviteCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-// ─── Dev seed data ────────────────────────────────────────────────────────────
-
-const DEV_INVENTORY: InventoryItem[] = __DEV__ ? [
-  { id: 'dev-1',  name: 'Whole Milk',        qty: 2,  category: 'Dairy',         location: 'Fridge'   },
-  { id: 'dev-2',  name: 'Cheddar Cheese',    qty: 1,  category: 'Dairy',         location: 'Fridge'   },
-  { id: 'dev-3',  name: 'Basmati Rice',      qty: 3,  category: 'Grains',        location: 'Pantry'   },
-  { id: 'dev-4',  name: 'Atta',              qty: 1,  category: 'Grains',        location: 'Pantry'   },
-  { id: 'dev-5',  name: 'Cumin Seeds',       qty: 1,  category: 'Spices',        location: 'Cupboard' },
-  { id: 'dev-6',  name: 'Turmeric Powder',   qty: 2,  category: 'Spices',        location: 'Cupboard' },
-  { id: 'dev-7',  name: 'Garam Masala',      qty: 1,  category: 'Spices',        location: 'Cupboard' },
-  { id: 'dev-8',  name: 'Tomatoes',          qty: 5,  category: 'Vegetables',    location: 'Fridge'   },
-  { id: 'dev-9',  name: 'Spinach',           qty: 1,  category: 'Vegetables',    location: 'Fridge'   },
-  { id: 'dev-10', name: 'Onions',            qty: 4,  category: 'Vegetables',    location: 'Counter'  },
-  { id: 'dev-11', name: 'Bananas',           qty: 6,  category: 'Fruits',        location: 'Counter'  },
-  { id: 'dev-12', name: 'Apples',            qty: 4,  category: 'Fruits',        location: 'Fridge'   },
-  { id: 'dev-13', name: 'Chicken Breast',    qty: 2,  category: 'Meat & Fish',   location: 'Freezer'  },
-  { id: 'dev-14', name: 'Salmon Fillet',     qty: 1,  category: 'Meat & Fish',   location: 'Freezer'  },
-  { id: 'dev-15', name: 'Orange Juice',      qty: 1,  category: 'Beverages',     location: 'Fridge'   },
-  { id: 'dev-16', name: 'Green Tea',         qty: 1,  category: 'Beverages',     location: 'Cupboard' },
-  { id: 'dev-17', name: 'Biscuits',          qty: 2,  category: 'Snacks',        location: 'Cupboard' },
-  { id: 'dev-18', name: 'Mixed Nuts',        qty: 1,  category: 'Snacks',        location: 'Cupboard' },
-] : [];
-
-// ─── Dev seed consumption logs ────────────────────────────────────────────────
-
-const DEV_LOGS: ConsumptionLog[] = __DEV__ ? [
-  { id: 'log-1', inventory_id: 'dev-1', item_name: 'Whole Milk',      house_id: '', qty: 1, action: 'used', consumed_at: new Date(Date.now() - 2  * 3600000).toISOString() },
-  { id: 'log-2', inventory_id: 'dev-1', item_name: 'Whole Milk',      house_id: '', qty: 2, action: 'used', consumed_at: new Date(Date.now() - 26 * 3600000).toISOString() },
-  { id: 'log-3', inventory_id: 'dev-3', item_name: 'Basmati Rice',    house_id: '', qty: 1, action: 'used', consumed_at: new Date(Date.now() - 5  * 3600000).toISOString() },
-  { id: 'log-4', inventory_id: 'dev-5', item_name: 'Cumin Seeds',     house_id: '', qty: 1, action: 'used', consumed_at: new Date(Date.now() - 3  * 86400000).toISOString() },
-  { id: 'log-5', inventory_id: 'dev-8', item_name: 'Tomatoes',        house_id: '', qty: 3, action: 'used', consumed_at: new Date(Date.now() - 1  * 86400000).toISOString() },
-] : [];
-
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 export const useGleanStore = create<GleanState>((set, get) => ({
   profile:         null,
   house:           null,
-  inventory:       DEV_INVENTORY,
+  inventory:       [],
+  inventorySearchQuery: '',
   shoppingList:    [],
-  consumptionLogs: DEV_LOGS,
+  consumptionLogs: [],
+  houseOptions: [],
   loading:         false,
+  lastPantryUpdate: null,
 
   // ── Auth ──────────────────────────────────────────────────────────────────
 
   signUp: async (name, email, password) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name } },
-    });
-    if (error) return error.message;
-    if (!data.user) return 'Sign-up failed. Please try again.';
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { name } },
+      });
+      if (error) return error.message;
+      if (!data.user) return 'Sign-up failed. Please try again.';
 
-    // Profile is auto-created by DB trigger; update the name
-    await supabase.from('profiles').update({ name }).eq('id', data.user.id);
+      // Email confirmation is enabled on the Supabase project — no active
+      // session yet, so the user must confirm before we can proceed.
+      if (!data.session) {
+        return 'Account created — check your email to confirm, then sign in.';
+      }
 
-    set({ profile: { id: data.user.id, name, house_id: null } });
-    return null; // null = success
+      // Profile is normally auto-created by the DB trigger; upsert as a
+      // fallback so sign-up never fails if that trigger isn't installed.
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({ id: data.user.id, name, house_id: null }, { onConflict: 'id' });
+
+      set({ profile: { id: data.user.id, name, house_id: null } });
+
+      if (profileError) {
+        console.warn('[auth] profile upsert:', profileError.message);
+        return null;
+      }
+      return null; // null = success
+    } catch (e) {
+      console.error('[auth] signUp network error:', e);
+      return 'Cannot reach Glean servers. Check your connection and Supabase setup, then retry.';
+    }
   },
 
   signIn: async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return error.message;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return error.message;
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', data.user.id)
-      .single();
+      let { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
 
-    if (!profile) return 'Profile not found.';
+      // Profile row missing (trigger not installed) — create it so sign-in works.
+      if (!profile) {
+        const name =
+          (data.user.user_metadata?.name as string) || data.user.email || 'New user';
+        await supabase.from('profiles').upsert(
+          { id: data.user.id, name, house_id: null },
+          { onConflict: 'id' }
+        );
+        profile = { id: data.user.id, name, house_id: null };
+      }
 
-    set({ profile });
+      set({ profile });
 
-    if (profile.house_id) {
-      await get().loadHouseData(profile.house_id);
+      if (profile.house_id) {
+        await get().loadHouseData(profile.house_id);
+      }
+
+      return null;
+    } catch (e) {
+      console.error('[auth] signIn network error:', e);
+      return 'Cannot reach Glean servers. Check your connection and Supabase setup, then retry.';
     }
-
-    return null;
   },
 
   signInWithMagicLink: async (email) => {
@@ -283,7 +377,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   },
 
   clearSession: () => {
-    set({ profile: null, house: null, inventory: [], shoppingList: [], consumptionLogs: [] });
+    set({ profile: null, house: null, inventory: [], inventorySearchQuery: '', shoppingList: [], consumptionLogs: [], houseOptions: [], lastPantryUpdate: null });
   },
 
   loadSession: async () => {
@@ -318,9 +412,16 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     if (error) return error.message;
 
     await supabase.from('profiles').update({ house_id: houseId }).eq('id', profile.id);
+    const seededOptions = DEFAULT_HOUSE_OPTIONS.map(option => ({
+      ...option,
+      id: uid(),
+      house_id: houseId,
+      created_by: profile.id,
+    }));
+    await supabase.from('house_options').insert(seededOptions);
 
     const house: House = { id: houseId, name, invite_code, member_ids: [profile.id] };
-    set({ house, profile: { ...profile, house_id: houseId } });
+    set({ house, profile: { ...profile, house_id: houseId }, houseOptions: seededOptions });
     return house;
   },
 
@@ -352,21 +453,56 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   loadHouseData: async (houseId) => {
     set({ loading: true });
 
-    const [invRes, shopRes, logRes, houseRes] = await Promise.all([
+    const [invRes, shopRes, logRes, houseRes, optionsRes] = await Promise.all([
       supabase.from('inventory').select('*').eq('house_id', houseId),
       supabase.from('shopping_list').select('*').eq('house_id', houseId),
       supabase.from('consumption_logs').select('*').eq('house_id', houseId),
       supabase.from('houses').select('*').eq('id', houseId).single(),
+      supabase.from('house_options').select('*').eq('house_id', houseId).order('type').order('name'),
     ]);
+
+    const loadedOptions = optionsRes.data ?? [];
+    const houseOptions = loadedOptions.length > 0
+      ? loadedOptions as HouseOption[]
+      : DEFAULT_HOUSE_OPTIONS.map(option => ({ ...option, id: uid(), house_id: houseId }));
+
+    if (loadedOptions.length === 0 && !optionsRes.error) {
+      await supabase.from('house_options').insert(
+        houseOptions.map(option => ({ ...option, house_id: houseId }))
+      );
+    }
 
     set({
       inventory:       invRes.data   ?? [],
       shoppingList:    shopRes.data  ?? [],
       consumptionLogs: logRes.data   ?? [],
       house:           houseRes.data ?? null,
+      houseOptions,
       loading:         false,
     });
   },
+
+  addHouseOption: (type, name, icon) => {
+    const { house, profile, houseOptions } = get();
+    const trimmedName = name.trim();
+    if (!house || !trimmedName) return null;
+    const duplicate = houseOptions.find(option => option.type === type && option.name.toLowerCase() === trimmedName.toLowerCase());
+    if (duplicate) return duplicate;
+
+    const option: HouseOption = {
+      id: uid(),
+      house_id: house.id,
+      type,
+      name: trimmedName,
+      icon,
+      created_by: profile?.id,
+    };
+    set(state => ({ houseOptions: [...state.houseOptions, option] }));
+    sbInsert('house_options', option as unknown as Record<string, unknown>);
+    return option;
+  },
+
+  setInventorySearchQuery: (query) => set({ inventorySearchQuery: query }),
 
   // ── Inventory ─────────────────────────────────────────────────────────────
 
@@ -378,7 +514,35 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     }));
     const { inventory, house } = get();
     const item = inventory.find(i => i.id === id);
-    if (item && house) sbUpdate('inventory', id, { qty: item.qty });
+    if (item && house) sbUpdateDelayed('inventory', id, { qty: item.qty });
+  },
+
+  adjustInventoryQty: (id, delta, action = delta < 0 ? 'used' : 'restocked') => {
+    const { profile, house } = get();
+    let changedItem: InventoryItem | undefined;
+    let log: ConsumptionLog | undefined;
+
+    set(state => {
+      const item = state.inventory.find(i => i.id === id);
+      if (!item) return state;
+      changedItem = { ...item, qty: Math.max(0, item.qty + delta) };
+      log = {
+        id: uid(),
+        inventory_id: id,
+        item_name: item.name,
+        house_id: profile?.house_id ?? '',
+        consumed_at: new Date().toISOString(),
+        qty: Math.abs(delta),
+        action,
+      };
+      return {
+        inventory: state.inventory.map(current => current.id === id ? changedItem! : current),
+        consumptionLogs: [...state.consumptionLogs, log],
+      };
+    });
+
+    if (changedItem && house) sbUpdateDelayed('inventory', id, { qty: changedItem.qty });
+    if (log?.house_id) sbInsertConsumptionLog(log);
   },
 
   addInventoryItem: (item) => {
@@ -421,7 +585,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       action,
     };
     set(state => ({ consumptionLogs: [...state.consumptionLogs, log] }));
-    if (profile?.house_id) sbInsert('consumption_logs', { ...log });
+    if (profile?.house_id) sbInsertConsumptionLog(log);
   },
 
   // ── Shopping list ─────────────────────────────────────────────────────────
@@ -447,7 +611,19 @@ export const useGleanStore = create<GleanState>((set, get) => ({
         i.id === id ? { ...i, target_qty: safeQty } : i
       ),
     }));
-    sbUpdate('shopping_list', id, { target_qty: safeQty });
+    sbUpdateDelayed('shopping_list', id, { target_qty: safeQty });
+  },
+
+  adjustShoppingQty: (id, delta) => {
+    const item = get().shoppingList.find(i => i.id === id);
+    if (!item) return;
+    const safeQty = Math.max(1, item.target_qty + delta);
+    set(state => ({
+      shoppingList: state.shoppingList.map(i =>
+        i.id === id ? { ...i, target_qty: safeQty } : i
+      ),
+    }));
+    sbUpdateDelayed('shopping_list', id, { target_qty: safeQty });
   },
 
   markAsPurchased: (id) => {
@@ -456,7 +632,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
         i.id === id ? { ...i, status: 'purchased' } : i
       ),
     }));
-    sbUpdate('shopping_list', id, { status: 'purchased' });
+    sbUpdateDelayed('shopping_list', id, { status: 'purchased' });
   },
 
   unmarkPurchased: (id) => {
@@ -465,14 +641,17 @@ export const useGleanStore = create<GleanState>((set, get) => ({
         i.id === id ? { ...i, status: 'to_buy' } : i
       ),
     }));
-    sbUpdate('shopping_list', id, { status: 'to_buy' });
+    sbUpdateDelayed('shopping_list', id, { status: 'to_buy' });
   },
 
   updatePantry: () => {
     const { shoppingList, inventory } = get();
     const purchased = shoppingList.filter(s => s.status === 'purchased');
+    if (purchased.length === 0) return;
     const today     = new Date().toISOString();
     let   newInventory = [...inventory];
+    const previousInventory = inventory.filter(inv => purchased.some(item => item.inventory_id === inv.id));
+    const createdInventoryIds: string[] = [];
 
     purchased.forEach(item => {
       if (item.inventory_id) {
@@ -488,16 +667,41 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       } else {
         const newItem = { id: uid(), name: item.name, qty: item.target_qty, category: 'Other', last_restocked: today };
         newInventory.push(newItem);
+        createdInventoryIds.push(newItem.id);
         const { house } = get();
         if (house) sbInsert('inventory', { ...newItem, house_id: house.id });
       }
+      cancelDelayedUpdate('shopping_list', item.id);
       sbDelete('shopping_list', item.id);
     });
 
     set({
       inventory:    newInventory,
       shoppingList: shoppingList.filter(s => s.status !== 'purchased'),
+      lastPantryUpdate: { items: purchased, previousInventory, createdInventoryIds },
     });
+  },
+
+  undoLastPantryUpdate: () => {
+    const { lastPantryUpdate, house } = get();
+    if (!lastPantryUpdate) return;
+
+    const { items, previousInventory, createdInventoryIds } = lastPantryUpdate;
+    let restoredInventory = get().inventory.filter(item => !createdInventoryIds.includes(item.id));
+    previousInventory.forEach(previous => {
+      restoredInventory = restoredInventory.map(item => item.id === previous.id ? previous : item);
+      sbUpdate('inventory', previous.id, { qty: previous.qty, last_restocked: previous.last_restocked ?? null });
+    });
+    createdInventoryIds.forEach(id => sbDelete('inventory', id));
+    if (house) {
+      items.forEach(item => sbInsert('shopping_list', { ...item, house_id: house.id }));
+    }
+
+    set(state => ({
+      inventory: restoredInventory,
+      shoppingList: [...state.shoppingList, ...items],
+      lastPantryUpdate: null,
+    }));
   },
 
   // ── CSV import ────────────────────────────────────────────────────────────

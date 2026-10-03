@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, TextInput, ScrollView, Pressable, Alert, Modal } from 'react-native';
+import { View, TextInput, ScrollView, Alert, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGleanStore } from '../../store/useGleanStore';
 
 import { Heading } from '@/components/ui/heading';
@@ -9,9 +10,22 @@ import { Text } from '@/components/ui/text';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Button, ButtonText } from '@/components/ui/button';
+import { NativeSheet } from '../../components/NativeSheet';
+
+function initialsFor(name: string): string {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase())
+    .join('');
+  return initials || '?';
+}
 
 export default function ProfileScreen() {
-  const { house, inventory, importCSV, signOut } = useGleanStore();
+  const insets = useSafeAreaInsets();
+  const { profile, house, inventory, importCSV, signOut } = useGleanStore();
   const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
   const [dataSheetOpen, setDataSheetOpen] = useState(false);
   const [dataTab, setDataTab] = useState<'import' | 'export'>('import');
@@ -65,11 +79,22 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-slate-50" contentContainerStyle={{ paddingBottom: 48 }}>
+    <View style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
+      <View style={{ height: 64 + insets.top, paddingTop: insets.top }}>
+        <View style={{ height: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24 }}>
+          <Text style={{ fontSize: 20, fontWeight: '600', color: '#0F172A' }}>Profile</Text>
+        </View>
+      </View>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 8, paddingBottom: 48 }}>
 
-      {/* Header */}
-      <View className="bg-white px-6 pt-14 pb-5 border-b border-gray-100">
-        <Heading size="xl">More settings</Heading>
+      <View style={{ marginHorizontal: 24, marginTop: 16, marginBottom: 8, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#F1F5F9', padding: 16, flexDirection: 'row', alignItems: 'center' }}>
+        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#0F172A', alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '700' }}>{initialsFor(profile?.name ?? '')}</Text>
+        </View>
+        <View style={{ flex: 1, marginLeft: 14 }}>
+          <Text style={{ fontSize: 12, color: '#94A3B8', marginBottom: 4 }}>Signed in as</Text>
+          <Text style={{ fontSize: 20, fontWeight: '600', color: '#0F172A' }} numberOfLines={1}>{profile?.name ?? 'User'}</Text>
+        </View>
       </View>
 
       {/* ── Household ──────────────────────────────────────────────────── */}
@@ -128,78 +153,56 @@ export default function ProfileScreen() {
         </Pressable>
       </Card>
 
-      {/* Invite modal */}
-      <Modal
-        visible={inviteSheetOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setInviteSheetOpen(false)}
-      >
-        <Pressable className="flex-1 bg-black/40" onPress={() => setInviteSheetOpen(false)} />
-        <View className="bg-white rounded-t-2xl">
-          <View className="items-center pt-3 pb-1">
-            <View className="w-10 h-1 bg-gray-300 rounded-full" />
-          </View>
-          <VStack className="px-6 pt-4 pb-10" space="lg">
-            <VStack space="xs">
-              <Heading size="md">Invite a member</Heading>
-              <Text className="text-sm text-gray-500">
-                Share this invite code with housemates so they can join{' '}
-                {house?.name ?? 'your household'}.
-              </Text>
-            </VStack>
-            <View className="bg-slate-100 border border-slate-200 rounded-xl py-6 items-center">
-              <Text className="text-3xl font-bold text-slate-900 tracking-[0.3em]">
-                {house?.invite_code ?? '—'}
-              </Text>
-            </View>
-            <VStack space="sm">
-              <Button size="lg" className="bg-slate-900 rounded-xl" onPress={() => setInviteSheetOpen(false)}>
-                <ButtonText className="text-white">Got it</ButtonText>
-              </Button>
-            </VStack>
+      {/* Invite sheet */}
+      <NativeSheet visible={inviteSheetOpen} onClose={() => setInviteSheetOpen(false)}>
+        <VStack className="px-6 pt-2 pb-10" space="lg">
+          <VStack space="xs">
+            <Heading size="md">Invite a member</Heading>
+            <Text className="text-sm text-gray-500">
+              Share this invite code with housemates so they can join{' '}
+              {house?.name ?? 'your household'}.
+            </Text>
           </VStack>
-        </View>
-      </Modal>
+          <View className="bg-slate-100 border border-slate-200 rounded-xl py-6 items-center">
+            <Text className="text-3xl font-bold text-slate-900 tracking-[0.3em]">
+              {house?.invite_code ?? '—'}
+            </Text>
+          </View>
+          <VStack space="sm">
+            <Button size="lg" className="bg-slate-900 rounded-xl" onPress={() => setInviteSheetOpen(false)}>
+              <ButtonText className="text-white">Got it</ButtonText>
+            </Button>
+          </VStack>
+        </VStack>
+      </NativeSheet>
 
       {/* Import / export data sheet */}
-      <Modal
-        visible={dataSheetOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setDataSheetOpen(false)}
-      >
-        <Pressable className="flex-1 bg-black/40" onPress={() => setDataSheetOpen(false)} />
-        <View className="bg-white rounded-t-2xl" style={{ maxHeight: '80%' }}>
-          <View className="items-center pt-3 pb-1">
-            <View className="w-10 h-1 bg-gray-300 rounded-full" />
-          </View>
-
+      <NativeSheet visible={dataSheetOpen} onClose={() => setDataSheetOpen(false)}>
+        <View className="px-6 pt-2 pb-10">
           {/* Header + tabs */}
-          <View className="px-6 pt-2 pb-4">
-            <HStack className="items-center mb-4">
-              <Heading size="md" className="flex-1">Import / export data</Heading>
-              <Pressable onPress={() => setDataSheetOpen(false)} hitSlop={12}>
-                <Ionicons name="close" size={20} color="#6B7280" />
+          <HStack className="items-center mb-4">
+            <Heading size="md" className="flex-1">Import / export data</Heading>
+            <Pressable onPress={() => setDataSheetOpen(false)} hitSlop={12}>
+              <Ionicons name="close" size={20} color="#6B7280" />
+            </Pressable>
+          </HStack>
+          <HStack className="bg-slate-100 rounded-xl p-1">
+            {(['import', 'export'] as const).map(tab => (
+              <Pressable
+                key={tab}
+                className={`flex-1 py-2 rounded-lg items-center ${dataTab === tab ? 'bg-white' : ''}`}
+                style={dataTab === tab ? { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 } : undefined}
+                onPress={() => setDataTab(tab)}
+              >
+                <Text className={`text-sm font-semibold capitalize ${dataTab === tab ? 'text-slate-900' : 'text-slate-400'}`}>
+                  {tab === 'import' ? 'Import' : 'Export'}
+                </Text>
               </Pressable>
-            </HStack>
-            <HStack className="bg-slate-100 rounded-xl p-1">
-              {(['import', 'export'] as const).map(tab => (
-                <Pressable
-                  key={tab}
-                  className={`flex-1 py-2 rounded-lg items-center ${dataTab === tab ? 'bg-white shadow-sm' : ''}`}
-                  onPress={() => setDataTab(tab)}
-                >
-                  <Text className={`text-sm font-semibold capitalize ${dataTab === tab ? 'text-slate-900' : 'text-slate-400'}`}>
-                    {tab === 'import' ? 'Import' : 'Export'}
-                  </Text>
-                </Pressable>
-              ))}
-            </HStack>
-          </View>
+            ))}
+          </HStack>
 
           {dataTab === 'import' ? (
-            <VStack className="px-6 pb-10" space="sm">
+            <VStack className="pt-4" space="sm">
               <Text className="text-xs text-slate-500">
                 Paste a CSV with headers:{' '}
                 <Text className="font-mono font-semibold">Name, Quantity, Category, Location</Text>
@@ -229,7 +232,7 @@ export default function ProfileScreen() {
               </Button>
             </VStack>
           ) : (
-            <VStack className="px-6 pb-10" space="sm">
+            <VStack className="pt-4" space="sm">
               <Text className="text-xs text-slate-500">
                 Your inventory will be exported as a CSV file you can back up or share.
               </Text>
@@ -249,9 +252,10 @@ export default function ProfileScreen() {
             </VStack>
           )}
         </View>
-      </Modal>
+      </NativeSheet>
 
     </ScrollView>
+    </View>
   );
 }
 
@@ -259,15 +263,13 @@ export default function ProfileScreen() {
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <Text className="text-xs font-bold text-slate-400 uppercase tracking-widest px-6 pt-5 pb-2">
-      {title}
-    </Text>
+    <Text style={{ fontSize: 20, fontWeight: '600', color: '#0F172A', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12 }}>{title}</Text>
   );
 }
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <View className="mx-4 bg-white rounded-xl border border-gray-100 overflow-hidden">
+    <View style={{ marginHorizontal: 24, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#F1F5F9', overflow: 'hidden' }}>
       {children}
     </View>
   );

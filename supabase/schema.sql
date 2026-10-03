@@ -57,6 +57,19 @@ CREATE TABLE IF NOT EXISTS consumption_logs (
   consumed_at  TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS house_options (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  house_id    UUID NOT NULL REFERENCES houses(id) ON DELETE CASCADE,
+  type        TEXT NOT NULL CHECK (type IN ('category', 'location')),
+  name        TEXT NOT NULL,
+  icon        TEXT NOT NULL,
+  created_by  UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS house_options_unique_name
+  ON house_options (house_id, type, lower(name));
+
 
 -- ── Row Level Security ────────────────────────────────────────────────────────
 
@@ -65,6 +78,7 @@ ALTER TABLE profiles        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inventory       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shopping_list   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE consumption_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE house_options     ENABLE ROW LEVEL SECURITY;
 
 -- Helper: get the caller's house_id from their profile
 CREATE OR REPLACE FUNCTION my_house_id()
@@ -73,33 +87,49 @@ RETURNS UUID LANGUAGE sql STABLE AS $$
 $$;
 
 -- profiles: own row only
+DROP POLICY IF EXISTS "profiles: own row" ON profiles;
 CREATE POLICY "profiles: own row" ON profiles
   FOR ALL USING (id = auth.uid());
 
 -- houses: member access
+DROP POLICY IF EXISTS "houses: members only" ON houses;
 CREATE POLICY "houses: members only" ON houses
   FOR ALL USING (id = my_house_id());
 
+-- houses: join via invite code — any authenticated user who already knows the
+-- code may look a house up; membership is granted by the join flow afterwards.
+DROP POLICY IF EXISTS "houses: lookup by invite code" ON houses;
+CREATE POLICY "houses: lookup by invite code" ON houses
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
 -- inventory: house members only
+DROP POLICY IF EXISTS "inventory: house members" ON inventory;
 CREATE POLICY "inventory: house members" ON inventory
   FOR ALL USING (house_id = my_house_id());
 
 -- shopping_list: house members only
+DROP POLICY IF EXISTS "shopping_list: house members" ON shopping_list;
 CREATE POLICY "shopping_list: house members" ON shopping_list
   FOR ALL USING (house_id = my_house_id());
 
 -- consumption_logs: house members only
+DROP POLICY IF EXISTS "consumption_logs: house members" ON consumption_logs;
 CREATE POLICY "consumption_logs: house members" ON consumption_logs
+  FOR ALL USING (house_id = my_house_id());
+
+DROP POLICY IF EXISTS "house_options: house members" ON house_options;
+CREATE POLICY "house_options: house members" ON house_options
   FOR ALL USING (house_id = my_house_id());
 
 
 -- ── Auto-create profile on sign-up ───────────────────────────────────────────
 -- (name will be updated by the app immediately after sign-up)
 
-CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
 BEGIN
-  INSERT INTO profiles (id, name)
+  INSERT INTO public.profiles (id, name)
   VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'name', 'New user'));
   RETURN NEW;
 END;
@@ -108,4 +138,4 @@ $$;
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

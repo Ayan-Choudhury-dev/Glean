@@ -47,5 +47,8 @@ yarn-error.*
 # Claude
 .claude/
 
+# OpenCode local tooling
+.opencode/
+
 # MCP config (contains local paths/secrets)
 .mcp.json

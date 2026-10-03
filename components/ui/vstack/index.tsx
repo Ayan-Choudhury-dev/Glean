@@ -1,25 +1,31 @@
 import React from 'react';
-import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
-import { View } from 'react-native';
+import { View, type ViewProps } from 'react-native';
 
-import { vstackStyle } from './styles';
+const SPACE_CLASSES = {
+  xs: 'gap-1',
+  sm: 'gap-2',
+  md: 'gap-3',
+  lg: 'gap-4',
+  xl: 'gap-5',
+};
 
-type IVStackProps = React.ComponentProps<typeof View> &
-  VariantProps<typeof vstackStyle>;
+type IVStackProps = ViewProps & {
+  className?: string;
+  space?: keyof typeof SPACE_CLASSES | (string & {});
+  reversed?: boolean;
+};
 
 const VStack = React.forwardRef<React.ComponentRef<typeof View>, IVStackProps>(
   function VStack({ className, space, reversed, ...props }, ref) {
-    return (
-      <View
-        className={vstackStyle({
-          space,
-          reversed: reversed as boolean,
-          class: className,
-        })}
-        {...props}
-        ref={ref}
-      />
-    );
+    const classes = [
+      'flex-col',
+      space && space in SPACE_CLASSES ? SPACE_CLASSES[space as keyof typeof SPACE_CLASSES] : '',
+      reversed ? 'flex-col-reverse' : '',
+      className,
+    ]
+      .filter(Boolean)
+      .join(' ');
+    return <View ref={ref} className={classes} {...props} />;
   }
 );
 

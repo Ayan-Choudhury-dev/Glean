@@ -1,14 +1,15 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { useFonts } from 'expo-font';
 import { Stack, router } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/components/useColorScheme';
-import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { supabase } from '@/lib/supabase';
 import { useGleanStore } from '@/store/useGleanStore';
 import '@/global.css';
@@ -26,7 +27,6 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
-  const colorScheme = useColorScheme();
   const { loadSession, clearSession, handleAuthRedirect } = useGleanStore();
 
   useEffect(() => { if (error) throw error; }, [error]);
@@ -68,15 +68,18 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <GluestackUIProvider mode={colorScheme ?? 'light'}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="onboarding"  options={{ headerShown: false }} />
-          <Stack.Screen name="house-setup" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)"      options={{ headerShown: false }} />
-          <Stack.Screen name="item-form"   options={{ headerShown: false, presentation: 'modal' }} />
-        </Stack>
-      </ThemeProvider>
-    </GluestackUIProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider value={DefaultTheme}>
+          <StatusBar style="dark" />
+          <Stack>
+            <Stack.Screen name="onboarding"  options={{ headerShown: false }} />
+            <Stack.Screen name="house-setup" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)"      options={{ headerShown: false }} />
+            <Stack.Screen name="item-form"   options={{ headerShown: false, presentation: 'modal' }} />
+          </Stack>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
