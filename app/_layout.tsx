@@ -116,7 +116,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <SafeAreaProvider>
         <ThemeProvider value={navTheme}>
           <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
