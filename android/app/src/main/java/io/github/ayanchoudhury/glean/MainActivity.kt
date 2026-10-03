@@ -1,4 +1,4 @@
-package com.anonymous.Glean
+package io.github.ayanchoudhury.glean
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

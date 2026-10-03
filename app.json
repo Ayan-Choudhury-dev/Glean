@@ -8,7 +8,8 @@
     "scheme": "glean",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "io.github.ayanchoudhury.glean"
     },
     "android": {
       "adaptiveIcon": {
@@ -16,7 +17,7 @@
         "backgroundColor": "#ffffff"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.Glean"
+      "package": "io.github.ayanchoudhury.glean"
     },
     "web": {
       "bundler": "metro",
