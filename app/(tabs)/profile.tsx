@@ -178,7 +178,7 @@ export default function ProfileScreen() {
         <VStack className="px-6 pt-2 pb-10" space="lg">
           <VStack space="xs">
             <Heading size="md">Invite a member</Heading>
-            <Text className="text-sm text-gray-500">
+            <Text className="text-sm text-slate-500">
               Share this invite code with housemates so they can join{' '}
               {house?.name ?? 'your household'}.
             </Text>
@@ -231,7 +231,7 @@ export default function ProfileScreen() {
                 Upsert logic: existing items get their quantity incremented; new items are created.
               </Text>
               <TextInput
-                className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-gray-800 font-mono"
+                className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-800 font-mono"
                 style={{ minHeight: 140, textAlignVertical: 'top' }}
                 multiline
                 placeholder={'Name,Quantity,Category,Location\nMilk,2,Dairy,Fridge\nRice,5,Grains,Pantry'}
@@ -296,7 +296,7 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 
 function Divider() {
-  return <View className="h-px bg-gray-100 ml-[52px]" />;
+  return <View className="h-px bg-slate-100 ml-[52px]" />;
 }
 
 function SettingRow({
@@ -313,8 +313,8 @@ function SettingRow({
       <View className="w-8 h-8 rounded-lg bg-slate-100 items-center justify-center mr-3">
         <Ionicons name={icon} size={16} color={theme.colors.textMuted} />
       </View>
-      <Text className="flex-1 text-sm font-medium text-gray-900">{label}</Text>
-      {value && <Text className="text-sm text-gray-400 mr-2">{value}</Text>}
+      <Text className="flex-1 text-sm font-medium text-slate-900">{label}</Text>
+      {value && <Text className="text-sm text-slate-400 mr-2">{value}</Text>}
       <Ionicons name="chevron-forward" size={16} color={theme.colors.borderStrong} />
     </HStack>
   );

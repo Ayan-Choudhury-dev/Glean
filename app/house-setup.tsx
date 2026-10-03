@@ -60,10 +60,10 @@ export default function HouseSetupScreen() {
         <View className="flex-1 px-8 justify-center">
           <BackButton onPress={() => setMode('pick')} />
           <Heading size="xl" className="mb-2 mt-4">Name your household</Heading>
-          <Text className="text-gray-400 text-sm mb-8">You can invite housemates after setup.</Text>
+          <Text className="text-slate-400 text-sm mb-8">You can invite housemates after setup.</Text>
           <VStack space="md">
             <TextInput
-              className="bg-gray-50 border border-gray-200 rounded-xl px-4 h-12 text-base text-gray-900"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-4 h-12 text-base text-slate-900"
               placeholder="e.g. The Choudhury Home"
               placeholderTextColor={theme.colors.textFaint}
               value={houseName}
@@ -91,10 +91,10 @@ export default function HouseSetupScreen() {
         <View className="flex-1 px-8 justify-center">
           <BackButton onPress={() => setMode('pick')} />
           <Heading size="xl" className="mb-2 mt-4">Join a household</Heading>
-          <Text className="text-gray-400 text-sm mb-8">Ask a housemate for their 6-character invite code.</Text>
+          <Text className="text-slate-400 text-sm mb-8">Ask a housemate for their 6-character invite code.</Text>
           <VStack space="md">
             <TextInput
-              className="bg-gray-50 border border-gray-200 rounded-xl px-4 h-12 text-base text-gray-900 tracking-widest uppercase font-mono"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-4 h-12 text-base text-slate-900 tracking-widest uppercase font-mono"
               placeholder="ABC123"
               placeholderTextColor={theme.colors.textFaint}
               value={inviteCode}
@@ -122,7 +122,7 @@ export default function HouseSetupScreen() {
           <Ionicons name="home-outline" size={32} color={theme.colors.textMuted} />
         </View>
         <Heading size="xl" className="text-center">Set up your household</Heading>
-        <Text className="text-gray-400 text-sm mt-2 text-center">
+        <Text className="text-slate-400 text-sm mt-2 text-center">
           Hi {profile?.name}! Create a new home or join an existing one.
         </Text>
       </View>
@@ -148,14 +148,14 @@ function OptionCard({ icon, title, subtitle, onPress }: {
   title: string; subtitle: string; onPress: () => void;
 }) {
   return (
-    <Button size="lg" variant="outline" action="secondary" className="rounded-xl border-gray-200 h-auto py-4" onPress={onPress}>
+    <Button size="lg" variant="outline" action="secondary" className="rounded-xl border-slate-200 h-auto py-4" onPress={onPress}>
       <HStack className="items-center flex-1 px-1">
         <View className="w-10 h-10 bg-slate-100 rounded-xl items-center justify-center mr-4">
           <Ionicons name={icon} size={20} color={theme.colors.textMuted} />
         </View>
         <VStack className="flex-1 items-start">
           <ButtonText className="text-slate-900 font-semibold text-base">{title}</ButtonText>
-          <Text className="text-gray-400 text-xs">{subtitle}</Text>
+          <Text className="text-slate-400 text-xs">{subtitle}</Text>
         </VStack>
         <Ionicons name="chevron-forward" size={16} color={theme.colors.borderStrong} />
       </HStack>
