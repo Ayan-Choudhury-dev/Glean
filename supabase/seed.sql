@@ -5,7 +5,7 @@
 -- Creates:
 --   User:     dev@glean.app / password: glean1234
 --   House:    "Dev House"   (invite code: DEVDEV)
---   Inventory: same items as DEV_INVENTORY in useGleanStore.ts
+--   Inventory: sample pantry items
 -- ─────────────────────────────────────────────────────────────────────────────
 
 DO $$

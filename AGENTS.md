@@ -2,15 +2,13 @@
 
 Guidelines for AI agents working in this repo. Read before making changes.
 
-## Project state: mid-migration (uncommitted)
+## Project state
 
-This repo is mid-migration from gluestack-ui to nativewind + plain Tailwind, and from Expo SDK 54 → 57. The working tree contains a large amount of **intentional uncommitted migration work**:
+The migration from gluestack-ui to nativewind + plain Tailwind and from Expo SDK 54 → 57 is complete and committed. Keep these invariants:
 
-- `components/ui/*` are rewritten as thin wrappers that forward `className` to native primitives (`Pressable`, `Text`, `View`).
-- `components/ui/gluestack-ui-provider/`, `*.web.tsx`, and `styles.tsx` files are **deliberately deleted**.
-- `tailwind.config.js` is **deliberately minimal** (`content` + `presets: [require('nativewind/preset')]`). Do NOT restore the old gluestack-era config from git — its theme references `rgb(var(--color-primary-*))` CSS variables that no longer exist anywhere.
-
-**Never `git checkout`/revert files to HEAD to "fix" things.** HEAD is the pre-migration state; the working tree is the source of truth.
+- `components/ui/*` are thin wrappers that forward `className` to native primitives (`Pressable`, `Text`, `View`).
+- `components/ui/gluestack-ui-provider/`, `*.web.tsx`, and `styles.tsx` files are gone — do not resurrect them.
+- `tailwind.config.js` stays minimal (`content` + `presets: [require('nativewind/preset')]`). Do not restore the old gluestack-era config — its theme references `rgb(var(--color-primary-*))` CSS variables that no longer exist anywhere.
 
 ## NativeWind rules (learned the hard way)
 
@@ -27,7 +25,7 @@ Use the shared `components/ui/tappable.tsx` (`Tappable`) for tappable surfaces:
 
 Do not add per-screen press-feedback code; extend `Tappable` if a variant is needed. `expo-haptics` is a native module — changes to it require a dev-client rebuild (`npx expo run:ios` / `run:android`), while JS-side changes do not.
 
-Do not override react-navigation's `tabBarButton` with custom components — its default button already handles native press feedback, and overrides have caused tab-bar misalignment. Tab-switch animation lives in `TabIcon` in `app/(tabs)/_layout.tsx` (reanimated spring on the focused pill).
+Do not override the tab bar with custom components — the native tab bar already handles native press feedback, and overrides have caused tab-bar misalignment. Tabs are declarative via `NativeTabs` from `expo-router/unstable-native-tabs` in `app/(tabs)/_layout.tsx`; keep them that way.
 
 ## Verification workflow
 
