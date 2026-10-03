@@ -9,6 +9,10 @@ import {
   GeistMono_400Regular,
   GeistMono_500Medium,
 } from '@expo-google-fonts/geist-mono';
+import {
+  Fraunces_600SemiBold,
+  Fraunces_700Bold,
+} from '@expo-google-fonts/fraunces';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { useFonts } from 'expo-font';
 import { Stack, router } from 'expo-router';
@@ -47,6 +51,8 @@ export default function RootLayout() {
     Geist_700Bold,
     GeistMono_400Regular,
     GeistMono_500Medium,
+    Fraunces_600SemiBold,
+    Fraunces_700Bold,
     ...FontAwesome.font,
   });
   const { loadSession, clearSession, handleAuthRedirect } = useGleanStore();

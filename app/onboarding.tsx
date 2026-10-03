@@ -144,7 +144,7 @@ export default function OnboardingScreen() {
           <View style={{ width: 80, height: 80, backgroundColor: colors.accent, borderRadius: theme.radii.lg, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             <Ionicons name="cube" size={40} color={colors.surface} />
           </View>
-          <Text style={{ fontSize: theme.type.xxl, fontWeight: '700', color: colors.text }}>Glean</Text>
+          <Text style={{ fontSize: theme.type.xxl, fontWeight: '700', color: colors.text, fontFamily: theme.fonts.displayBold }}>Glean</Text>
           <Text style={{ color: colors.textFaint, fontSize: theme.type.label, marginTop: 4 }}>Your household inventory</Text>
         </View>
 

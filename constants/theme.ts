@@ -204,6 +204,9 @@ export const fonts = {
   bold: 'Geist_700Bold',
   mono: 'GeistMono_400Regular',
   monoMedium: 'GeistMono_500Medium',
+  // Display serif for headings.
+  display: 'Fraunces_600SemiBold',
+  displayBold: 'Fraunces_700Bold',
 } as const;
 
 /** Map a numeric/keyword fontWeight to the matching Geist family. */

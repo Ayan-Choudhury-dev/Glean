@@ -202,7 +202,7 @@ export default function ItemFormScreen() {
           <Tappable onPress={() => router.dismiss()} hitSlop={12} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Tappable>
-          <Text style={{ flex: 1, fontSize: theme.type.xl, fontWeight: '600', color: colors.text }}>
+          <Text style={{ flex: 1, fontSize: theme.type.xl, fontWeight: '600', color: colors.text, fontFamily: theme.fonts.display }}>
             {isEdit ? existing!.name : 'Add new item'}
           </Text>
           {isEdit && (

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Text as RNText, type TextProps } from 'react-native';
 import { fonts } from '@/constants/theme';
-
 const SIZE_CLASSES: Record<string, string> = {
   '5xl': 'text-6xl',
   '4xl': 'text-5xl',
@@ -24,7 +23,7 @@ const Heading = React.forwardRef<React.ComponentRef<typeof RNText>, IHeadingProp
     const sizeClass = size ? SIZE_CLASSES[size] : '';
     const classes = ['font-bold', sizeClass, className].filter(Boolean).join(' ');
     return (
-      <RNText ref={ref} accessibilityRole="header" className={classes} style={[{ fontFamily: fonts.bold }, style]} {...props} />
+      <RNText ref={ref} accessibilityRole="header" className={classes} style={[{ fontFamily: fonts.displayBold }, style]} {...props} />
     );
   }
 );

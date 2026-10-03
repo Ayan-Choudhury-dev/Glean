@@ -56,7 +56,7 @@ export function LargeTitle({ title, scrollY }: { title: string; scrollY: Animate
   const colors = useColors();
   const scale = scrollY.interpolate({ inputRange: [-60, 0], outputRange: [1.08, 1], extrapolate: 'clamp' });
   return (
-    <Animated.Text style={[styles.largeTitle, { transform: [{ scale }], color: colors.text }]}>{title}</Animated.Text>
+    <Animated.Text style={[styles.largeTitle, { transform: [{ scale }], color: colors.text, fontFamily: theme.fonts.displayBold }]}>{title}</Animated.Text>
   );
 }
 
