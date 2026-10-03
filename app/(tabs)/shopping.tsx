@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, ScrollView, TextInput, FlatList, Alert, RefreshControl } from 'react-native';
+import { View, ScrollView, TextInput, FlatList, Alert, RefreshControl, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tappable } from '../../components/ui/tappable';
@@ -233,7 +233,7 @@ export default function ShoppingScreen() {
         }
       />
 
-      <ScrollView
+      <Animated.ScrollView
         style={{ flex: 1 }}
         onScroll={onScroll}
         scrollEventThrottle={16}
@@ -323,7 +323,7 @@ export default function ShoppingScreen() {
             ))}
           </>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Bottom actions */}
       {tab === 'purchased' && purchased.length > 0 && (

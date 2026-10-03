@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, ScrollView, Alert, Share, Linking, RefreshControl } from 'react-native';
+import { View, TextInput, ScrollView, Alert, Share, Linking, RefreshControl, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { File, Paths } from 'expo-file-system';
@@ -133,7 +133,7 @@ export default function ProfileScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <CollapsibleHeaderBar title="Settings" scrollY={scrollY} />
-      <ScrollView
+      <Animated.ScrollView
         style={{ flex: 1 }}
         onScroll={onScroll}
         scrollEventThrottle={16}
@@ -338,7 +338,7 @@ export default function ProfileScreen() {
         </View>
       </NativeSheet>
 
-    </ScrollView>
+    </Animated.ScrollView>
     </View>
   );
 }

@@ -16,6 +16,7 @@ The migration from gluestack-ui to nativewind + plain Tailwind and from Expo SDK
 2. Screens that use **only inline styles** (e.g. `app/(tabs)/index.tsx`, `shopping.tsx`) are unaffected by Tailwind config — if those break, the cause is in the component wrapping them, not CSS.
 3. Class usage is standard Tailwind palette only (`slate`, `gray`, `red`, `emerald`). No custom theme colors.
 4. **Never pass a function `style` to a NativeWind-interop'd component** (`View`, `Pressable`, `Text`, …). css-interop collects the `style` prop and spreads it (`{ ...style }`); spreading a function yields `{}`, which then overwrites the real style — the element silently loses every inline style (symptoms: rows/chips collapse, layout gone). Track pressed/animated state and pass a plain object/array instead. See `components/ui/tappable.tsx`.
+5. **A native-driver `Animated.event` `onScroll` must be attached to an animated list.** `Animated.event(..., { useNativeDriver: true })` returns an event *object*, not a function; a plain `ScrollView`/`SectionList` calls it as a function and throws `Object is not a function`. Use `Animated.ScrollView` / `Animated.createAnimatedComponent(SectionList)`. See `useCollapsibleHeader`.
 
 ## Native behaviours (ripple, haptics, press feedback)
 
