@@ -6,12 +6,16 @@ import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { View, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { supabase } from '@/lib/supabase';
 import { useGleanStore } from '@/store/useGleanStore';
+import { Tappable } from '@/components/ui/tappable';
+import { theme } from '@/constants/theme';
 import '@/global.css';
 
 export { ErrorBoundary } from 'expo-router';
@@ -78,8 +82,43 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)"      options={{ headerShown: false }} />
             <Stack.Screen name="item-form"   options={{ headerShown: false, presentation: 'modal' }} />
           </Stack>
+          <SyncErrorBanner />
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+function SyncErrorBanner() {
+  const insets = useSafeAreaInsets();
+  const { syncError, clearSyncError } = useGleanStore();
+  if (!syncError) return null;
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        top: insets.top + 8,
+        left: 16,
+        right: 16,
+        zIndex: 50,
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1,
+        borderColor: theme.colors.dangerBorder,
+        borderRadius: theme.radii.md,
+        paddingLeft: 14,
+        paddingRight: 8,
+        paddingVertical: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        ...theme.elevation.floating,
+      }}
+    >
+      <Ionicons name="cloud-offline-outline" size={18} color={theme.colors.danger} />
+      <Text style={{ flex: 1, fontSize: 14, color: theme.colors.text }}>{syncError}</Text>
+      <Tappable onPress={clearSyncError} hitSlop={10} accessibilityRole="button" accessibilityLabel="Dismiss error">
+        <Ionicons name="close" size={18} color={theme.colors.textMuted} />
+      </Tappable>
+    </View>
   );
 }

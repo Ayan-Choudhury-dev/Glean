@@ -229,7 +229,7 @@ export default function ShoppingScreen() {
         style={{ flex: 1 }}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingTop: headerInset, paddingBottom: 200 }}
+        contentContainerStyle={{ paddingTop: headerInset, paddingBottom: 200, width: '100%', maxWidth: 720, alignSelf: 'center' }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} colors={[C.accent]} />
         }

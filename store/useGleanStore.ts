@@ -124,6 +124,7 @@ interface GleanState {
   shoppingList:    ShoppingItem[];
   consumptionLogs: ConsumptionLog[];
   houseOptions: HouseOption[];
+  syncError: string | null;
   lastPantryUpdate: {
     items: ShoppingItem[];
     previousInventory: InventoryItem[];
@@ -137,6 +138,7 @@ interface GleanState {
   handleAuthRedirect:  (url: string)                               => Promise<void>;
   signOut:      ()                                              => Promise<void>;
   clearSession: ()                                              => void;
+  clearSyncError: ()                                            => void;
   loadSession:  ()                                              => Promise<void>;
 
   // House
@@ -172,15 +174,29 @@ interface GleanState {
 
 // ─── Supabase sync helpers (fire-and-forget) ──────────────────────────────────
 
+function reportSyncError(message: string) {
+  try {
+    useGleanStore.setState({ syncError: message });
+  } catch {
+    /* store not initialised yet */
+  }
+}
+
 function sbInsert(table: string, row: Record<string, unknown>) {
   supabase.from(table).insert(row).then(({ error }) => {
-    if (error) console.error(`[sb] insert ${table}:`, error.message);
+    if (error) {
+      console.error(`[sb] insert ${table}:`, error.message);
+      reportSyncError("Couldn't save changes — check your connection.");
+    }
   });
 }
 
 function sbUpdate(table: string, id: string, updates: Record<string, unknown>) {
   supabase.from(table).update(updates).eq('id', id).then(({ error }) => {
-    if (error) console.error(`[sb] update ${table}:`, error.message);
+    if (error) {
+      console.error(`[sb] update ${table}:`, error.message);
+      reportSyncError("Couldn't save changes — check your connection.");
+    }
   });
 }
 
@@ -201,7 +217,10 @@ function sbInsertConsumptionLog(log: ConsumptionLog) {
     delayedLogsTimer = null;
     if (logs.length > 0) {
       supabase.from('consumption_logs').insert(logs as unknown as Record<string, unknown>[]).then(({ error }) => {
-        if (error) console.error('[sb] insert consumption_logs:', error.message);
+        if (error) {
+          console.error('[sb] insert consumption_logs:', error.message);
+          reportSyncError("Couldn't save changes — check your connection.");
+        }
       });
     }
   }, 500);
@@ -231,7 +250,10 @@ function cancelDelayedUpdate(table: string, id: string) {
 
 function sbDelete(table: string, id: string) {
   supabase.from(table).delete().eq('id', id).then(({ error }) => {
-    if (error) console.error(`[sb] delete ${table}:`, error.message);
+    if (error) {
+      console.error(`[sb] delete ${table}:`, error.message);
+      reportSyncError("Couldn't save changes — check your connection.");
+    }
   });
 }
 
@@ -248,6 +270,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   shoppingList:    [],
   consumptionLogs: [],
   houseOptions: [],
+  syncError: null,
   lastPantryUpdate: null,
 
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -374,6 +397,8 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   clearSession: () => {
     set({ profile: null, house: null, inventory: [], shoppingList: [], consumptionLogs: [], houseOptions: [], lastPantryUpdate: null });
   },
+
+  clearSyncError: () => set({ syncError: null }),
 
   loadSession: async () => {
     const { data: { session } } = await supabase.auth.getSession();

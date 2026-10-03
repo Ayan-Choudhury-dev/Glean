@@ -133,7 +133,7 @@ export default function ProfileScreen() {
         style={{ flex: 1 }}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingTop: headerInset + 8, paddingBottom: 48 }}
+        contentContainerStyle={{ paddingTop: headerInset + 8, paddingBottom: 48, width: '100%', maxWidth: 720, alignSelf: 'center' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.accent} colors={[theme.colors.accent]} />}
       >
         <LargeTitle title="Settings" scrollY={scrollY} />

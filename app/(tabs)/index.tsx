@@ -360,7 +360,7 @@ export default function InventoryScreen() {
         scrollEventThrottle={16}
         ListHeaderComponent={headerBlock}
         ListEmptyComponent={emptyBlock}
-        contentContainerStyle={{ paddingTop: headerInset, paddingBottom: 160 }}
+        contentContainerStyle={{ paddingTop: headerInset, paddingBottom: 160, width: '100%', maxWidth: 720, alignSelf: 'center' }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} colors={[C.accent]} />
         }
