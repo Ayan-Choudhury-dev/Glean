@@ -8,10 +8,10 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   Platform,
-  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Tappable } from '../../components/ui/tappable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGleanStore, InventoryItem } from '../../store/useGleanStore';
 
@@ -68,7 +68,7 @@ function Chip({
         paddingHorizontal: 16,
       }}
     >
-      <Pressable
+      <Tappable
         onPress={onPress}
         hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
         style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
@@ -79,7 +79,7 @@ function Chip({
             {label}
           </Text>
         </View>
-      </Pressable>
+      </Tappable>
     </View>
   );
 }
@@ -97,7 +97,7 @@ const InventoryRow = React.memo(function InventoryRow({
   onAdjust: (itemId: string, delta: number) => void;
 }) {
   return (
-    <Pressable
+    <Tappable
       onPress={() => onNavigate(item.id)}
       style={{
         flexDirection: 'row',
@@ -137,26 +137,26 @@ const InventoryRow = React.memo(function InventoryRow({
 
       {/* Quantity steppers — log used/restocked via adjustInventoryQty */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Pressable
+        <Tappable
           onPress={() => onAdjust(item.id, -1)}
           disabled={item.qty === 0}
           hitSlop={6}
           style={{ width: 28, height: 28, borderRadius: 999, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', opacity: item.qty === 0 ? 0.3 : 1 }}
         >
           <Ionicons name="remove" size={14} color="#374151" />
-        </Pressable>
+        </Tappable>
         <Text style={{ fontSize: 16, fontWeight: '600', color: C.text, fontVariant: ['tabular-nums'], minWidth: 20, textAlign: 'center' }}>
           {item.qty}
         </Text>
-        <Pressable
+        <Tappable
           onPress={() => onAdjust(item.id, 1)}
           hitSlop={6}
           style={{ width: 28, height: 28, borderRadius: 999, backgroundColor: C.chipActive, alignItems: 'center', justifyContent: 'center' }}
         >
           <Ionicons name="add" size={14} color="#FFFFFF" />
-        </Pressable>
+        </Tappable>
       </View>
-    </Pressable>
+    </Tappable>
   );
 });
 
@@ -218,9 +218,9 @@ function SearchPill({
           returnKeyType="search"
         />
         {query.length > 0 && (
-          <Pressable onPress={onClear} hitSlop={8}>
+          <Tappable onPress={onClear} hitSlop={8}>
             <Ionicons name="close-circle" size={18} color={C.muted} />
-          </Pressable>
+          </Tappable>
         )}
       </View>
     </View>
@@ -292,12 +292,12 @@ export default function InventoryScreen() {
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ fontSize: 22, fontWeight: '600', color: C.faint }}>Add some groceries</Text>
             <Text style={{ fontSize: 14, color: C.faint, marginTop: 8 }}>Click the button below to add an item</Text>
-            <Pressable
+            <Tappable
               onPress={() => router.push('/item-form')}
               style={{ marginTop: 24, backgroundColor: C.chipActive, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 }}
             >
               <Text style={{ color: '#FFFFFF', fontWeight: '500' }}>Add new item</Text>
-            </Pressable>
+            </Tappable>
           </View>
         ) : (
           /* ── Main content: header → chips → list → search pill ── */
@@ -306,13 +306,13 @@ export default function InventoryScreen() {
             <View style={{ height: 64 + insets.top, paddingTop: insets.top  }}>
               <View style={{ height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24 }}>
                 <Text style={{ fontSize: 20, fontWeight: '600', color: C.chipActive }}>Inventory</Text>
-                <Pressable
+                <Tappable
                   onPress={() => router.push('/item-form')}
                   hitSlop={8}
                   style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
                 >
                   <Ionicons name="add" size={24} color={C.chipActive} />
-                </Pressable>
+                </Tappable>
               </View>
             </View>
 

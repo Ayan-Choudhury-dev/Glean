@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, TextInput, ScrollView, Alert, Pressable } from 'react-native';
+import { View, TextInput, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { Tappable } from '../../components/ui/tappable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGleanStore } from '../../store/useGleanStore';
 
@@ -127,7 +128,7 @@ export default function ProfileScreen() {
         <Divider />
         <SettingRow icon="people-outline" label="Members" value={membersLabel} />
         <Divider />
-        <Pressable onPress={() => setInviteSheetOpen(true)}>
+        <Tappable onPress={() => setInviteSheetOpen(true)}>
           <HStack className="items-center px-4 py-3">
             <View className="w-8 h-8 rounded-lg bg-slate-100 items-center justify-center mr-3">
               <Ionicons name="person-add-outline" size={16} color="#475569" />
@@ -135,13 +136,13 @@ export default function ProfileScreen() {
             <Text className="flex-1 text-sm font-medium text-slate-600">Invite a member</Text>
             <Text className="text-xs text-slate-400">Share invite code</Text>
           </HStack>
-        </Pressable>
+        </Tappable>
       </Card>
 
       {/* ── Data (import / export) ─────────────────────────────────────── */}
       <SectionHeader title="Data" />
       <Card>
-        <Pressable onPress={() => setDataSheetOpen(true)}>
+        <Tappable onPress={() => setDataSheetOpen(true)}>
           <HStack className="items-center px-4 py-3">
             <View className="w-8 h-8 rounded-lg bg-slate-100 items-center justify-center mr-3">
               <Ionicons name="swap-horizontal-outline" size={16} color="#475569" />
@@ -152,7 +153,7 @@ export default function ProfileScreen() {
             </VStack>
             <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
           </HStack>
-        </Pressable>
+        </Tappable>
       </Card>
 
       {/* ── About ──────────────────────────────────────────────────────── */}
@@ -166,14 +167,14 @@ export default function ProfileScreen() {
       {/* ── Account ────────────────────────────────────────────────────── */}
       <SectionHeader title="Account" />
       <Card>
-        <Pressable onPress={handleSignOut}>
+        <Tappable onPress={handleSignOut}>
           <HStack className="items-center px-4 py-3">
             <View className="w-8 h-8 rounded-lg bg-red-50 items-center justify-center mr-3">
               <Ionicons name="log-out-outline" size={16} color="#EF4444" />
             </View>
             <Text className="flex-1 text-sm font-medium text-red-500">Sign out</Text>
           </HStack>
-        </Pressable>
+        </Tappable>
       </Card>
 
       {/* Invite sheet */}
@@ -205,13 +206,13 @@ export default function ProfileScreen() {
           {/* Header + tabs */}
           <HStack className="items-center mb-4">
             <Heading size="md" className="flex-1">Import / export data</Heading>
-            <Pressable onPress={() => setDataSheetOpen(false)} hitSlop={12}>
+            <Tappable onPress={() => setDataSheetOpen(false)} hitSlop={12}>
               <Ionicons name="close" size={20} color="#6B7280" />
-            </Pressable>
+            </Tappable>
           </HStack>
           <HStack className="bg-slate-100 rounded-xl p-1">
             {(['import', 'export'] as const).map(tab => (
-              <Pressable
+              <Tappable
                 key={tab}
                 className={`flex-1 py-2 rounded-lg items-center ${dataTab === tab ? 'bg-white' : ''}`}
                 style={dataTab === tab ? { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 } : undefined}
@@ -220,7 +221,7 @@ export default function ProfileScreen() {
                 <Text className={`text-sm font-semibold capitalize ${dataTab === tab ? 'text-slate-900' : 'text-slate-400'}`}>
                   {tab === 'import' ? 'Import' : 'Export'}
                 </Text>
-              </Pressable>
+              </Tappable>
             ))}
           </HStack>
 
@@ -259,11 +260,11 @@ export default function ProfileScreen() {
               <Text className="text-xs text-slate-500">
                 Your inventory will be exported as a CSV file you can back up or share.
               </Text>
-              <Pressable className="bg-slate-100 border border-slate-200 rounded-lg px-4 py-2">
+              <Tappable className="bg-slate-100 border border-slate-200 rounded-lg px-4 py-2">
                 <Text className="text-xs text-slate-400 font-mono" numberOfLines={2}>
                   Name,Quantity,Category,Location · {inventory.length} rows
                 </Text>
-              </Pressable>
+              </Tappable>
               <Button
                 size="md"
                 className="bg-slate-900 rounded-xl mt-1"

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, TextInput, FlatList, Pressable } from 'react-native';
+import { View, Text, ScrollView, TextInput, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Tappable } from '../../components/ui/tappable';
 import { NativeSheet } from '../../components/NativeSheet';
 import { useGleanStore, ShoppingItem } from '../../store/useGleanStore';
 import { getRestockSuggestions, type RestockSuggestion } from '../../lib/predictions';
@@ -34,7 +35,7 @@ const ShoppingRow = React.memo(function ShoppingRow({
   const purchased = item.status === 'purchased';
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16, gap: 12 }}>
-      <Pressable
+      <Tappable
         onPress={() => onToggle(item.id)}
         hitSlop={8}
         accessibilityRole="checkbox"
@@ -43,27 +44,27 @@ const ShoppingRow = React.memo(function ShoppingRow({
         <View style={{ width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: purchased ? C.green : '#D1D5DB', backgroundColor: purchased ? C.green : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
           {purchased && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
         </View>
-      </Pressable>
+      </Tappable>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 15, fontWeight: '500', color: purchased ? C.faint : C.text, textDecorationLine: purchased ? 'line-through' : 'none' }}>{item.name}</Text>
         {purchased && <Text style={{ fontSize: 12, color: C.faint, marginTop: 2 }}>Qty: {item.target_qty}</Text>}
       </View>
       {!purchased && (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Pressable
+          <Tappable
             onPress={() => onAdjust(item.id, -1)}
             disabled={item.target_qty <= 1}
             style={{ width: 28, height: 28, borderRadius: 999, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', opacity: item.target_qty <= 1 ? 0.3 : 1 }}
           >
             <Ionicons name="remove" size={14} color="#374151" />
-          </Pressable>
+          </Tappable>
           <Text style={{ fontSize: 15, fontWeight: '700', color: C.text, minWidth: 20, textAlign: 'center' }}>{item.target_qty}</Text>
-          <Pressable
+          <Tappable
             onPress={() => onAdjust(item.id, 1)}
             style={{ width: 28, height: 28, borderRadius: 999, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}
           >
             <Ionicons name="add" size={14} color="#374151" />
-          </Pressable>
+          </Tappable>
         </View>
       )}
     </View>
@@ -86,14 +87,14 @@ const SuggestionRow = React.memo(function SuggestionRow({
         <Text style={{ fontSize: 15, fontWeight: '500', color: C.text }}>{suggestion.name}</Text>
         <Text style={{ fontSize: 12, color: C.amber, marginTop: 2 }}>Predicted to finish {suggestion.label}</Text>
       </View>
-      <Pressable
+      <Tappable
         onPress={() => onAdd(suggestion)}
         hitSlop={6}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: C.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}
       >
         <Ionicons name="add" size={14} color={C.primary} />
         <Text style={{ fontSize: 13, fontWeight: '600', color: C.primary }}>Add</Text>
-      </Pressable>
+      </Tappable>
     </View>
   );
 });
@@ -163,14 +164,14 @@ export default function ShoppingScreen() {
       <View style={{ height: 64 + insets.top, paddingTop: insets.top }}>
         <View style={{ height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24 }}>
           <Text style={{ fontSize: 20, fontWeight: '600', color: C.primary }}>Shopping list</Text>
-          <Pressable
+          <Tappable
             onPress={() => { setAddItemSearch(''); setAddItemSheet(true); }}
             hitSlop={8}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.primary, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 }}
           >
             <Ionicons name="add" size={16} color="#FFFFFF" />
             <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>Add item</Text>
-          </Pressable>
+          </Tappable>
         </View>
       </View>
 
@@ -179,7 +180,7 @@ export default function ShoppingScreen() {
         {tabs.map(t => {
           const active = tab === t.key;
           return (
-            <Pressable
+            <Tappable
               key={t.key}
               onPress={() => setTab(t.key)}
               style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: 8, backgroundColor: active ? '#FFFFFF' : 'transparent' }}
@@ -188,7 +189,7 @@ export default function ShoppingScreen() {
               <View style={{ minWidth: 20, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: active ? C.primary : '#E2E8F0' }}>
                 <Text style={{ fontSize: 11, fontWeight: '700', textAlign: 'center', color: active ? '#FFFFFF' : C.muted }}>{t.count}</Text>
               </View>
-            </Pressable>
+            </Tappable>
           );
         })}
       </View>
@@ -245,7 +246,7 @@ export default function ShoppingScreen() {
       {/* Update pantry CTA — only when there is something to commit */}
       {tab === 'purchased' && purchased.length > 0 && (
         <View style={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: insets.bottom + 88 }}>
-          <Pressable
+          <Tappable
             onPress={() => {
               const count = purchased.length;
               updatePantry();
@@ -257,7 +258,7 @@ export default function ShoppingScreen() {
             <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 16 }}>
               Update Pantry ({purchased.length})
             </Text>
-          </Pressable>
+          </Tappable>
         </View>
       )}
 
@@ -265,13 +266,13 @@ export default function ShoppingScreen() {
         <View style={{ position: 'absolute', left: 24, right: 24, bottom: insets.bottom + 148, minHeight: 52, borderRadius: 14, backgroundColor: '#1E293B', flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 8, gap: 12 }}>
           <Text style={{ flex: 1, color: '#FFFFFF', fontSize: 13 }} numberOfLines={1}>{snackbar.message}</Text>
           {snackbar.canUndo && (
-            <Pressable
+            <Tappable
               onPress={() => { undoLastPantryUpdate(); setSnackbar(null); }}
               hitSlop={8}
               style={{ paddingHorizontal: 10, paddingVertical: 8 }}
             >
               <Text style={{ color: '#93C5FD', fontSize: 13, fontWeight: '700' }}>Undo</Text>
-            </Pressable>
+            </Tappable>
           )}
         </View>
       )}
@@ -281,9 +282,9 @@ export default function ShoppingScreen() {
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 }}>
             <Text style={{ flex: 1, fontSize: 16, fontWeight: '600', color: C.text }}>Add item</Text>
-            <Pressable onPress={() => setAddItemSheet(false)} hitSlop={12}>
+            <Tappable onPress={() => setAddItemSheet(false)} hitSlop={12}>
               <Ionicons name="close" size={20} color="#6B7280" />
-            </Pressable>
+            </Tappable>
           </View>
 
           <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
@@ -308,7 +309,7 @@ export default function ShoppingScreen() {
             ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: '#F3F4F6', marginLeft: 16, marginRight: 16 }} />}
             ListEmptyComponent={
               addItemSearch.trim().length > 0 ? (
-                <Pressable
+                <Tappable
                   style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16 }}
                   onPress={() => {
                     addToShoppingList(addItemSearch.trim());
@@ -320,7 +321,7 @@ export default function ShoppingScreen() {
                     <Text style={{ fontSize: 12, color: '#9CA3AF' }}>Not in your inventory</Text>
                   </View>
                   <Ionicons name="add-circle-outline" size={22} color="#141C2D" />
-                </Pressable>
+                </Tappable>
               ) : (
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   <Text style={{ fontSize: 14, color: '#9CA3AF' }}>No items found</Text>
@@ -330,7 +331,7 @@ export default function ShoppingScreen() {
             renderItem={({ item }) => {
               const alreadyQueued = queuedIds.has(item.id) || queuedNames.has(item.name.toLowerCase());
               return (
-                <Pressable
+                <Tappable
                   style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, opacity: alreadyQueued ? 0.4 : 1 }}
                   onPress={() => {
                     if (!alreadyQueued) {
@@ -349,7 +350,7 @@ export default function ShoppingScreen() {
                   ) : (
                     <Ionicons name="add-circle-outline" size={22} color="#141C2D" />
                   )}
-                </Pressable>
+                </Tappable>
               );
             }}
           />
