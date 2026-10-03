@@ -90,9 +90,11 @@ function Chip({
 const InventoryRow = React.memo(function InventoryRow({
   item,
   onNavigate,
+  onAdjust,
 }: {
   item: InventoryItem;
   onNavigate: (itemId: string) => void;
+  onAdjust: (itemId: string, delta: number) => void;
 }) {
   return (
     <Pressable
@@ -128,10 +130,32 @@ const InventoryRow = React.memo(function InventoryRow({
         </View>
       </View>
 
-      {/* Quantity with tabular nums so digits stay aligned */}
-      <Text style={{ fontSize: 16, fontWeight: '600', color: C.text, fontVariant: ['tabular-nums'], minWidth: 24, textAlign: 'right' }}>
-        {item.qty}
-      </Text>
+      {/* Location column */}
+      {item.location ? (
+        <Text style={{ width: 80, textAlign: 'right', fontSize: 12, color: C.faint }} numberOfLines={1}>{item.location}</Text>
+      ) : null}
+
+      {/* Quantity steppers — log used/restocked via adjustInventoryQty */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Pressable
+          onPress={() => onAdjust(item.id, -1)}
+          disabled={item.qty === 0}
+          hitSlop={6}
+          style={{ width: 28, height: 28, borderRadius: 999, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', opacity: item.qty === 0 ? 0.3 : 1 }}
+        >
+          <Ionicons name="remove" size={14} color="#374151" />
+        </Pressable>
+        <Text style={{ fontSize: 16, fontWeight: '600', color: C.text, fontVariant: ['tabular-nums'], minWidth: 20, textAlign: 'center' }}>
+          {item.qty}
+        </Text>
+        <Pressable
+          onPress={() => onAdjust(item.id, 1)}
+          hitSlop={6}
+          style={{ width: 28, height: 28, borderRadius: 999, backgroundColor: C.chipActive, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Ionicons name="add" size={14} color="#FFFFFF" />
+        </Pressable>
+      </View>
     </Pressable>
   );
 });
@@ -205,7 +229,7 @@ function SearchPill({
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function InventoryScreen() {
-  const { inventory } = useGleanStore();
+  const { inventory, adjustInventoryQty } = useGleanStore();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -245,11 +269,8 @@ export default function InventoryScreen() {
     return matchesSearch && matchesCategory;
   }), [inventory, searchQuery, selectedCategory]);
 
-  // Group into sections — flat list when "All", grouped by category otherwise
+  // Grouped by category (sorted) — matches the design's sectioned list
   const sections = useMemo(() => {
-    if (selectedCategory === null) {
-      return [{ title: '', data: [...filtered].sort((a, b) => a.name.localeCompare(b.name)) }];
-    }
     const groups = filtered.reduce((acc, item) => {
       if (!acc[item.category]) acc[item.category] = [];
       acc[item.category].push(item);
@@ -259,7 +280,7 @@ export default function InventoryScreen() {
     return Object.keys(groups)
       .sort()
       .map(category => ({ title: category, data: groups[category].sort((a, b) => a.name.localeCompare(b.name)) }));
-  }, [filtered, selectedCategory]);
+  }, [filtered]);
 
   const searchBottom = Platform.OS === 'ios' && iosKeyboardOpen ? 12 : insets.bottom + 88;
 
@@ -326,8 +347,8 @@ export default function InventoryScreen() {
                 keyboardDismissMode="on-drag"
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 160, marginTop: 24 }}
-                renderSectionHeader={selectedCategory !== null ? ({ section: { title } }) => <SectionHeader title={title} /> : undefined}
-                renderItem={({ item }) => <InventoryRow item={item} onNavigate={navigateToItem} />}
+                renderSectionHeader={({ section: { title } }) => <SectionHeader title={title} />}
+                renderItem={({ item }) => <InventoryRow item={item} onNavigate={navigateToItem} onAdjust={adjustInventoryQty} />}
               />
             )}
 
