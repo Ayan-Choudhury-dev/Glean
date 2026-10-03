@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGleanStore, InventoryItem, DEFAULT_HOUSE_OPTIONS } from '../../store/useGleanStore';
 import { theme } from '@/constants/theme';
+import { categoryImage } from '@/constants/categoryImages';
 import { Tappable } from '../../components/ui/tappable';
 import { Text } from '../../components/ui/text';
 import {
@@ -127,19 +128,23 @@ const InventoryRow = React.memo(function InventoryRow({
         gap: 14,
       }}
     >
-      {/* Leading thumbnail / category avatar */}
+      {/* Leading thumbnail — item photo, else category art, else icon */}
       {item.image_url ? (
         <Image
           source={{ uri: item.image_url }}
           style={{ width: 44, height: 44, borderRadius: theme.radii.md, backgroundColor: C.chipBg }}
         />
       ) : (
-        <View style={{ width: 44, height: 44, borderRadius: theme.radii.md, backgroundColor: C.chipBg, alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons
-            name={(CATEGORY_ICON[item.category] ?? 'pricetag-outline') as React.ComponentProps<typeof Ionicons>['name']}
-            size={20}
-            color={C.muted}
-          />
+        <View style={{ width: 44, height: 44, borderRadius: theme.radii.md, backgroundColor: C.chipBg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          {categoryImage(item.category) ? (
+            <Image source={categoryImage(item.category)!} style={{ width: 36, height: 36 }} resizeMode="contain" />
+          ) : (
+            <Ionicons
+              name={(CATEGORY_ICON[item.category] ?? 'pricetag-outline') as React.ComponentProps<typeof Ionicons>['name']}
+              size={20}
+              color={C.muted}
+            />
+          )}
         </View>
       )}
 
