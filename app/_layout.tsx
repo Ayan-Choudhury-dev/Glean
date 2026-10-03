@@ -27,6 +27,7 @@ import { useGleanStore } from '@/store/useGleanStore';
 import { Tappable } from '@/components/ui/tappable';
 import { Text } from '@/components/ui/text';
 import { theme } from '@/constants/theme';
+import { initSyncQueue } from '@/lib/syncQueue';
 import '@/global.css';
 
 export { ErrorBoundary } from 'expo-router';
@@ -55,6 +56,11 @@ export default function RootLayout() {
   // Restore session on cold start
   useEffect(() => {
     loadSession();
+  }, []);
+
+  // Flush any writes queued while offline.
+  useEffect(() => {
+    void initSyncQueue();
   }, []);
 
   // Listen for auth changes (token refresh, sign-out from another device, etc.)

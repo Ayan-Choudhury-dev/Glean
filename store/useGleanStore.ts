@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import { enqueue, flushQueue } from '../lib/syncQueue';
+import { deleteItemImage } from '../lib/upload';
 
 // ─── UUID helper ──────────────────────────────────────────────────────────────
 
@@ -187,7 +189,10 @@ function sbInsert(table: string, row: Record<string, unknown>) {
   supabase.from(table).insert(row).then(({ error }) => {
     if (error) {
       console.error(`[sb] insert ${table}:`, error.message);
+      enqueue({ table, kind: 'insert', payload: row });
       reportSyncError("Couldn't save changes — check your connection.");
+    } else {
+      void flushQueue();
     }
   });
 }
@@ -196,7 +201,10 @@ function sbUpdate(table: string, id: string, updates: Record<string, unknown>) {
   supabase.from(table).update(updates).eq('id', id).then(({ error }) => {
     if (error) {
       console.error(`[sb] update ${table}:`, error.message);
+      enqueue({ table, kind: 'update', id, payload: updates });
       reportSyncError("Couldn't save changes — check your connection.");
+    } else {
+      void flushQueue();
     }
   });
 }
@@ -220,7 +228,10 @@ function sbInsertConsumptionLog(log: ConsumptionLog) {
       supabase.from('consumption_logs').insert(logs as unknown as Record<string, unknown>[]).then(({ error }) => {
         if (error) {
           console.error('[sb] insert consumption_logs:', error.message);
+          enqueue({ table: 'consumption_logs', kind: 'insert', payload: logs });
           reportSyncError("Couldn't save changes — check your connection.");
+        } else {
+          void flushQueue();
         }
       });
     }
@@ -253,7 +264,10 @@ function sbDelete(table: string, id: string) {
   supabase.from(table).delete().eq('id', id).then(({ error }) => {
     if (error) {
       console.error(`[sb] delete ${table}:`, error.message);
+      enqueue({ table, kind: 'delete', id });
       reportSyncError("Couldn't save changes — check your connection.");
+    } else {
+      void flushQueue();
     }
   });
 }
@@ -580,6 +594,9 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       shoppingList: state.shoppingList.filter(s => s.inventory_id !== id),
     }));
     sbDelete('inventory', id);
+    // Remove the stored image so it doesn't orphan in the bucket.
+    const { house } = get();
+    if (house) void deleteItemImage(house.id, id);
     // shopping_list rows cascade via inventory_id FK SET NULL — clean up nulled rows
     supabase.from('shopping_list').delete().eq('inventory_id', id)
       .then(({ error }) => { if (error) console.error('[sb] cleanup shopping_list:', error.message); });

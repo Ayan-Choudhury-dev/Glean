@@ -41,3 +41,27 @@ export async function uploadItemImage(
     return null;
   }
 }
+
+/** Remove an item's stored image(s) when the item is deleted. */
+export async function deleteItemImage(houseId: string, itemId: string): Promise<void> {
+  try {
+    const { data, error } = await supabase.storage
+      .from(BUCKET)
+      .list(houseId, { search: itemId });
+
+    if (error) {
+      console.error('[upload] list for delete:', error.message);
+      return;
+    }
+
+    const paths = (data ?? [])
+      .filter(entry => entry.name.startsWith(`${itemId}.`))
+      .map(entry => `${houseId}/${entry.name}`);
+
+    if (paths.length > 0) {
+      await supabase.storage.from(BUCKET).remove(paths);
+    }
+  } catch (e) {
+    console.error('[upload] delete item image failed:', e);
+  }
+}

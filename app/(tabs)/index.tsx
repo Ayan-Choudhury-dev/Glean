@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Animated,
   Image,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -20,6 +21,7 @@ import { categoryImage } from '@/constants/categoryImages';
 import type { ImageSourcePropType } from 'react-native';
 import { Tappable } from '../../components/ui/tappable';
 import { Text } from '../../components/ui/text';
+import { SwipeToDelete } from '../../components/SwipeToDelete';
 import {
   CollapsibleHeaderBar,
   LargeTitle,
@@ -263,7 +265,7 @@ function SearchPill({
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function InventoryScreen() {
-  const { inventory, house, adjustInventoryQty, loadHouseData, loading } = useGleanStore();
+  const { inventory, house, adjustInventoryQty, loadHouseData, loading, deleteInventoryItem } = useGleanStore();
   const insets = useSafeAreaInsets();
   const { scrollY, onScroll } = useCollapsibleHeader();
   const headerInset = useHeaderContentInset();
@@ -287,6 +289,13 @@ export default function InventoryScreen() {
     lastNav.current = now;
     router.push(`/item-form?itemId=${itemId}`);
   }, []);
+
+  const confirmDeleteItem = useCallback((item: InventoryItem) => {
+    Alert.alert('Delete item', `Remove "${item.name}" and its photo?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteInventoryItem(item.id) },
+    ]);
+  }, [deleteInventoryItem]);
 
   const onRefresh = useCallback(async () => {
     if (!house) return;
@@ -433,7 +442,9 @@ export default function InventoryScreen() {
         renderSectionHeader={({ section: { title, data } }) => <SectionHeader title={title} count={data.length} />}
         renderItem={({ item, index, section }) => (
           <View>
-            <InventoryRow item={item} onNavigate={navigateToItem} onAdjust={adjustInventoryQty} />
+            <SwipeToDelete onDelete={() => confirmDeleteItem(item)}>
+              <InventoryRow item={item} onNavigate={navigateToItem} onAdjust={adjustInventoryQty} />
+            </SwipeToDelete>
             {index < section.data.length - 1 && (
               <View style={{ height: 1, backgroundColor: C.border, marginLeft: ROW_INSET, marginRight: PAD }} />
             )}
