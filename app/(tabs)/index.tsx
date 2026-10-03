@@ -40,7 +40,7 @@ const C = {
 } as const;
 
 // ─── Chip ─────────────────────────────────────────────────────────────────────
-// Filter pill. Colors on a plain-object View; Pressable only handles press feedback.
+// Filter pill. Colors on a plain-object View; Tappable handles press feedback.
 function Chip({
   label,
   icon,
@@ -73,7 +73,6 @@ function Chip({
       <Tappable
         onPress={onPress}
         hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-        style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Ionicons name={icon} size={15} color={active ? theme.colors.surface : theme.colors.textMuted} />
