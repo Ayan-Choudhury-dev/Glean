@@ -8,19 +8,22 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Tappable } from '../../components/ui/tappable';
-import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGleanStore, InventoryItem } from '../../store/useGleanStore';
 import { theme } from '@/constants/theme';
+import { Tappable } from '../../components/ui/tappable';
+import {
+  CollapsibleHeaderBar,
+  LargeTitle,
+  useCollapsibleHeader,
+  useHeaderContentInset,
+} from '../../components/CollapsibleHeader';
 
-
-// ─── Palette ──────────────────────────────────────────────────────────────────
-// All hardcoded colors live here so screens stay consistent. When migrating to
-// Color from expo-router, replace these with the semantic equivalents.
+// ─── Palette aliases ──────────────────────────────────────────────────────────
 const C = {
   bg: theme.colors.background,
   card: theme.colors.surface,
@@ -28,19 +31,22 @@ const C = {
   muted: theme.colors.textMuted,
   faint: theme.colors.textFaint,
   border: theme.colors.border,
-  borderLight: theme.colors.border,
-  chipBg: theme.colors.borderLight,
-  chipActive: theme.colors.primary,
+  borderLight: theme.colors.borderLight,
+  chipBg: theme.colors.chipBg,
+  accent: theme.colors.accent,
+  accentSoft: theme.colors.accentSoft,
+  accentBorder: theme.colors.accentBorder,
   danger: theme.colors.danger,
   dangerBg: theme.colors.dangerBg,
   warning: theme.colors.warning,
   warningBg: theme.colors.warningBg,
   green: theme.colors.success,
-  sectionBg: theme.colors.surfaceMuted,
 } as const;
 
+const PAD = 24;
+type Filter = string | null;
+
 // ─── Chip ─────────────────────────────────────────────────────────────────────
-// Filter pill. Colors on a plain-object View; Tappable handles press feedback.
 function Chip({
   label,
   icon,
@@ -53,41 +59,36 @@ function Chip({
   onPress: () => void;
 }) {
   return (
-    <View
+    <Tappable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={`Filter: ${label}`}
+      hitSlop={6}
       style={{
         height: 40,
         minWidth: 56,
-        borderRadius: 999,
-        backgroundColor: active ? theme.colors.primary : theme.colors.surface,
+        borderRadius: theme.radii.pill,
+        backgroundColor: active ? C.accentSoft : C.card,
         borderWidth: 1,
-        borderColor: active ? 'transparent' : theme.colors.border,
-        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08)',
-        overflow: 'hidden',
+        borderColor: active ? C.accentBorder : C.border,
         flexShrink: 0,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 16,
+        gap: 6,
       }}
     >
-      <Tappable
-        onPress={onPress}
-        hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Ionicons name={icon} size={15} color={active ? theme.colors.surface : theme.colors.textMuted} />
-          <Text style={{ fontSize: 14, fontWeight: '500', color: active ? theme.colors.surface : theme.colors.text }}>
-            {label}
-          </Text>
-        </View>
-      </Tappable>
-    </View>
+      <Ionicons name={icon} size={15} color={active ? C.accent : C.muted} />
+      <Text style={{ fontSize: 14, fontWeight: '500', color: active ? C.accent : C.text }}>
+        {label}
+      </Text>
+    </Tappable>
   );
 }
 
 // ─── InventoryRow ─────────────────────────────────────────────────────────────
-// Single inventory row. Tap opens item detail. Shows name, optional location,
-// stock badges (out-of-stock / low-stock), and a tabular-nums quantity.
 const InventoryRow = React.memo(function InventoryRow({
   item,
   onNavigate,
@@ -100,58 +101,62 @@ const InventoryRow = React.memo(function InventoryRow({
   return (
     <Tappable
       onPress={() => onNavigate(item.id)}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.name}, ${item.qty} in stock`}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
         minHeight: 64,
+        paddingHorizontal: PAD,
         paddingVertical: 12,
         gap: 12,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
+        borderBottomColor: C.border,
       }}
     >
-      {/* Name, location, and stock badge */}
       <View style={{ flex: 1, gap: 4 }}>
-        <Text style={{ fontSize: 14, fontWeight: '500', color: C.text }} numberOfLines={1}>
+        <Text style={{ fontSize: theme.type.body, fontWeight: '500', color: C.text }} numberOfLines={1}>
           {item.name}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {item.qty === 0 ? (
-            <View style={{ backgroundColor: C.dangerBg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+            <View style={{ backgroundColor: C.dangerBg, borderRadius: theme.radii.pill, paddingHorizontal: 8, paddingVertical: 2 }}>
               <Text style={{ fontSize: 12, fontWeight: '500', color: C.danger }}>Out of stock</Text>
             </View>
           ) : item.qty === 1 ? (
-            <View style={{ backgroundColor: C.warningBg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+            <View style={{ backgroundColor: C.warningBg, borderRadius: theme.radii.pill, paddingHorizontal: 8, paddingVertical: 2 }}>
               <Text style={{ fontSize: 12, fontWeight: '500', color: C.warning }}>Low stock</Text>
             </View>
           ) : null}
         </View>
       </View>
 
-      {/* Location column */}
       {item.location ? (
         <Text style={{ width: 80, textAlign: 'right', fontSize: 12, color: C.faint }} numberOfLines={1}>{item.location}</Text>
       ) : null}
 
-      {/* Quantity steppers — log used/restocked via adjustInventoryQty */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Tappable
           onPress={() => onAdjust(item.id, -1)}
           disabled={item.qty === 0}
-          hitSlop={6}
-          style={{ width: 28, height: 28, borderRadius: 999, backgroundColor: theme.colors.surfaceSunken, alignItems: 'center', justifyContent: 'center', opacity: item.qty === 0 ? 0.3 : 1 }}
+          accessibilityRole="button"
+          accessibilityLabel={`Decrease ${item.name}`}
+          hitSlop={10}
+          style={{ width: 32, height: 32, borderRadius: theme.radii.pill, backgroundColor: C.chipBg, alignItems: 'center', justifyContent: 'center', opacity: item.qty === 0 ? 0.35 : 1 }}
         >
-          <Ionicons name="remove" size={14} color={theme.colors.text} />
+          <Ionicons name="remove" size={15} color={C.text} />
         </Tappable>
-        <Text style={{ fontSize: 16, fontWeight: '600', color: C.text, fontVariant: ['tabular-nums'], minWidth: 20, textAlign: 'center' }}>
+        <Text style={{ fontSize: 16, fontWeight: '600', color: C.text, fontVariant: ['tabular-nums'], minWidth: 22, textAlign: 'center' }}>
           {item.qty}
         </Text>
         <Tappable
           onPress={() => onAdjust(item.id, 1)}
-          hitSlop={6}
-          style={{ width: 28, height: 28, borderRadius: 999, backgroundColor: C.chipActive, alignItems: 'center', justifyContent: 'center' }}
+          accessibilityRole="button"
+          accessibilityLabel={`Increase ${item.name}`}
+          hitSlop={10}
+          style={{ width: 32, height: 32, borderRadius: theme.radii.pill, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}
         >
-          <Ionicons name="add" size={14} color={theme.colors.surface} />
+          <Ionicons name="add" size={15} color={theme.colors.onAccent} />
         </Tappable>
       </View>
     </Tappable>
@@ -159,22 +164,19 @@ const InventoryRow = React.memo(function InventoryRow({
 });
 
 // ─── SectionHeader ────────────────────────────────────────────────────────────
-// Category group divider shown when a specific category filter is active.
 function SectionHeader({ title }: { title: string }) {
   return (
-    <View style={{ height: 40, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-      <Ionicons name="leaf-outline" size={16} color={C.green} />
+    <View style={{ height: 40, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: PAD }}>
+      <Ionicons name="leaf-outline" size={15} color={C.green} />
       <Text style={{ fontSize: 12, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5 }}>
         {title}
       </Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: C.borderLight }} />
+      <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
     </View>
   );
 }
 
 // ─── SearchPill ───────────────────────────────────────────────────────────────
-// Floating search bar above the tab bar. Moves above keyboard on iOS via
-// the `bottom` prop driven by the keyboardWillShow/Hide listener.
 function SearchPill({
   query,
   onQueryChange,
@@ -187,36 +189,33 @@ function SearchPill({
   bottom: number;
 }) {
   return (
-    <View style={{ position: 'absolute', left: 24, right: 24, bottom: 16, zIndex: 10 }}>
+    <View style={{ position: 'absolute', left: PAD, right: PAD, bottom: 16, zIndex: 10 }}>
       <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
           backgroundColor: C.card,
-          borderRadius: 999,
+          borderRadius: theme.radii.pill,
           height: 48,
           paddingHorizontal: 16,
           gap: 8,
           borderWidth: 1,
           borderColor: C.borderLight,
-          shadowColor: C.chipActive,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.12,
-          shadowRadius: 12,
-          elevation: 6,
+          ...theme.elevation.floating,
         }}
       >
         <Ionicons name="search-outline" size={19} color={C.muted} />
         <TextInput
-          style={{ flex: 1, fontSize: 14, color: C.text }}
+          style={{ flex: 1, fontSize: 15, color: C.text }}
           placeholder="Search inventory"
           placeholderTextColor={C.faint}
           value={query}
           onChangeText={onQueryChange}
           returnKeyType="search"
+          accessibilityLabel="Search inventory"
         />
         {query.length > 0 && (
-          <Tappable onPress={onClear} hitSlop={8}>
+          <Tappable onPress={onClear} hitSlop={12} accessibilityRole="button" accessibilityLabel="Clear search">
             <Ionicons name="close-circle" size={18} color={C.muted} />
           </Tappable>
         )}
@@ -227,14 +226,16 @@ function SearchPill({
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function InventoryScreen() {
-  const { inventory, adjustInventoryQty } = useGleanStore();
+  const { inventory, house, adjustInventoryQty, loadHouseData } = useGleanStore();
   const insets = useSafeAreaInsets();
+  const { scrollY, onScroll } = useCollapsibleHeader();
+  const headerInset = useHeaderContentInset();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Filter>(null);
   const [iosKeyboardOpen, setIosKeyboardOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const lastNav = useRef(0);
 
-  // iOS only: reposition search pill when keyboard opens
   useEffect(() => {
     if (Platform.OS !== 'ios') return;
     const show = Keyboard.addListener('keyboardWillShow', () => setIosKeyboardOpen(true));
@@ -242,7 +243,6 @@ export default function InventoryScreen() {
     return () => { show.remove(); hide.remove(); };
   }, []);
 
-  // Debounce rapid taps to prevent double-navigation
   const navigateToItem = useCallback((itemId: string) => {
     const now = Date.now();
     if (now - lastNav.current < 400) return;
@@ -250,31 +250,35 @@ export default function InventoryScreen() {
     router.push(`/item-form?itemId=${itemId}`);
   }, []);
 
-  // Derive unique category names for the chip rail
+  const onRefresh = useCallback(async () => {
+    if (!house) return;
+    setRefreshing(true);
+    try { await loadHouseData(house.id); } finally { setRefreshing(false); }
+  }, [house, loadHouseData]);
+
   const availableCategories = useMemo(() => {
     const cats = new Set(inventory.map(item => item.category));
     return Array.from(cats).sort();
   }, [inventory]);
 
-  // Filter by search text + active category chip
   const filtered = useMemo(() => inventory.filter(item => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.category.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
       selectedCategory === null ||
-      (selectedCategory === 'out-of-stock' ? item.qty === 0 : item.category === selectedCategory);
+      (selectedCategory === 'out-of-stock' ? item.qty === 0
+        : selectedCategory === 'low-stock' ? item.qty === 1
+          : item.category === selectedCategory);
     return matchesSearch && matchesCategory;
   }), [inventory, searchQuery, selectedCategory]);
 
-  // Grouped by category (sorted) — matches the design's sectioned list
   const sections = useMemo(() => {
     const groups = filtered.reduce((acc, item) => {
       if (!acc[item.category]) acc[item.category] = [];
       acc[item.category].push(item);
       return acc;
     }, {} as Record<string, typeof inventory>);
-
     return Object.keys(groups)
       .sort()
       .map(category => ({ title: category, data: groups[category].sort((a, b) => a.name.localeCompare(b.name)) }));
@@ -282,84 +286,94 @@ export default function InventoryScreen() {
 
   const searchBottom = Platform.OS === 'ios' && iosKeyboardOpen ? 12 : insets.bottom + 88;
 
-  return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-      <View style={{ flex: 1, backgroundColor: C.bg }}>
-        {inventory.length === 0 ? (
-          /* ── Empty state: no items yet ── */
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 22, fontWeight: '600', color: C.faint }}>Add some groceries</Text>
-            <Text style={{ fontSize: 14, color: C.faint, marginTop: 8 }}>Click the button below to add an item</Text>
-            <Tappable
-              onPress={() => router.push('/item-form')}
-              style={{ marginTop: 24, backgroundColor: C.chipActive, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 }}
-            >
-              <Text style={{ color: theme.colors.surface, fontWeight: '500' }}>Add new item</Text>
-            </Tappable>
-          </View>
-        ) : (
-          /* ── Main content: header → chips → list → search pill ── */
-          <View style={{ flex: 1 }}>
-            {/* Header */}
-            <ScreenHeader
-              title="Inventory"
-              right={
-                <Tappable
-                  onPress={() => router.push('/item-form')}
-                  hitSlop={8}
-                  style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Ionicons name="add" size={24} color={C.chipActive} />
-                </Tappable>
-              }
-            />
+  const headerBlock = (
+    <View>
+      <LargeTitle title="Inventory" scrollY={scrollY} />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={{ alignItems: 'center', paddingHorizontal: PAD, paddingVertical: 12, gap: 8 }}
+      >
+        <Chip label="All" icon="grid-outline" active={selectedCategory === null} onPress={() => setSelectedCategory(null)} />
+        <Chip label="Low stock" icon="alert-circle-outline" active={selectedCategory === 'low-stock'} onPress={() => setSelectedCategory(selectedCategory === 'low-stock' ? null : 'low-stock')} />
+        <Chip label="Out of stock" icon="close-circle-outline" active={selectedCategory === 'out-of-stock'} onPress={() => setSelectedCategory(selectedCategory === 'out-of-stock' ? null : 'out-of-stock')} />
+        {availableCategories.map(cat => (
+          <Chip key={cat} label={cat} icon="pricetag-outline" active={selectedCategory === cat} onPress={() => setSelectedCategory(selectedCategory === cat ? null : cat)} />
+        ))}
+      </ScrollView>
+    </View>
+  );
 
-            {/* Category filter chips — horizontal scroll */}
-            <ScrollView
-              horizontal
-              style={{ flexGrow: 0, flexShrink: 0 }}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 24, paddingVertical: 24, gap: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border, backgroundColor: C.card }}
-            >
-              <Chip label="All" icon="grid-outline" active={selectedCategory === null} onPress={() => setSelectedCategory(null)} />
-              <Chip label="Out of stock" icon="alert-circle-outline" active={selectedCategory === 'out-of-stock'} onPress={() => setSelectedCategory('out-of-stock')} />
-              {availableCategories.map(cat => (
-                <Chip key={cat} label={cat} icon="pricetag-outline" active={selectedCategory === cat} onPress={() => setSelectedCategory(selectedCategory === cat ? null : cat)} />
-              ))}
-            </ScrollView>
-
-            {/* Section list or no-results */}
-            {sections.length === 0 ? (
-              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 64 }}>
-                <Ionicons name="search-outline" size={40} color={theme.colors.border} />
-                <Text style={{ fontSize: 18, fontWeight: '600', color: C.faint, marginTop: 16 }}>No items found</Text>
-                <Text style={{ fontSize: 14, color: C.faint, marginTop: 4 }}>Try a different search or filter</Text>
-              </View>
-            ) : (
-              <SectionList
-                style={{ flex: 1 }}
-                sections={sections}
-                keyExtractor={item => item.id}
-                stickySectionHeadersEnabled={false}
-                contentInsetAdjustmentBehavior="automatic"
-                keyboardDismissMode="on-drag"
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 160, marginTop: 24 }}
-                renderSectionHeader={({ section: { title } }) => <SectionHeader title={title} />}
-                renderItem={({ item }) => <InventoryRow item={item} onNavigate={navigateToItem} onAdjust={adjustInventoryQty} />}
-              />
-            )}
-
-            {/* Floating search pill — positioned above tab bar or keyboard */}
-            <SearchPill
-              query={searchQuery}
-              onQueryChange={setSearchQuery}
-              onClear={() => setSearchQuery('')}
-              bottom={searchBottom}
-            />
-          </View>
-        )}
+  const emptyBlock = inventory.length === 0 ? (
+    <View style={{ alignItems: 'center', paddingTop: 96, paddingHorizontal: PAD }}>
+      <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        <Ionicons name="basket-outline" size={34} color={C.accent} />
       </View>
+      <Text style={{ fontSize: 20, fontWeight: '600', color: C.text }}>Add some groceries</Text>
+      <Text style={{ fontSize: 15, color: C.muted, marginTop: 6, textAlign: 'center' }}>
+        Tap + to add your first item, or import a CSV from Settings.
+      </Text>
+      <Tappable
+        onPress={() => router.push('/item-form')}
+        accessibilityRole="button"
+        accessibilityLabel="Add new item"
+        style={{ marginTop: 24, backgroundColor: C.accent, borderRadius: theme.radii.md, paddingHorizontal: 24, paddingVertical: 14 }}
+      >
+        <Text style={{ color: theme.colors.onAccent, fontWeight: '600', fontSize: 15 }}>Add new item</Text>
+      </Tappable>
+    </View>
+  ) : (
+    <View style={{ alignItems: 'center', paddingTop: 72, paddingHorizontal: PAD }}>
+      <Ionicons name="search-outline" size={40} color={C.faint} />
+      <Text style={{ fontSize: 17, fontWeight: '600', color: C.text, marginTop: 16 }}>No items found</Text>
+      <Text style={{ fontSize: 14, color: C.muted, marginTop: 4 }}>Try a different search or filter</Text>
+    </View>
+  );
+
+  return (
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior="padding">
+      <CollapsibleHeaderBar
+        title="Inventory"
+        scrollY={scrollY}
+        right={
+          <Tappable
+            onPress={() => router.push('/item-form')}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Add item"
+            style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="add" size={26} color={C.accent} />
+          </Tappable>
+        }
+      />
+
+      <SectionList
+        style={{ flex: 1 }}
+        sections={sections}
+        keyExtractor={item => item.id}
+        stickySectionHeadersEnabled={false}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        ListHeaderComponent={headerBlock}
+        ListEmptyComponent={emptyBlock}
+        contentContainerStyle={{ paddingTop: headerInset, paddingBottom: 160 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} colors={[C.accent]} />
+        }
+        renderSectionHeader={({ section: { title } }) => <SectionHeader title={title} />}
+        renderItem={({ item }) => <InventoryRow item={item} onNavigate={navigateToItem} onAdjust={adjustInventoryQty} />}
+      />
+
+      <SearchPill
+        query={searchQuery}
+        onQueryChange={setSearchQuery}
+        onClear={() => setSearchQuery('')}
+        bottom={searchBottom}
+      />
     </KeyboardAvoidingView>
   );
 }

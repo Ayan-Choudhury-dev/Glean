@@ -22,7 +22,7 @@ const VARIANT_CLASSES = {
 };
 
 const ACTION_CLASSES = {
-  primary: 'bg-slate-900',
+  primary: 'bg-emerald-600',
   secondary: 'bg-slate-200',
   positive: 'bg-emerald-500',
   negative: 'bg-red-500',

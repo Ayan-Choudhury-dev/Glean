@@ -275,7 +275,7 @@ export default function ItemFormScreen() {
             <Text style={{ fontSize: 32, fontWeight: '700', color: theme.colors.text }}>{parseInt(qty, 10) || 0}</Text>
             <Tappable
               onPress={() => setQty(String((parseInt(qty, 10) || 0) + 1))}
-              style={{ width: 56, height: 56, borderRadius: 999, backgroundColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: 56, height: 56, borderRadius: 999, backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' }}
             >
               <Ionicons name="add" size={22} color={theme.colors.surface} />
             </Tappable>
@@ -324,7 +324,7 @@ export default function ItemFormScreen() {
           disabled={!isDirty}
           style={{
             flex: 1,
-            backgroundColor: isDirty ? theme.colors.primary : theme.colors.border,
+            backgroundColor: isDirty ? theme.colors.accent : theme.colors.border,
             borderRadius: 12,
             paddingVertical: 14,
             alignItems: 'center',
@@ -382,7 +382,7 @@ export default function ItemFormScreen() {
           <Text style={{ fontSize: 18, fontWeight: '600', color: theme.colors.text }}>Item finished!</Text>
           <Text style={{ fontSize: 14, color: theme.colors.textMuted, marginTop: 4 }}>Add {pendingZeroQty?.itemName} to your shopping list?</Text>
           <View style={{ marginTop: 24, gap: 12 }}>
-            <Tappable onPress={handleZeroQtyAddToList} style={{ backgroundColor: theme.colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}>
+            <Tappable onPress={handleZeroQtyAddToList} style={{ backgroundColor: theme.colors.accent, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}>
               <Text style={{ color: theme.colors.surface, fontWeight: '600' }}>Add to shopping list</Text>
             </Tappable>
             <Tappable onPress={handleZeroQtyNotNow} style={{ borderWidth: 1, borderColor: theme.colors.border, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}>
@@ -498,13 +498,13 @@ function PickerSheet({
             <Tappable onPress={() => onSelect(item.name)} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16 }}>
               <Ionicons name={item.icon as React.ComponentProps<typeof Ionicons>['name']} size={20} color={theme.colors.textMuted} style={{ marginRight: 12 }} />
               <Text style={{ flex: 1, fontSize: 14, color: theme.colors.text }}>{item.name}</Text>
-              {selected === item.name && <Ionicons name="checkmark" size={18} color={theme.colors.primary} />}
+              {selected === item.name && <Ionicons name="checkmark" size={18} color={theme.colors.accent} />}
             </Tappable>
           )}
           ListEmptyComponent={normalizedQuery && exactMatch ? null : <Text style={{ padding: 24, textAlign: 'center', color: theme.colors.textFaint }}>No {type}s found</Text>}
         />
         {normalizedQuery && !exactMatch && (
-          <Tappable onPress={() => onCreate(query)} style={{ height: 44, marginHorizontal: 16, marginBottom: 16, borderRadius: 12, backgroundColor: theme.colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <Tappable onPress={() => onCreate(query)} style={{ height: 44, marginHorizontal: 16, marginBottom: 16, borderRadius: 12, backgroundColor: theme.colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <Ionicons name="add-circle-outline" size={18} color={theme.colors.surface} />
             <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.surface }}>Add “{query.trim()}”</Text>
           </Tappable>

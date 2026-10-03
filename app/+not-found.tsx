@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: theme.colors.accent,
   },
   link: {
     marginTop: 15,

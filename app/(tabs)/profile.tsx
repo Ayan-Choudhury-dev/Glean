@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, TextInput, ScrollView, Alert } from 'react-native';
+import { View, TextInput, ScrollView, Alert, Share, Linking, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import * as Clipboard from 'expo-clipboard';
 import { Tappable } from '../../components/ui/tappable';
-import { ScreenHeader } from '../../components/ScreenHeader';
+import { CollapsibleHeaderBar, LargeTitle, useCollapsibleHeader, useHeaderContentInset } from '../../components/CollapsibleHeader';
 import { useGleanStore } from '../../store/useGleanStore';
 
 import { Heading } from '@/components/ui/heading';
@@ -28,10 +29,33 @@ function initialsFor(name: string): string {
 }
 
 export default function ProfileScreen() {
-  const { profile, house, inventory, importCSV, signOut } = useGleanStore();
+  const { profile, house, inventory, importCSV, signOut, loadHouseData } = useGleanStore();
   const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
   const [dataSheetOpen, setDataSheetOpen] = useState(false);
   const [dataTab, setDataTab] = useState<'import' | 'export'>('import');
+  const { scrollY, onScroll } = useCollapsibleHeader();
+  const headerInset = useHeaderContentInset();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    if (!house) return;
+    setRefreshing(true);
+    try { await loadHouseData(house.id); } finally { setRefreshing(false); }
+  };
+
+  const copyInvite = async () => {
+    if (!house?.invite_code) return;
+    await Clipboard.setStringAsync(house.invite_code);
+    Alert.alert('Copied', 'Invite code copied to clipboard.');
+  };
+
+  const shareInvite = async () => {
+    if (!house?.invite_code) return;
+    await Share.share({
+      message: `Join my household "${house.name ?? 'Glean'}" on Glean with invite code ${house.invite_code}`,
+    });
+  };
+
   const handleSignOut = () => {
     Alert.alert('Sign out', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
@@ -104,11 +128,18 @@ export default function ProfileScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <ScreenHeader title="Profile" />
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 8, paddingBottom: 48 }}>
+      <CollapsibleHeaderBar title="Settings" scrollY={scrollY} />
+      <ScrollView
+        style={{ flex: 1 }}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingTop: headerInset + 8, paddingBottom: 48 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.accent} colors={[theme.colors.accent]} />}
+      >
+        <LargeTitle title="Settings" scrollY={scrollY} />
 
       <View style={{ marginHorizontal: 24, marginTop: 16, marginBottom: 8, backgroundColor: theme.colors.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.borderLight, padding: 16, flexDirection: 'row', alignItems: 'center' }}>
-        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: theme.colors.surface, fontSize: 20, fontWeight: '700' }}>{initialsFor(profile?.name ?? '')}</Text>
         </View>
         <View style={{ flex: 1, marginLeft: 14 }}>
@@ -155,9 +186,9 @@ export default function ProfileScreen() {
       {/* ── About ──────────────────────────────────────────────────────── */}
       <SectionHeader title="About" />
       <Card>
-        <SettingRow icon="information-circle-outline" label="App version" value="1.0.0" />
+        <SettingRow icon="information-circle-outline" label="App version" value="1.0.0" chevron={false} />
         <Divider />
-        <SettingRow icon="help-circle-outline" label="Help & feedback" />
+        <SettingRow icon="help-circle-outline" label="Send feedback" onPress={() => Linking.openURL('mailto:hello@glean.app?subject=Glean%20feedback')} />
       </Card>
 
       {/* ── Account ────────────────────────────────────────────────────── */}
@@ -189,8 +220,13 @@ export default function ProfileScreen() {
             </Text>
           </View>
           <VStack space="sm">
-            <Button size="lg" className="bg-slate-900 rounded-xl" onPress={() => setInviteSheetOpen(false)}>
-              <ButtonText className="text-white">Got it</ButtonText>
+            <Button size="lg" className="bg-emerald-600 rounded-xl" onPress={copyInvite}>
+              <Ionicons name="copy-outline" size={16} color={theme.colors.onAccent} style={{ marginRight: 6 }} />
+              <ButtonText className="text-white">Copy code</ButtonText>
+            </Button>
+            <Button size="lg" variant="outline" action="secondary" className="rounded-xl border-slate-200" onPress={shareInvite}>
+              <Ionicons name="share-outline" size={16} color={theme.colors.text} style={{ marginRight: 6 }} />
+              <ButtonText className="text-slate-700">Share invite</ButtonText>
             </Button>
           </VStack>
         </VStack>
@@ -243,7 +279,7 @@ export default function ProfileScreen() {
               />
               <Button
                 size="md"
-                className="bg-slate-900 rounded-xl mt-1"
+                className="bg-emerald-600 rounded-xl mt-1"
                 onPress={handleImport}
                 disabled={importing}
               >
@@ -263,7 +299,7 @@ export default function ProfileScreen() {
               </Tappable>
               <Button
                 size="md"
-                className="bg-slate-900 rounded-xl mt-1"
+                className="bg-emerald-600 rounded-xl mt-1"
                 onPress={() => { setDataSheetOpen(false); handleExport(); }}
               >
                 <Ionicons name="download-outline" size={16} color={theme.colors.surface} style={{ marginRight: 6 }} />
@@ -303,19 +339,28 @@ function SettingRow({
   icon,
   label,
   value,
+  onPress,
+  chevron = true,
 }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   label: string;
   value?: string;
+  onPress?: () => void;
+  chevron?: boolean;
 }) {
-  return (
+  const row = (
     <HStack className="items-center px-4 py-3">
-      <View className="w-8 h-8 rounded-lg bg-slate-100 items-center justify-center mr-3">
-        <Ionicons name={icon} size={16} color={theme.colors.textMuted} />
+      <View className="w-8 h-8 rounded-lg bg-emerald-50 items-center justify-center mr-3">
+        <Ionicons name={icon} size={16} color={theme.colors.accent} />
       </View>
       <Text className="flex-1 text-sm font-medium text-slate-900">{label}</Text>
-      {value && <Text className="text-sm text-slate-400 mr-2">{value}</Text>}
-      <Ionicons name="chevron-forward" size={16} color={theme.colors.borderStrong} />
+      {value && <Text className="text-sm text-slate-500 mr-2">{value}</Text>}
+      {chevron && <Ionicons name="chevron-forward" size={16} color={theme.colors.borderStrong} />}
     </HStack>
   );
+  return onPress ? (
+    <Tappable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
+      {row}
+    </Tappable>
+  ) : row;
 }

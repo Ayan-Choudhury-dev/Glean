@@ -73,7 +73,7 @@ export default function HouseSetupScreen() {
               returnKeyType="done"
               onSubmitEditing={handleCreate}
             />
-            <Button size="lg" className="bg-slate-900 rounded-xl" onPress={handleCreate} disabled={busy || !houseName.trim()}>
+            <Button size="lg" className="bg-emerald-600 rounded-xl" onPress={handleCreate} disabled={busy || !houseName.trim()}>
               <ButtonText className="text-white">{busy ? 'Creating…' : 'Create house'}</ButtonText>
             </Button>
           </VStack>
@@ -106,7 +106,7 @@ export default function HouseSetupScreen() {
               returnKeyType="done"
               onSubmitEditing={handleJoin}
             />
-            <Button size="lg" className="bg-slate-900 rounded-xl" onPress={handleJoin} disabled={busy || inviteCode.length < 6}>
+            <Button size="lg" className="bg-emerald-600 rounded-xl" onPress={handleJoin} disabled={busy || inviteCode.length < 6}>
               <ButtonText className="text-white">{busy ? 'Joining…' : 'Join house'}</ButtonText>
             </Button>
           </VStack>

@@ -136,7 +136,7 @@ export default function OnboardingScreen() {
       <View style={{ flex: 1, paddingHorizontal: 32, justifyContent: 'center' }}>
         {/* App mark */}
         <View style={{ alignItems: 'center', marginBottom: 40 }}>
-          <View style={{ width: 80, height: 80, backgroundColor: theme.colors.primary, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <View style={{ width: 80, height: 80, backgroundColor: theme.colors.accent, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             <Ionicons name="cube" size={40} color={theme.colors.surface} />
           </View>
           <Text style={{ fontSize: 30, fontWeight: '700', color: theme.colors.text }}>Glean</Text>
@@ -164,7 +164,7 @@ export default function OnboardingScreen() {
                   elevation: active ? 2 : 0,
                 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: active ? theme.colors.primary : theme.colors.textFaint }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: active ? theme.colors.accent : theme.colors.textFaint }}>
                   {m === 'sign_up' ? 'Sign up' : 'Sign in'}
                 </Text>
               </Tappable>
@@ -237,7 +237,7 @@ export default function OnboardingScreen() {
             onPress={handleSubmit}
             disabled={busy}
             style={{
-              backgroundColor: theme.colors.primary,
+              backgroundColor: theme.colors.accent,
               borderRadius: 12,
               height: 48,
               marginTop: 8,

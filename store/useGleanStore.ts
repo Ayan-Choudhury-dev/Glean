@@ -161,6 +161,8 @@ interface GleanState {
   adjustShoppingQty:  (id: string, delta: number) => void;
   markAsPurchased:     (id: string) => void;
   unmarkPurchased:     (id: string) => void;
+  removeFromShoppingList: (id: string) => void;
+  clearPurchased:      ()            => void;
   updatePantry:        ()            => void;
   undoLastPantryUpdate: ()            => void;
 
@@ -615,6 +617,21 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       ),
     }));
     sbUpdateDelayed('shopping_list', id, { status: 'to_buy' });
+  },
+
+  removeFromShoppingList: (id) => {
+    cancelDelayedUpdate('shopping_list', id);
+    set(state => ({ shoppingList: state.shoppingList.filter(s => s.id !== id) }));
+    sbDelete('shopping_list', id);
+  },
+
+  clearPurchased: () => {
+    const purchased = get().shoppingList.filter(s => s.status === 'purchased');
+    purchased.forEach(item => {
+      cancelDelayedUpdate('shopping_list', item.id);
+      sbDelete('shopping_list', item.id);
+    });
+    set(state => ({ shoppingList: state.shoppingList.filter(s => s.status !== 'purchased') }));
   },
 
   updatePantry: () => {

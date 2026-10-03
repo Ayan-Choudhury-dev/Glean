@@ -19,7 +19,9 @@ import {
  * real style — every inline style on the element disappears. Pressed state is
  * therefore tracked here and folded into a plain style array instead.
  */
-const androidRipple = { color: '#0F172A18', foreground: true } as const;
+import { theme } from '@/constants/theme';
+
+const androidRipple = { color: theme.colors.pressed, foreground: true } as const;
 
 export const Tappable = React.forwardRef<
   React.ComponentRef<typeof Pressable>,
