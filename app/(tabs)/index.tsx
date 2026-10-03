@@ -116,9 +116,6 @@ const InventoryRow = React.memo(function InventoryRow({
           {item.name}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          {item.location ? (
-            <Text style={{ fontSize: 12, color: C.faint }} numberOfLines={1}>{item.location}</Text>
-          ) : null}
           {item.qty === 0 ? (
             <View style={{ backgroundColor: C.dangerBg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
               <Text style={{ fontSize: 12, fontWeight: '500', color: C.danger }}>Out of stock</Text>
@@ -165,7 +162,7 @@ const InventoryRow = React.memo(function InventoryRow({
 // Category group divider shown when a specific category filter is active.
 function SectionHeader({ title }: { title: string }) {
   return (
-    <View style={{ height: 40, backgroundColor: C.card, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, gap: 12 }}>
+    <View style={{ height: 40, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <Ionicons name="leaf-outline" size={16} color={C.green} />
       <Text style={{ fontSize: 12, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5 }}>
         {title}
