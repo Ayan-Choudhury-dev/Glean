@@ -17,6 +17,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGleanStore, InventoryItem, DEFAULT_HOUSE_OPTIONS } from '../../store/useGleanStore';
 import { theme } from '@/constants/theme';
+import { useC, useColors } from '@/lib/appearance';
 import { categoryImage } from '@/constants/categoryImages';
 import type { ImageSourcePropType } from 'react-native';
 import { Tappable } from '../../components/ui/tappable';
@@ -30,24 +31,7 @@ import {
 } from '../../components/CollapsibleHeader';
 
 // ─── Palette aliases ──────────────────────────────────────────────────────────
-const C = {
-  bg: theme.colors.background,
-  card: theme.colors.surface,
-  text: theme.colors.text,
-  muted: theme.colors.textMuted,
-  faint: theme.colors.textFaint,
-  border: theme.colors.border,
-  borderLight: theme.colors.borderLight,
-  chipBg: theme.colors.chipBg,
-  accent: theme.colors.accent,
-  accentSoft: theme.colors.accentSoft,
-  accentBorder: theme.colors.accentBorder,
-  danger: theme.colors.danger,
-  dangerBg: theme.colors.dangerBg,
-  warning: theme.colors.warning,
-  warningBg: theme.colors.warningBg,
-  green: theme.colors.success,
-} as const;
+// Colors come from useC() inside each component so they react to dark mode.
 
 const PAD = 24;
 type Filter = string | null;
@@ -79,6 +63,7 @@ function Chip({
   active: boolean;
   onPress: () => void;
 }) {
+  const C = useC();
   return (
     <Tappable
       onPress={onPress}
@@ -90,7 +75,7 @@ function Chip({
         height: 40,
         minWidth: 56,
         borderRadius: theme.radii.pill,
-        backgroundColor: active ? theme.colors.surfaceMuted : C.card,
+        backgroundColor: active ? C.chipBg : C.card,
         borderWidth: 1,
         borderColor: active ? C.text : C.border,
         flexShrink: 0,
@@ -123,6 +108,7 @@ const InventoryRow = React.memo(function InventoryRow({
   onNavigate: (itemId: string) => void;
   onAdjust: (itemId: string, delta: number) => void;
 }) {
+  const C = useC();
   return (
     <Tappable
       onPress={() => onNavigate(item.id)}
@@ -205,6 +191,7 @@ const InventoryRow = React.memo(function InventoryRow({
 
 // ─── SectionHeader ────────────────────────────────────────────────────────────
 function SectionHeader({ title, count }: { title: string; count?: number }) {
+  const C = useC();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: PAD, paddingTop: 20, paddingBottom: 8 }}>
       <Text style={{ fontSize: 12, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 1.2 }}>
@@ -227,6 +214,7 @@ function SearchPill({
   onClear: () => void;
   bottom: number;
 }) {
+  const C = useC();
   return (
     <View style={{ position: 'absolute', left: PAD, right: PAD, bottom: 16, zIndex: 10 }}>
       <View
@@ -275,6 +263,8 @@ export default function InventoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const lastNav = useRef(0);
   const shimmer = useRef(new Animated.Value(1)).current;
+  const C = useC();
+  const colors = useColors();
 
   useEffect(() => {
     if (Platform.OS !== 'ios') return;
@@ -351,10 +341,10 @@ export default function InventoryScreen() {
     <Animated.View style={{ opacity: shimmer }}>
       {[0, 1, 2, 3, 4].map(i => (
         <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: PAD, paddingVertical: 10, gap: 14 }}>
-          <View style={{ width: 64, height: 64, borderRadius: theme.radii.lg, backgroundColor: theme.colors.surfaceSunken }} />
+          <View style={{ width: 64, height: 64, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken }} />
           <View style={{ flex: 1, gap: 8 }}>
-            <View style={{ width: '60%', height: 14, borderRadius: theme.radii.sm, backgroundColor: theme.colors.surfaceSunken }} />
-            <View style={{ width: '35%', height: 12, borderRadius: theme.radii.sm, backgroundColor: theme.colors.surfaceSunken }} />
+            <View style={{ width: '60%', height: 14, borderRadius: theme.radii.sm, backgroundColor: colors.surfaceSunken }} />
+            <View style={{ width: '35%', height: 12, borderRadius: theme.radii.sm, backgroundColor: colors.surfaceSunken }} />
           </View>
         </View>
       ))}

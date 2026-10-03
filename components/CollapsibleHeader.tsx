@@ -2,6 +2,7 @@ import React from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme, layout } from '@/constants/theme';
+import { useColors } from '@/lib/appearance';
 
 /**
  * Collapsing large-title header (iOS style).
@@ -29,6 +30,7 @@ export function CollapsibleHeaderBar({
   right?: React.ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
   const bgOpacity = scrollY.interpolate({ inputRange: [0, 24], outputRange: [0, 1], extrapolate: 'clamp' });
   const borderOpacity = scrollY.interpolate({ inputRange: [0, 8], outputRange: [0, 1], extrapolate: 'clamp' });
 
@@ -37,10 +39,10 @@ export function CollapsibleHeaderBar({
       pointerEvents="box-none"
       style={[styles.bar, { height: insets.top + layout.compactHeaderHeight, paddingTop: insets.top }]}
     >
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.surface, opacity: bgOpacity }]} />
-      <Animated.View pointerEvents="none" style={[styles.border, { opacity: borderOpacity }]} />
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface, opacity: bgOpacity }]} />
+      <Animated.View pointerEvents="none" style={[styles.border, { opacity: borderOpacity, backgroundColor: colors.border }]} />
       <View style={styles.row}>
-        <Animated.Text numberOfLines={1} pointerEvents="none" style={[styles.compactTitle, { opacity: bgOpacity }]}>
+        <Animated.Text numberOfLines={1} pointerEvents="none" style={[styles.compactTitle, { opacity: bgOpacity, color: colors.text }]}>
           {title}
         </Animated.Text>
         <View style={{ flex: 1 }} />
@@ -51,9 +53,10 @@ export function CollapsibleHeaderBar({
 }
 
 export function LargeTitle({ title, scrollY }: { title: string; scrollY: Animated.Value }) {
+  const colors = useColors();
   const scale = scrollY.interpolate({ inputRange: [-60, 0], outputRange: [1.08, 1], extrapolate: 'clamp' });
   return (
-    <Animated.Text style={[styles.largeTitle, { transform: [{ scale }] }]}>{title}</Animated.Text>
+    <Animated.Text style={[styles.largeTitle, { transform: [{ scale }], color: colors.text }]}>{title}</Animated.Text>
   );
 }
 

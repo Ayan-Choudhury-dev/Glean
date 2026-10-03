@@ -13,8 +13,12 @@ import { theme } from '@/constants/theme';
 
 type Mode = 'pick' | 'create' | 'join';
 
+// ─── house-setup ────────────────────────────────────────────────────────────
+import { useColors } from '@/lib/appearance';
+
 export default function HouseSetupScreen() {
   const { profile, createHouse, joinHouse } = useGleanStore();
+  const colors = useColors();
   const [mode,        setMode]        = useState<Mode>('pick');
   const [houseName,   setHouseName]   = useState('');
   const [inviteCode,  setInviteCode]  = useState('');
@@ -60,13 +64,13 @@ export default function HouseSetupScreen() {
         <View className="flex-1 px-8 justify-center">
           <BackButton onPress={() => setMode('pick')} />
           <Heading size="xl" className="mb-2 mt-4">Name your household</Heading>
-          <Text className="text-muted text-sm mb-8">You can invite housemates after setup.</Text>
+          <Text className="text-muted dark:text-[#B3B3B3] text-sm mb-8">You can invite housemates after setup.</Text>
           <VStack space="md">
             <TextInput
-              className="bg-surfaceMuted border border-line rounded-xl px-4 h-12 text-base text-ink"
+              className="bg-surfaceMuted dark:bg-[#2A2A2A] border border-line dark:border-[#333333] rounded-xl px-4 h-12 text-base text-ink dark:text-[#F2F2F2]"
               style={{ fontFamily: theme.fonts.regular }}
               placeholder="e.g. The Choudhury Home"
-              placeholderTextColor={theme.colors.textFaint}
+              placeholderTextColor={colors.textFaint}
               value={houseName}
               onChangeText={setHouseName}
               autoFocus
@@ -92,13 +96,13 @@ export default function HouseSetupScreen() {
         <View className="flex-1 px-8 justify-center">
           <BackButton onPress={() => setMode('pick')} />
           <Heading size="xl" className="mb-2 mt-4">Join a household</Heading>
-          <Text className="text-muted text-sm mb-8">Ask a housemate for their 6-character invite code.</Text>
+          <Text className="text-muted dark:text-[#B3B3B3] text-sm mb-8">Ask a housemate for their 6-character invite code.</Text>
           <VStack space="md">
             <TextInput
-              className="bg-surfaceMuted border border-line rounded-xl px-4 h-12 text-base text-ink tracking-widest uppercase font-mono"
+              className="bg-surfaceMuted dark:bg-[#2A2A2A] border border-line dark:border-[#333333] rounded-xl px-4 h-12 text-base text-ink dark:text-[#F2F2F2] tracking-widest uppercase font-mono"
               style={{ fontFamily: theme.fonts.mono }}
               placeholder="ABC123"
-              placeholderTextColor={theme.colors.textFaint}
+              placeholderTextColor={colors.textFaint}
               value={inviteCode}
               onChangeText={v => setInviteCode(v.toUpperCase())}
               autoFocus
@@ -120,11 +124,11 @@ export default function HouseSetupScreen() {
   return (
     <View className="flex-1 bg-white px-8 justify-center">
       <View className="items-center mb-10">
-        <View className="w-16 h-16 bg-surfaceMuted rounded-2xl items-center justify-center mb-4">
-          <Ionicons name="home-outline" size={32} color={theme.colors.textMuted} />
+        <View className="w-16 h-16 bg-surfaceMuted dark:bg-[#2A2A2A] rounded-2xl items-center justify-center mb-4">
+          <Ionicons name="home-outline" size={32} color={colors.textMuted} />
         </View>
         <Heading size="xl" className="text-center">Set up your household</Heading>
-        <Text className="text-muted text-sm mt-2 text-center">
+        <Text className="text-muted dark:text-[#B3B3B3] text-sm mt-2 text-center">
           Hi {profile?.name}! Create a new home or join an existing one.
         </Text>
       </View>
@@ -137,10 +141,11 @@ export default function HouseSetupScreen() {
 }
 
 function BackButton({ onPress }: { onPress: () => void }) {
+  const colors = useColors();
   return (
     <Button size="sm" variant="link" action="secondary" onPress={onPress} className="self-start -ml-2">
-      <Ionicons name="arrow-back" size={18} color={theme.colors.textMuted} />
-      <ButtonText className="text-muted ml-1">Back</ButtonText>
+      <Ionicons name="arrow-back" size={18} color={colors.textMuted} />
+      <ButtonText className="text-muted dark:text-[#B3B3B3] ml-1">Back</ButtonText>
     </Button>
   );
 }
@@ -149,17 +154,18 @@ function OptionCard({ icon, title, subtitle, onPress }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   title: string; subtitle: string; onPress: () => void;
 }) {
+  const colors = useColors();
   return (
-    <Button size="lg" variant="outline" action="secondary" className="rounded-xl border-line h-auto py-4" onPress={onPress}>
+    <Button size="lg" variant="outline" action="secondary" className="rounded-xl border-line dark:border-[#333333] h-auto py-4" onPress={onPress}>
       <HStack className="items-center flex-1 px-1">
-        <View className="w-10 h-10 bg-surfaceMuted rounded-xl items-center justify-center mr-4">
-          <Ionicons name={icon} size={20} color={theme.colors.textMuted} />
+        <View className="w-10 h-10 bg-surfaceMuted dark:bg-[#2A2A2A] rounded-xl items-center justify-center mr-4">
+          <Ionicons name={icon} size={20} color={colors.textMuted} />
         </View>
         <VStack className="flex-1 items-start">
-          <ButtonText className="text-ink font-semibold text-base">{title}</ButtonText>
-          <Text className="text-muted text-xs">{subtitle}</Text>
+          <ButtonText className="text-ink dark:text-[#F2F2F2] font-semibold text-base">{title}</ButtonText>
+          <Text className="text-muted dark:text-[#B3B3B3] text-xs">{subtitle}</Text>
         </VStack>
-        <Ionicons name="chevron-forward" size={16} color={theme.colors.borderStrong} />
+        <Ionicons name="chevron-forward" size={16} color={colors.borderStrong} />
       </HStack>
     </Button>
   );

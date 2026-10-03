@@ -5,26 +5,29 @@ import { router } from 'expo-router';
 
 import { useGleanStore } from '@/store/useGleanStore';
 import { theme } from '@/constants/theme';
+import { useColors } from '@/lib/appearance';
 
 export default function TabLayout() {
   const { profile } = useGleanStore();
+  const colors = useColors();
 
   useEffect(() => {
     if (!profile) router.replace('/onboarding');
   }, [profile]);
 
-  if (!profile) return <View style={{ flex: 1, backgroundColor: theme.colors.surface }} />;
+  if (!profile) return <View style={{ flex: 1, backgroundColor: colors.surface }} />;
 
   return (
     <NativeTabs
-      backgroundColor={theme.colors.surface}
-      iconColor={{ default: theme.colors.textMuted, selected: theme.colors.accent }}
+      backgroundColor={colors.surface}
+      tintColor={colors.accent}
+      iconColor={{ default: colors.textMuted, selected: colors.accent }}
       labelStyle={{
-        default: { color: theme.colors.textMuted, fontFamily: theme.fonts.medium, fontSize: 11 },
-        selected: { color: theme.colors.accent, fontFamily: theme.fonts.semibold, fontSize: 11 },
+        default: { color: colors.textMuted, fontFamily: theme.fonts.medium, fontSize: 11 },
+        selected: { color: colors.accent, fontFamily: theme.fonts.semibold, fontSize: 11 },
       }}
-      badgeBackgroundColor={theme.colors.accent}
-      rippleColor={theme.colors.pressed}
+      badgeBackgroundColor={colors.accent}
+      rippleColor={colors.pressed}
     >
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Icon sf="square.grid.2x2" md="grid_view" />

@@ -28,6 +28,7 @@ import { Tappable } from '@/components/ui/tappable';
 import { Text } from '@/components/ui/text';
 import { theme } from '@/constants/theme';
 import { initSyncQueue } from '@/lib/syncQueue';
+import { useAppearance, useColors } from '@/lib/appearance';
 import '@/global.css';
 
 export { ErrorBoundary } from 'expo-router';
@@ -62,6 +63,12 @@ export default function RootLayout() {
   useEffect(() => {
     void initSyncQueue();
   }, []);
+
+  // Restore the saved appearance preference.
+  const hydrateAppearance = useAppearance(s => s.hydrate);
+  useEffect(() => {
+    hydrateAppearance();
+  }, [hydrateAppearance]);
 
   // Listen for auth changes (token refresh, sign-out from another device, etc.)
   useEffect(() => {
@@ -113,6 +120,7 @@ export default function RootLayout() {
 
 function SyncErrorBanner() {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
   const { syncError, clearSyncError } = useGleanStore();
   if (!syncError) return null;
   return (
@@ -123,9 +131,9 @@ function SyncErrorBanner() {
         left: 16,
         right: 16,
         zIndex: 50,
-        backgroundColor: theme.colors.surface,
+        backgroundColor: colors.surface,
         borderWidth: 1,
-        borderColor: theme.colors.dangerBorder,
+        borderColor: colors.dangerBorder,
         borderRadius: theme.radii.md,
         paddingLeft: 14,
         paddingRight: 8,
@@ -136,10 +144,10 @@ function SyncErrorBanner() {
         ...theme.elevation.floating,
       }}
     >
-      <Ionicons name="cloud-offline-outline" size={18} color={theme.colors.danger} />
-      <Text style={{ flex: 1, fontSize: 14, color: theme.colors.text }}>{syncError}</Text>
+      <Ionicons name="cloud-offline-outline" size={18} color={colors.danger} />
+      <Text style={{ flex: 1, fontSize: 14, color: colors.text }}>{syncError}</Text>
       <Tappable onPress={clearSyncError} hitSlop={10} accessibilityRole="button" accessibilityLabel="Dismiss error">
-        <Ionicons name="close" size={18} color={theme.colors.textMuted} />
+        <Ionicons name="close" size={18} color={colors.textMuted} />
       </Tappable>
     </View>
   );

@@ -11,25 +11,15 @@ import { useGleanStore, ShoppingItem } from '../../store/useGleanStore';
 import { getRestockSuggestions, type RestockSuggestion } from '../../lib/predictions';
 import { theme } from '@/constants/theme';
 import { FEATURES } from '@/constants/config';
-
-const C = {
-  text: theme.colors.text,
-  muted: theme.colors.textMuted,
-  faint: theme.colors.textFaint,
-  border: theme.colors.border,
-  chipBg: theme.colors.chipBg,
-  accent: theme.colors.accent,
-  accentSoft: theme.colors.accentSoft,
-  onAccent: theme.colors.onAccent,
-  warning: theme.colors.warning,
-  warningBg: theme.colors.warningBg,
-  danger: theme.colors.danger,
-} as const;
+import { useC, useColors } from '@/lib/appearance';
 
 const PAD = 24;
 type Tab = 'to_buy' | 'purchased';
 
-const RowSeparator = () => <View style={{ height: 1, backgroundColor: C.border, marginLeft: PAD + 38, marginRight: PAD }} />;
+const RowSeparator = () => {
+  const C = useC();
+  return <View style={{ height: 1, backgroundColor: C.border, marginLeft: PAD + 38, marginRight: PAD }} />;
+};
 
 const ShoppingRow = React.memo(function ShoppingRow({
   item,
@@ -44,6 +34,8 @@ const ShoppingRow = React.memo(function ShoppingRow({
   onAdjust: (id: string, delta: number) => void;
   onRemove: (item: ShoppingItem) => void;
 }) {
+  const C = useC();
+  const colors = useColors();
   const purchased = item.status === 'purchased';
   return (
     <Tappable
@@ -59,7 +51,7 @@ const ShoppingRow = React.memo(function ShoppingRow({
         accessibilityState={{ checked: purchased }}
         accessibilityLabel={purchased ? `Mark ${item.name} as not purchased` : `Mark ${item.name} as purchased`}
       >
-        <View style={{ width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: purchased ? C.accent : theme.colors.borderStrong, backgroundColor: purchased ? C.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: purchased ? C.accent : colors.borderStrong, backgroundColor: purchased ? C.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
           {purchased && <Ionicons name="checkmark" size={15} color={C.onAccent} />}
         </View>
       </Tappable>
@@ -108,6 +100,7 @@ const SuggestionRow = React.memo(function SuggestionRow({
   suggestion: RestockSuggestion;
   onAdd: (s: RestockSuggestion) => void;
 }) {
+  const C = useC();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: PAD, paddingVertical: 14, gap: 12 }}>
       <View style={{ width: 32, height: 32, borderRadius: theme.radii.pill, backgroundColor: C.warningBg, alignItems: 'center', justifyContent: 'center' }}>
@@ -132,6 +125,7 @@ const SuggestionRow = React.memo(function SuggestionRow({
 });
 
 function SectionLabel({ label }: { label: string }) {
+  const C = useC();
   return (
     <View style={{ paddingHorizontal: PAD, paddingTop: 16, paddingBottom: 4 }}>
       <Text style={{ fontSize: 12, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5 }}>{label}</Text>
@@ -148,6 +142,8 @@ export default function ShoppingScreen() {
   const insets = useSafeAreaInsets();
   const { scrollY, onScroll } = useCollapsibleHeader();
   const headerInset = useHeaderContentInset();
+  const C = useC();
+  const colors = useColors();
   const [tab, setTab] = useState<Tab>('to_buy');
   const [addItemSheet, setAddItemSheet] = useState(false);
   const [addItemSearch, setAddItemSearch] = useState('');
@@ -220,7 +216,7 @@ export default function ShoppingScreen() {
   const emptyToBuy = toBuy.length === 0 && suggestions.length === 0;
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <CollapsibleHeaderBar
         title="Shopping list"
         scrollY={scrollY}
@@ -259,10 +255,10 @@ export default function ShoppingScreen() {
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={`${t.label}, ${t.count}`}
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: theme.radii.sm, backgroundColor: active ? theme.colors.surface : 'transparent', ...(active ? theme.elevation.raised : null) }}
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: theme.radii.sm, backgroundColor: active ? colors.surface : 'transparent', ...(active ? theme.elevation.raised : null) }}
               >
                 <Text style={{ fontSize: 14, fontWeight: '600', color: active ? C.text : C.muted }}>{t.label}</Text>
-                <View style={{ minWidth: 20, paddingHorizontal: 6, paddingVertical: 1, borderRadius: theme.radii.pill, backgroundColor: active ? theme.colors.primary : C.border }}>
+                <View style={{ minWidth: 20, paddingHorizontal: 6, paddingVertical: 1, borderRadius: theme.radii.pill, backgroundColor: active ? colors.primary : C.border }}>
                   <Text style={{ fontSize: 11, fontWeight: '700', textAlign: 'center', color: active ? C.onAccent : C.muted }}>{t.count}</Text>
                 </View>
               </Tappable>
@@ -309,7 +305,7 @@ export default function ShoppingScreen() {
           )
         ) : purchased.length === 0 ? (
           <View style={{ alignItems: 'center', paddingTop: 72, paddingHorizontal: PAD }}>
-            <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: theme.colors.surfaceSunken, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: colors.surfaceSunken, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <Ionicons name="checkmark-circle-outline" size={34} color={C.muted} />
             </View>
             <Text style={{ fontSize: 17, fontWeight: '600', color: C.text }}>No purchased items</Text>
@@ -336,9 +332,9 @@ export default function ShoppingScreen() {
             onPress={handleClearPurchased}
             accessibilityRole="button"
             accessibilityLabel="Clear purchased items"
-            style={{ borderWidth: 1, borderColor: theme.colors.dangerBorder, borderRadius: theme.radii.md, paddingHorizontal: 16, height: 48, alignItems: 'center', justifyContent: 'center' }}
+            style={{ borderWidth: 1, borderColor: colors.dangerBorder, borderRadius: theme.radii.md, paddingHorizontal: 16, height: 48, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text style={{ color: theme.colors.danger, fontWeight: '600', fontSize: 15 }}>Clear</Text>
+            <Text style={{ color: colors.danger, fontWeight: '600', fontSize: 15 }}>Clear</Text>
           </Tappable>
           <Tappable
             onPress={() => {
@@ -359,8 +355,8 @@ export default function ShoppingScreen() {
       )}
 
       {snackbar && (
-        <View style={{ position: 'absolute', left: PAD, right: PAD, bottom: insets.bottom + 148, minHeight: 52, borderRadius: theme.radii.md, backgroundColor: theme.colors.snackbarBg, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 8, gap: 12 }}>
-          <Text style={{ flex: 1, color: theme.colors.surface, fontSize: 14 }} numberOfLines={1}>{snackbar.message}</Text>
+        <View style={{ position: 'absolute', left: PAD, right: PAD, bottom: insets.bottom + 148, minHeight: 52, borderRadius: theme.radii.md, backgroundColor: colors.snackbarBg, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 8, gap: 12 }}>
+          <Text style={{ flex: 1, color: colors.surface, fontSize: 14 }} numberOfLines={1}>{snackbar.message}</Text>
           {snackbar.canUndo && (
             <Tappable
               onPress={() => { undoLastPantryUpdate(); setSnackbar(null); }}
@@ -369,7 +365,7 @@ export default function ShoppingScreen() {
               accessibilityLabel="Undo"
               style={{ paddingHorizontal: 10, paddingVertical: 8 }}
             >
-              <Text style={{ color: theme.colors.infoSoft, fontSize: 14, fontWeight: '700' }}>Undo</Text>
+              <Text style={{ color: colors.infoSoft, fontSize: 14, fontWeight: '700' }}>Undo</Text>
             </Tappable>
           )}
         </View>
@@ -386,7 +382,7 @@ export default function ShoppingScreen() {
           </View>
 
           <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surfaceSunken, borderWidth: 1, borderColor: C.border, borderRadius: theme.radii.md, height: 44, paddingHorizontal: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceSunken, borderWidth: 1, borderColor: C.border, borderRadius: theme.radii.md, height: 44, paddingHorizontal: 12 }}>
               <Ionicons name="search-outline" size={18} color={C.faint} />
               <TextInput
                 style={{ flex: 1, marginLeft: 8, fontSize: 15, color: C.text, fontFamily: theme.fonts.regular }}
@@ -404,7 +400,7 @@ export default function ShoppingScreen() {
             keyExtractor={item => item.id}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 40 }}
-            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: theme.colors.borderLight, marginLeft: 16, marginRight: 16 }} />}
+            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: colors.borderLight, marginLeft: 16, marginRight: 16 }} />}
             ListEmptyComponent={
               addItemSearch.trim().length > 0 ? (
                 <Tappable

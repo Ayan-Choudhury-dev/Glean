@@ -17,7 +17,46 @@ export const palette = {
   red: '#C13515',
 } as const;
 
-export const colors = {
+export type AppColors = {
+  background: string;
+  surface: string;
+  surfaceMuted: string;
+  surfaceSunken: string;
+  text: string;
+  textMuted: string;
+  textFaint: string;
+  border: string;
+  borderLight: string;
+  borderStrong: string;
+  primary: string;
+  onPrimary: string;
+  accent: string;
+  onAccent: string;
+  accentSoft: string;
+  accentBorder: string;
+  disabledBg: string;
+  disabledText: string;
+  chipBg: string;
+  chipActive: string;
+  danger: string;
+  dangerBg: string;
+  dangerBorder: string;
+  dangerText: string;
+  warning: string;
+  warningBg: string;
+  warningBorder: string;
+  warningText: string;
+  success: string;
+  successBright: string;
+  info: string;
+  infoSoft: string;
+  snackbarBg: string;
+  overlay: string;
+  pressed: string;
+  shadow: string;
+};
+
+export const lightColors: AppColors = {
   background: palette.white,
   surface: palette.white,
   surfaceMuted: palette.surfaceMuted,
@@ -65,7 +104,58 @@ export const colors = {
   overlay: 'rgba(0, 0, 0, 0.25)',
   pressed: 'rgba(0, 0, 0, 0.06)',
   shadow: palette.black,
-} as const;
+};
+
+export const darkColors: AppColors = {
+  background: '#121212',
+  surface: '#1E1E1E',
+  surfaceMuted: '#2A2A2A',
+  surfaceSunken: '#2A2A2A',
+
+  text: '#F2F2F2',
+  textMuted: '#B3B3B3',
+  textFaint: '#B3B3B3',
+
+  border: '#333333',
+  borderLight: '#2A2A2A',
+  borderStrong: '#555555',
+
+  primary: '#F2F2F2',
+  onPrimary: '#121212',
+  accent: palette.rausch,
+  onAccent: palette.white,
+  accentSoft: '#3A1F27',
+  accentBorder: '#7A2E3C',
+
+  disabledBg: '#2A2A2A',
+  disabledText: '#6B6B6B',
+
+  chipBg: '#2A2A2A',
+  chipActive: '#F2F2F2',
+
+  danger: '#FF6B6B',
+  dangerBg: '#3A1E1E',
+  dangerBorder: '#7A3A3A',
+  dangerText: '#FF8A8A',
+
+  warning: '#F0A32E',
+  warningBg: '#3A2E12',
+  warningBorder: '#6B5320',
+  warningText: '#FFC46B',
+
+  success: '#34C759',
+  successBright: '#34D399',
+  info: '#64B5F6',
+  infoSoft: '#90CAF9',
+
+  snackbarBg: '#F2F2F2',
+  overlay: 'rgba(0, 0, 0, 0.55)',
+  pressed: 'rgba(255, 255, 255, 0.10)',
+  shadow: '#000000',
+};
+
+// Legacy static (light) palette — prefer useColors() from lib/appearance in UI.
+export const colors = lightColors;
 
 export const radii = { sm: 8, md: 12, lg: 16, pill: 999 } as const;
 

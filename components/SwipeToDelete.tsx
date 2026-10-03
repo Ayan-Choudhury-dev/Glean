@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tappable } from './ui/tappable';
 import { Text } from './ui/text';
 import { theme } from '@/constants/theme';
+import { useColors } from '@/lib/appearance';
 
 /** Swipe a row left to reveal a Delete action (tapping it runs `onDelete`). */
 export function SwipeToDelete({
@@ -16,6 +17,7 @@ export function SwipeToDelete({
   label?: string;
 }) {
   const ref = useRef<{ close: () => void } | null>(null);
+  const colors = useColors();
 
   return (
     <Swipeable
@@ -31,14 +33,14 @@ export function SwipeToDelete({
           accessibilityLabel={label}
           style={{
             width: 88,
-            backgroundColor: theme.colors.danger,
+            backgroundColor: colors.danger,
             alignItems: 'center',
             justifyContent: 'center',
             gap: 4,
           }}
         >
-          <Ionicons name="trash-outline" size={20} color={theme.colors.surface} />
-          <Text style={{ color: theme.colors.surface, fontSize: 12, fontWeight: '600' }}>{label}</Text>
+          <Ionicons name="trash-outline" size={20} color={colors.surface} />
+          <Text style={{ color: colors.surface, fontSize: 12, fontWeight: '600' }}>{label}</Text>
         </Tappable>
       )}
     >
