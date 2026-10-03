@@ -453,12 +453,13 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   loadHouseData: async (houseId) => {
     set({ loading: true });
 
-    const [invRes, shopRes, logRes, houseRes, optionsRes] = await Promise.all([
+    const [invRes, shopRes, logRes, houseRes, optionsRes, memberRes] = await Promise.all([
       supabase.from('inventory').select('*').eq('house_id', houseId),
       supabase.from('shopping_list').select('*').eq('house_id', houseId),
       supabase.from('consumption_logs').select('*').eq('house_id', houseId),
       supabase.from('houses').select('*').eq('id', houseId).single(),
       supabase.from('house_options').select('*').eq('house_id', houseId).order('type').order('name'),
+      supabase.from('profiles').select('id').eq('house_id', houseId),
     ]);
 
     const loadedOptions = optionsRes.data ?? [];
@@ -472,11 +473,15 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       );
     }
 
+    const house = houseRes.data
+      ? { ...(houseRes.data as House), member_ids: ((memberRes.data ?? []) as { id: string }[]).map(p => p.id) }
+      : null;
+
     set({
       inventory:       invRes.data   ?? [],
       shoppingList:    shopRes.data  ?? [],
       consumptionLogs: logRes.data   ?? [],
-      house:           houseRes.data ?? null,
+      house,
       houseOptions,
       loading:         false,
     });
