@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import {
   View,
-  Text,
   SectionList,
   TextInput,
   ScrollView,
@@ -17,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGleanStore, InventoryItem } from '../../store/useGleanStore';
 import { theme } from '@/constants/theme';
 import { Tappable } from '../../components/ui/tappable';
+import { Text } from '../../components/ui/text';
 import {
   CollapsibleHeaderBar,
   LargeTitle,
@@ -151,7 +151,7 @@ const InventoryRow = React.memo(function InventoryRow({
         >
           <Ionicons name="remove" size={15} color={C.text} />
         </Tappable>
-        <Text style={{ fontSize: 16, fontWeight: '600', color: C.text, fontVariant: ['tabular-nums'], minWidth: 22, textAlign: 'center' }}>
+        <Text style={{ fontSize: 16, fontWeight: '600', color: C.text, fontFamily: theme.fonts.monoMedium, minWidth: 22, textAlign: 'center' }}>
           {item.qty}
         </Text>
         <Tappable
@@ -211,7 +211,7 @@ function SearchPill({
       >
         <Ionicons name="search-outline" size={19} color={C.muted} />
         <TextInput
-          style={{ flex: 1, fontSize: 15, color: C.text }}
+          style={{ flex: 1, fontSize: 15, color: C.text, fontFamily: theme.fonts.regular }}
           placeholder="Search inventory"
           placeholderTextColor={C.faint}
           value={query}

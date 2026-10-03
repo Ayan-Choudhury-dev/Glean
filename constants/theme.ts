@@ -88,6 +88,27 @@ export const layout = {
   screenPadding: 24,
 } as const;
 
+// Geist — static weights must be selected by family name (RN custom fonts).
+export const fonts = {
+  regular: 'Geist_400Regular',
+  medium: 'Geist_500Medium',
+  semibold: 'Geist_600SemiBold',
+  bold: 'Geist_700Bold',
+  mono: 'GeistMono_400Regular',
+  monoMedium: 'GeistMono_500Medium',
+} as const;
+
+/** Map a numeric/keyword fontWeight to the matching Geist family. */
+export function fontForWeight(weight?: string | number | null): string {
+  if (weight == null) return fonts.regular;
+  const w = weight === 'bold' ? 700 : weight === 'normal' ? 400 : Number(weight);
+  if (!Number.isFinite(w)) return fonts.regular;
+  if (w >= 700) return fonts.bold;
+  if (w >= 600) return fonts.semibold;
+  if (w >= 500) return fonts.medium;
+  return fonts.regular;
+}
+
 /** Soft two-layer elevation for floating surfaces only; cards use hairline borders. */
 export const elevation = {
   floating: {
@@ -106,4 +127,4 @@ export const elevation = {
   },
 } as const;
 
-export const theme = { colors, radii, spacing, type, layout, elevation, palette } as const;
+export const theme = { colors, radii, spacing, type, layout, elevation, fonts, palette } as const;

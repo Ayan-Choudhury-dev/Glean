@@ -1,4 +1,14 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import {
+  Geist_400Regular,
+  Geist_500Medium,
+  Geist_600SemiBold,
+  Geist_700Bold,
+} from '@expo-google-fonts/geist';
+import {
+  GeistMono_400Regular,
+  GeistMono_500Medium,
+} from '@expo-google-fonts/geist-mono';
 import { DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { useFonts } from 'expo-font';
 import { Stack, router } from 'expo-router';
@@ -6,7 +16,7 @@ import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -15,6 +25,7 @@ import 'react-native-reanimated';
 import { supabase } from '@/lib/supabase';
 import { useGleanStore } from '@/store/useGleanStore';
 import { Tappable } from '@/components/ui/tappable';
+import { Text } from '@/components/ui/text';
 import { theme } from '@/constants/theme';
 import '@/global.css';
 
@@ -28,7 +39,12 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    Geist_700Bold,
+    GeistMono_400Regular,
+    GeistMono_500Medium,
     ...FontAwesome.font,
   });
   const { loadSession, clearSession, handleAuthRedirect } = useGleanStore();

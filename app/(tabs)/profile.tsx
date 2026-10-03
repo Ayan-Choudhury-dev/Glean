@@ -268,7 +268,7 @@ export default function ProfileScreen() {
               </Text>
               <TextInput
                 className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-800 font-mono"
-                style={{ minHeight: 140, textAlignVertical: 'top' }}
+                style={{ minHeight: 140, textAlignVertical: 'top', fontFamily: theme.fonts.mono }}
                 multiline
                 placeholder={'Name,Quantity,Category,Location\nMilk,2,Dairy,Fridge\nRice,5,Grains,Pantry'}
                 placeholderTextColor={theme.colors.textFaint}

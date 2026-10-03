@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   TextInput,
   KeyboardAvoidingView,
   Platform,
@@ -13,6 +12,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useGleanStore } from '../store/useGleanStore';
 import { Tappable } from '../components/ui/tappable';
+import { Text } from '../components/ui/text';
 import { theme } from '@/constants/theme';
 
 type Mode = 'sign_up' | 'sign_in';
@@ -34,6 +34,7 @@ const inputStyle = {
   height: 48,
   fontSize: 14,
   color: theme.colors.text,
+  fontFamily: theme.fonts.regular,
 };
 
 function FieldError({ message }: { message: string }) {

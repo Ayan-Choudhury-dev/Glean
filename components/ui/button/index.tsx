@@ -6,6 +6,7 @@ import {
   type PressableProps,
 } from 'react-native';
 import { Tappable } from '../tappable';
+import { fonts } from '@/constants/theme';
 
 const SIZE_CLASSES = {
   xs: 'px-3.5 h-8',
@@ -76,11 +77,12 @@ type IButtonTextProps = React.ComponentProps<typeof RNText> & {
 const ButtonText = React.forwardRef<
   React.ComponentRef<typeof RNText>,
   IButtonTextProps
->(function ButtonText({ className, ...props }, ref) {
+>(function ButtonText({ className, style, ...props }, ref) {
   return (
     <RNText
       ref={ref}
       className={['font-semibold text-slate-500', className].filter(Boolean).join(' ')}
+      style={[{ fontFamily: fonts.semibold }, style]}
       {...props}
     />
   );

@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, TextInput, FlatList, Alert, RefreshControl } from 'react-native';
+import { View, ScrollView, TextInput, FlatList, Alert, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tappable } from '../../components/ui/tappable';
+import { Text } from '../../components/ui/text';
 import { CollapsibleHeaderBar, LargeTitle, useCollapsibleHeader, useHeaderContentInset } from '../../components/CollapsibleHeader';
 import { NativeSheet } from '../../components/NativeSheet';
 import { useGleanStore, ShoppingItem } from '../../store/useGleanStore';
@@ -77,7 +78,7 @@ const ShoppingRow = React.memo(function ShoppingRow({
           >
             <Ionicons name="remove" size={15} color={C.text} />
           </Tappable>
-          <Text style={{ fontSize: 16, fontWeight: '600', color: C.text, minWidth: 22, textAlign: 'center' }}>{item.target_qty}</Text>
+          <Text style={{ fontSize: 16, fontWeight: '600', color: C.text, fontFamily: theme.fonts.monoMedium, minWidth: 22, textAlign: 'center' }}>{item.target_qty}</Text>
           <Tappable
             onPress={() => onAdjust(item.id, 1)}
             accessibilityRole="button"
@@ -373,7 +374,7 @@ export default function ShoppingScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surfaceSunken, borderWidth: 1, borderColor: C.border, borderRadius: theme.radii.md, height: 44, paddingHorizontal: 12 }}>
               <Ionicons name="search-outline" size={18} color={C.faint} />
               <TextInput
-                style={{ flex: 1, marginLeft: 8, fontSize: 15, color: C.text }}
+                style={{ flex: 1, marginLeft: 8, fontSize: 15, color: C.text, fontFamily: theme.fonts.regular }}
                 placeholder="Search inventory…"
                 placeholderTextColor={C.faint}
                 value={addItemSearch}

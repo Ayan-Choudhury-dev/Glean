@@ -64,6 +64,7 @@ export default function HouseSetupScreen() {
           <VStack space="md">
             <TextInput
               className="bg-slate-50 border border-slate-200 rounded-xl px-4 h-12 text-base text-slate-900"
+              style={{ fontFamily: theme.fonts.regular }}
               placeholder="e.g. The Choudhury Home"
               placeholderTextColor={theme.colors.textFaint}
               value={houseName}
@@ -95,6 +96,7 @@ export default function HouseSetupScreen() {
           <VStack space="md">
             <TextInput
               className="bg-slate-50 border border-slate-200 rounded-xl px-4 h-12 text-base text-slate-900 tracking-widest uppercase font-mono"
+              style={{ fontFamily: theme.fonts.mono }}
               placeholder="ABC123"
               placeholderTextColor={theme.colors.textFaint}
               value={inviteCode}

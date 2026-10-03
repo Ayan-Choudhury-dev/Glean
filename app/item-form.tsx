@@ -3,7 +3,6 @@ import {
   Alert,
   Animated,
   View,
-  Text,
   TextInput,
   ScrollView,
   Modal,
@@ -17,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeSheet } from '../components/NativeSheet';
 import { DEFAULT_HOUSE_OPTIONS, HouseOption, HouseOptionType, useGleanStore } from '../store/useGleanStore';
 import { Tappable } from '../components/ui/tappable';
+import { Text } from '../components/ui/text';
 import { theme } from '@/constants/theme';
 
 export default function ItemFormScreen() {
@@ -227,7 +227,7 @@ export default function ItemFormScreen() {
         {/* Item name */}
         <Field label="Item name">
           <TextInput
-            style={{ backgroundColor: theme.colors.surfaceMuted, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 12, paddingHorizontal: 16, height: 48, fontSize: 14, color: theme.colors.text }}
+            style={{ backgroundColor: theme.colors.surfaceMuted, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 12, paddingHorizontal: 16, height: 48, fontSize: 14, color: theme.colors.text, fontFamily: theme.fonts.regular }}
             placeholder='"Atta" or "Rice"'
             placeholderTextColor={theme.colors.textFaint}
             value={name}
@@ -272,7 +272,7 @@ export default function ItemFormScreen() {
             >
               <Ionicons name="remove" size={22} color={theme.colors.text} />
             </Tappable>
-            <Text style={{ fontSize: 32, fontWeight: '700', color: theme.colors.text }}>{parseInt(qty, 10) || 0}</Text>
+            <Text style={{ fontSize: 32, fontWeight: '700', color: theme.colors.text, fontFamily: theme.fonts.monoMedium }}>{parseInt(qty, 10) || 0}</Text>
             <Tappable
               onPress={() => setQty(String((parseInt(qty, 10) || 0) + 1))}
               style={{ width: 56, height: 56, borderRadius: 999, backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center' }}
@@ -484,7 +484,7 @@ function PickerSheet({
             placeholder={`Search ${type}s`}
             placeholderTextColor={theme.colors.textFaint}
             autoCapitalize="words"
-            style={{ flex: 1, marginLeft: 8, fontSize: 14, color: theme.colors.text }}
+            style={{ flex: 1, marginLeft: 8, fontSize: 14, color: theme.colors.text, fontFamily: theme.fonts.regular }}
           />
         </View>
         <FlatList
