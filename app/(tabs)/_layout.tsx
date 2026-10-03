@@ -18,7 +18,6 @@ export default function TabLayout() {
   return (
     <NativeTabs
       backgroundColor={theme.colors.surface}
-      iconColor={{ default: theme.colors.textMuted, selected: theme.colors.accent }}
       labelStyle={{
         default: { color: theme.colors.textMuted, fontFamily: theme.fonts.medium, fontSize: 11 },
         selected: { color: theme.colors.accent, fontFamily: theme.fonts.semibold, fontSize: 11 },
@@ -27,15 +26,15 @@ export default function TabLayout() {
       rippleColor={theme.colors.pressed}
     >
       <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Icon sf="square.grid.2x2" md="grid_view" />
+        <NativeTabs.Trigger.Icon src={require('../../assets/images/nav/inventory.png')} renderingMode="original" />
         <NativeTabs.Trigger.Label>Inventory</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="shopping">
-        <NativeTabs.Trigger.Icon sf="cart" md="shopping_cart" />
+        <NativeTabs.Trigger.Icon src={require('../../assets/images/nav/shopping.png')} renderingMode="original" />
         <NativeTabs.Trigger.Label>Shopping list</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
-        <NativeTabs.Trigger.Icon sf="gearshape" md="settings" />
+        <NativeTabs.Trigger.Icon src={require('../../assets/images/nav/settings.png')} renderingMode="original" />
         <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
