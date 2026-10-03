@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -12,25 +12,46 @@ import {
  * Shared tappable surface. Android gets a bounded Material ripple, iOS gets a
  * pressed-state dim. Forwards everything (including className) to the native
  * Pressable — never self-register with cssInterop (see AGENTS.md).
+ *
+ * IMPORTANT: the `style` handed to Pressable must be a plain value, never a
+ * function. NativeWind's css-interop collects the `style` prop and spreads it
+ * (`{ ...style }`); spreading a function yields `{}`, which then overwrites the
+ * real style — every inline style on the element disappears. Pressed state is
+ * therefore tracked here and folded into a plain style array instead.
  */
 const androidRipple = { color: '#0F172A18', foreground: true } as const;
 
 export const Tappable = React.forwardRef<
   React.ComponentRef<typeof Pressable>,
   PressableProps
->(function Tappable({ style, android_ripple, ...props }, ref) {
+>(function Tappable({ style, android_ripple, onPressIn, onPressOut, ...props }, ref) {
+  const [pressed, setPressed] = useState(false);
+
+  const resolved =
+    typeof style === 'function'
+      ? style({ pressed } as PressableStateCallbackType)
+      : style;
+
+  const merged: StyleProp<ViewStyle> = [
+    resolved,
+    Platform.OS === 'android' ? { overflow: 'hidden' } : null,
+    Platform.OS === 'ios' && pressed ? { opacity: 0.65 } : null,
+  ];
+
   return (
     <Pressable
       ref={ref}
       android_ripple={
         Platform.OS === 'android' ? android_ripple ?? androidRipple : android_ripple
       }
-      style={(state: PressableStateCallbackType): StyleProp<ViewStyle> => {
-        const resolved = typeof style === 'function' ? style(state) : style;
-        const extras: StyleProp<ViewStyle>[] = [];
-        if (Platform.OS === 'android') extras.push({ overflow: 'hidden' });
-        if (Platform.OS === 'ios' && state.pressed) extras.push({ opacity: 0.65 });
-        return extras.length ? [resolved, ...extras] : resolved;
+      style={merged}
+      onPressIn={event => {
+        setPressed(true);
+        onPressIn?.(event);
+      }}
+      onPressOut={event => {
+        setPressed(false);
+        onPressOut?.(event);
       }}
       {...props}
     />

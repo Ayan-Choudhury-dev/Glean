@@ -15,6 +15,7 @@ The migration from gluestack-ui to nativewind + plain Tailwind and from Expo SDK
 1. **Custom components must NOT self-register with `cssInterop`.** The correct pattern (used by every `components/ui/*` component) is to forward `className` to a native primitive — NativeWind already interops `Pressable`/`Text`/`View`/etc. Registering a wrapper component with `cssInterop` AND forwarding `className` to an interop'd child creates a nested/double interop that corrupts inline `style` objects on Android (symptoms: views invisible, layouts mangled, "CSS gone"). This cost several hours of debugging in Aug 2026 — see `components/ui/tappable.tsx` history.
 2. Screens that use **only inline styles** (e.g. `app/(tabs)/index.tsx`, `shopping.tsx`) are unaffected by Tailwind config — if those break, the cause is in the component wrapping them, not CSS.
 3. Class usage is standard Tailwind palette only (`slate`, `gray`, `red`, `emerald`). No custom theme colors.
+4. **Never pass a function `style` to a NativeWind-interop'd component** (`View`, `Pressable`, `Text`, …). css-interop collects the `style` prop and spreads it (`{ ...style }`); spreading a function yields `{}`, which then overwrites the real style — the element silently loses every inline style (symptoms: rows/chips collapse, layout gone). Track pressed/animated state and pass a plain object/array instead. See `components/ui/tappable.tsx`.
 
 ## Native behaviours (ripple, haptics, press feedback)
 
