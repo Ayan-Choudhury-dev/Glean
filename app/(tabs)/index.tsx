@@ -9,6 +9,7 @@ import {
   Keyboard,
   Platform,
   RefreshControl,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -45,6 +46,10 @@ const C = {
 
 const PAD = 24;
 type Filter = string | null;
+
+// VirtualizedList (SectionList) needs an animated wrapper to accept a native-driver onScroll.
+// Cast back to SectionList so its generic prop types survive the wrapper.
+const AnimatedSectionList = Animated.createAnimatedComponent(SectionList) as unknown as typeof SectionList;
 
 // ─── Chip ─────────────────────────────────────────────────────────────────────
 function Chip({
@@ -349,7 +354,7 @@ export default function InventoryScreen() {
         }
       />
 
-      <SectionList
+      <AnimatedSectionList
         style={{ flex: 1 }}
         sections={sections}
         keyExtractor={item => item.id}
