@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useGleanStore, InventoryItem } from '../../store/useGleanStore';
+import { useGleanStore, InventoryItem, DEFAULT_HOUSE_OPTIONS } from '../../store/useGleanStore';
 import { theme } from '@/constants/theme';
 import { Tappable } from '../../components/ui/tappable';
 import { Text } from '../../components/ui/text';
@@ -50,6 +50,15 @@ type Filter = string | null;
 // VirtualizedList (SectionList) needs an animated wrapper to accept a native-driver onScroll.
 // Cast back to SectionList so its generic prop types survive the wrapper.
 const AnimatedSectionList = Animated.createAnimatedComponent(SectionList) as unknown as typeof SectionList;
+
+// Category → icon, for the leading avatar on each row.
+const CATEGORY_ICON: Record<string, React.ComponentProps<typeof Ionicons>['name']> = Object.fromEntries(
+  DEFAULT_HOUSE_OPTIONS.filter(o => o.type === 'category').map(o => [
+    o.name,
+    o.icon as React.ComponentProps<typeof Ionicons>['name'],
+  ]),
+);
+const ROW_INSET = 24 + 44 + 14; // screen padding + avatar + gap
 
 // ─── Chip ─────────────────────────────────────────────────────────────────────
 function Chip({
@@ -111,35 +120,39 @@ const InventoryRow = React.memo(function InventoryRow({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        minHeight: 64,
+        minHeight: 72,
         paddingHorizontal: PAD,
-        paddingVertical: 12,
-        gap: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: C.border,
+        paddingVertical: 14,
+        gap: 14,
       }}
     >
-      <View style={{ flex: 1, gap: 4 }}>
-        <Text style={{ fontSize: theme.type.body, fontWeight: '500', color: C.text }} numberOfLines={1}>
+      {/* Leading category avatar */}
+      <View style={{ width: 44, height: 44, borderRadius: theme.radii.md, backgroundColor: C.chipBg, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons
+          name={(CATEGORY_ICON[item.category] ?? 'pricetag-outline') as React.ComponentProps<typeof Ionicons>['name']}
+          size={20}
+          color={C.muted}
+        />
+      </View>
+
+      {/* Title + meta line */}
+      <View style={{ flex: 1, gap: 3 }}>
+        <Text style={{ fontSize: theme.type.body, fontWeight: '600', color: C.text }} numberOfLines={1}>
           {item.name}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {item.location ? (
+            <Text style={{ fontSize: 14, color: C.muted }} numberOfLines={1}>{item.location}</Text>
+          ) : null}
           {item.qty === 0 ? (
-            <View style={{ backgroundColor: C.dangerBg, borderRadius: theme.radii.pill, paddingHorizontal: 8, paddingVertical: 2 }}>
-              <Text style={{ fontSize: 12, fontWeight: '500', color: C.danger }}>Out of stock</Text>
-            </View>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: C.danger }}>Out of stock</Text>
           ) : item.qty === 1 ? (
-            <View style={{ backgroundColor: C.warningBg, borderRadius: theme.radii.pill, paddingHorizontal: 8, paddingVertical: 2 }}>
-              <Text style={{ fontSize: 12, fontWeight: '500', color: C.warning }}>Low stock</Text>
-            </View>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: C.warning }}>Low stock</Text>
           ) : null}
         </View>
       </View>
 
-      {item.location ? (
-        <Text style={{ width: 80, textAlign: 'right', fontSize: 12, color: C.faint }} numberOfLines={1}>{item.location}</Text>
-      ) : null}
-
+      {/* Quantity steppers — log used/restocked via adjustInventoryQty */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Tappable
           onPress={() => onAdjust(item.id, -1)}
@@ -169,14 +182,13 @@ const InventoryRow = React.memo(function InventoryRow({
 });
 
 // ─── SectionHeader ────────────────────────────────────────────────────────────
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, count }: { title: string; count?: number }) {
   return (
-    <View style={{ height: 40, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: PAD }}>
-      <Ionicons name="leaf-outline" size={15} color={C.green} />
-      <Text style={{ fontSize: 12, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: PAD, paddingTop: 20, paddingBottom: 8 }}>
+      <Text style={{ fontSize: 12, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 1.2 }}>
         {title}
       </Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
+      {count != null ? <Text style={{ fontSize: 12, color: C.muted }}>{count}</Text> : null}
     </View>
   );
 }
@@ -369,8 +381,15 @@ export default function InventoryScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} colors={[C.accent]} />
         }
-        renderSectionHeader={({ section: { title } }) => <SectionHeader title={title} />}
-        renderItem={({ item }) => <InventoryRow item={item} onNavigate={navigateToItem} onAdjust={adjustInventoryQty} />}
+        renderSectionHeader={({ section: { title, data } }) => <SectionHeader title={title} count={data.length} />}
+        renderItem={({ item, index, section }) => (
+          <View>
+            <InventoryRow item={item} onNavigate={navigateToItem} onAdjust={adjustInventoryQty} />
+            {index < section.data.length - 1 && (
+              <View style={{ height: 1, backgroundColor: C.border, marginLeft: ROW_INSET, marginRight: PAD }} />
+            )}
+          </View>
+        )}
       />
 
       <SearchPill

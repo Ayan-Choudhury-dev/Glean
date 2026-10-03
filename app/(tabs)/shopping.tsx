@@ -28,15 +28,17 @@ const C = {
 const PAD = 24;
 type Tab = 'to_buy' | 'purchased';
 
-const RowSeparator = () => <View style={{ height: 1, backgroundColor: C.border, marginLeft: PAD, marginRight: PAD }} />;
+const RowSeparator = () => <View style={{ height: 1, backgroundColor: C.border, marginLeft: PAD + 38, marginRight: PAD }} />;
 
 const ShoppingRow = React.memo(function ShoppingRow({
   item,
+  subtitle,
   onToggle,
   onAdjust,
   onRemove,
 }: {
   item: ShoppingItem;
+  subtitle?: string;
   onToggle: (id: string) => void;
   onAdjust: (id: string, delta: number) => void;
   onRemove: (item: ShoppingItem) => void;
@@ -61,9 +63,13 @@ const ShoppingRow = React.memo(function ShoppingRow({
         </View>
       </Tappable>
 
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: theme.type.body, fontWeight: '500', color: purchased ? C.faint : C.text, textDecorationLine: purchased ? 'line-through' : 'none' }}>{item.name}</Text>
-        {purchased && <Text style={{ fontSize: 13, color: C.faint, marginTop: 2 }}>Qty: {item.target_qty}</Text>}
+      <View style={{ flex: 1, gap: 3 }}>
+        <Text style={{ fontSize: theme.type.body, fontWeight: '600', color: purchased ? C.faint : C.text, textDecorationLine: purchased ? 'line-through' : 'none' }} numberOfLines={1}>{item.name}</Text>
+        {purchased ? (
+          <Text style={{ fontSize: 14, color: C.faint }}>Quantity {item.target_qty}</Text>
+        ) : subtitle ? (
+          <Text style={{ fontSize: 14, color: C.muted }} numberOfLines={1}>{subtitle}</Text>
+        ) : null}
       </View>
 
       {!purchased && (
@@ -161,6 +167,11 @@ export default function ShoppingScreen() {
     const q = addItemSearch.trim().toLowerCase();
     return inventory.filter(item => !q || item.name.toLowerCase().includes(q));
   }, [inventory, addItemSearch]);
+
+  const categoryById = useMemo(
+    () => Object.fromEntries(inventory.map(i => [i.id, i.category])) as Record<string, string>,
+    [inventory],
+  );
 
   useEffect(() => {
     if (!snackbar) return;
@@ -286,7 +297,7 @@ export default function ShoppingScreen() {
                   <SectionLabel label="To buy" />
                   {toBuy.map((s, i) => (
                     <View key={s.id}>
-                      <ShoppingRow item={s} onToggle={togglePurchased} onAdjust={adjustShoppingQty} onRemove={handleRemove} />
+                      <ShoppingRow item={s} subtitle={s.inventory_id ? categoryById[s.inventory_id] : undefined} onToggle={togglePurchased} onAdjust={adjustShoppingQty} onRemove={handleRemove} />
                       {i < toBuy.length - 1 && <RowSeparator />}
                     </View>
                   ))}
@@ -306,7 +317,7 @@ export default function ShoppingScreen() {
             <SectionLabel label="Purchased" />
             {purchased.map((s, i) => (
               <View key={s.id}>
-                <ShoppingRow item={s} onToggle={togglePurchased} onAdjust={adjustShoppingQty} onRemove={handleRemove} />
+                <ShoppingRow item={s} subtitle={s.inventory_id ? categoryById[s.inventory_id] : undefined} onToggle={togglePurchased} onAdjust={adjustShoppingQty} onRemove={handleRemove} />
                 {i < purchased.length - 1 && <RowSeparator />}
               </View>
             ))}
