@@ -17,7 +17,7 @@ import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Button, ButtonText } from '@/components/ui/button';
 import { NativeSheet } from '../../components/NativeSheet';
-import { theme } from '@/constants/theme';
+import { theme, accents, type AccentKey } from '@/constants/theme';
 import { useAppearance, useColors } from '@/lib/appearance';
 
 function initialsFor(name: string): string {
@@ -36,6 +36,8 @@ export default function ProfileScreen() {
   const colors = useColors();
   const appearanceMode = useAppearance(s => s.mode);
   const setAppearanceMode = useAppearance(s => s.setMode);
+  const accentKey = useAppearance(s => s.accent);
+  const setAccentKey = useAppearance(s => s.setAccent);
   const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
   const [dataSheetOpen, setDataSheetOpen] = useState(false);
   const [dataTab, setDataTab] = useState<'import' | 'export'>('import');
@@ -234,6 +236,38 @@ export default function ProfileScreen() {
                 <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: active ? colors.onAccent : colors.text, textTransform: 'capitalize' }}>
                   {m}
                 </Text>
+              </Tappable>
+            );
+          })}
+        </View>
+      </Card>
+
+      {/* ── Accent ─────────────────────────────────────────────────────── */}
+      <SectionHeader title="Accent" />
+      <Card>
+        <View style={{ flexDirection: 'row', gap: 12, padding: 16, justifyContent: 'space-between' }}>
+          {(Object.keys(accents) as AccentKey[]).map(key => {
+            const swatch = accents[key];
+            const selected = accentKey === key;
+            return (
+              <Tappable
+                key={key}
+                onPress={() => setAccentKey(key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                accessibilityLabel={`Accent ${swatch.label}`}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: swatch.accent,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: selected ? 3 : 0,
+                  borderColor: colors.text,
+                }}
+              >
+                {selected ? <Ionicons name="checkmark" size={18} color="#FFFFFF" /> : null}
               </Tappable>
             );
           })}

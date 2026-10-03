@@ -157,6 +157,20 @@ export const darkColors: AppColors = {
 // Legacy static (light) palette — prefer useColors() from lib/appearance in UI.
 export const colors = lightColors;
 
+export type AccentKey = 'coral' | 'emerald' | 'blue' | 'violet' | 'amber';
+
+/** Accent presets — `accent` is scheme-independent; soft/border have light + dark values. */
+export const accents: Record<
+  AccentKey,
+  { label: string; accent: string; soft: string; border: string; softDark: string; borderDark: string }
+> = {
+  coral:   { label: 'Coral',   accent: '#FF385C', soft: '#FFF1F3', border: '#FFB3C1', softDark: '#3A1F27', borderDark: '#7A2E3C' },
+  emerald: { label: 'Emerald', accent: '#059669', soft: '#ECFDF5', border: '#A7F3D0', softDark: '#0E2A22', borderDark: '#14532D' },
+  blue:    { label: 'Blue',    accent: '#2563EB', soft: '#EFF6FF', border: '#BFDBFE', softDark: '#12233D', borderDark: '#1E3A8A' },
+  violet:  { label: 'Violet',  accent: '#7C3AED', soft: '#F5F3FF', border: '#DDD6FE', softDark: '#241B3A', borderDark: '#4C1D95' },
+  amber:   { label: 'Amber',   accent: '#D97706', soft: '#FFFBEB', border: '#FDE68A', softDark: '#3A2A12', borderDark: '#78350F' },
+};
+
 export const radii = { sm: 8, md: 12, lg: 16, pill: 999 } as const;
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
