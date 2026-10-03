@@ -26,6 +26,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Glean uses your photos so you can add images to inventory items."
+        }
+      ],
       "expo-font",
       [
         "expo-splash-screen",

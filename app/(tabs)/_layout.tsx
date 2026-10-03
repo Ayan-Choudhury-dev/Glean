@@ -16,7 +16,16 @@ export default function TabLayout() {
   if (!profile) return <View style={{ flex: 1, backgroundColor: theme.colors.surface }} />;
 
   return (
-    <NativeTabs>
+    <NativeTabs
+      backgroundColor={theme.colors.surface}
+      iconColor={{ default: theme.colors.textMuted, selected: theme.colors.accent }}
+      labelStyle={{
+        default: { color: theme.colors.textMuted, fontFamily: theme.fonts.medium, fontSize: 11 },
+        selected: { color: theme.colors.accent, fontFamily: theme.fonts.semibold, fontSize: 11 },
+      }}
+      badgeBackgroundColor={theme.colors.accent}
+      rippleColor={theme.colors.pressed}
+    >
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Icon sf="square.grid.2x2" md="grid_view" />
         <NativeTabs.Trigger.Label>Inventory</NativeTabs.Trigger.Label>

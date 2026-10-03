@@ -9,21 +9,24 @@ import {
   KeyboardAvoidingView,
   Platform,
   FlatList,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeSheet } from '../components/NativeSheet';
 import { DEFAULT_HOUSE_OPTIONS, HouseOption, HouseOptionType, useGleanStore } from '../store/useGleanStore';
 import { Tappable } from '../components/ui/tappable';
 import { Text } from '../components/ui/text';
 import { theme } from '@/constants/theme';
+import { uploadItemImage } from '../lib/upload';
 
 export default function ItemFormScreen() {
   const insets = useSafeAreaInsets();
   const { itemId } = useLocalSearchParams<{ itemId?: string }>();
   const { inventory, consumptionLogs, addInventoryItem, editInventoryItem, deleteInventoryItem,
-          addToShoppingList, logConsumption, houseOptions, addHouseOption, shoppingList } = useGleanStore();
+          addToShoppingList, logConsumption, houseOptions, addHouseOption, shoppingList, house } = useGleanStore();
 
   const existing = itemId ? inventory.find(i => i.id === itemId) : null;
   const isEdit = !!existing;
@@ -32,13 +35,15 @@ export default function ItemFormScreen() {
   const [qty, setQty] = useState(String(existing?.qty ?? ''));
   const [category, setCategory] = useState(existing?.category ?? '');
   const [location, setLocation] = useState(existing?.location ?? '');
+  const [imageUri, setImageUri] = useState<string | null>(existing?.image_url ?? null);
+  const [imageDirty, setImageDirty] = useState(false);
 
-  const isDirty = isEdit
+  const isDirty = imageDirty || (isEdit
     ? name.trim() !== (existing?.name ?? '') ||
       (parseInt(qty, 10) || 0) !== (existing?.qty ?? 0) ||
       category !== (existing?.category ?? '') ||
       location !== (existing?.location ?? '')
-    : name.trim().length > 0;
+    : name.trim().length > 0);
 
   const isInShoppingList = isEdit && shoppingList.some(s => s.inventory_id === existing?.id);
 
@@ -70,6 +75,33 @@ export default function ItemFormScreen() {
   const categoryOptions = availableOptions.filter(option => option.type === 'category');
   const locationOptions = availableOptions.filter(option => option.type === 'location');
 
+  const pickImage = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Permission needed', 'Allow photo access to add an item photo.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri);
+      setImageDirty(true);
+    }
+  };
+
+  // Upload a freshly-picked photo and persist its public URL (falls back to the
+  // local URI if the upload fails, so the image still shows on this device).
+  const commitImage = (id: string) => {
+    if (!imageDirty || !imageUri || imageUri.startsWith('http')) return;
+    uploadItemImage(imageUri, house?.id ?? 'unknown', id).then(url => {
+      editInventoryItem(id, { image_url: url ?? imageUri });
+    });
+  };
+
   const handleSave = () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -95,6 +127,7 @@ export default function ItemFormScreen() {
         category: category || 'Other',
         location: location.trim() || undefined,
       });
+      commitImage(existing.id);
 
       if (prevQty > 0 && parsedQty === 0) {
         setPendingZeroQty({ itemId: existing.id, itemName: trimmedName, prevQty });
@@ -114,6 +147,7 @@ export default function ItemFormScreen() {
         category: category || 'Other',
         location: location.trim() || undefined,
       });
+      commitImage(newId);
       if (parsedQty > 0) logConsumption(newId, trimmedName, parsedQty, 'added');
       showToastAndDismiss('Item added');
     }
@@ -176,6 +210,26 @@ export default function ItemFormScreen() {
       </View>
 
       <ScrollView style={{ flex: 1, paddingHorizontal: 24 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 16 }}>
+        {/* Photo */}
+        <Tappable
+          onPress={pickImage}
+          accessibilityRole="button"
+          accessibilityLabel={imageUri ? 'Change item photo' : 'Add item photo'}
+          style={{ alignSelf: 'center', marginTop: 8, marginBottom: 20 }}
+        >
+          {imageUri ? (
+            <Image
+              source={{ uri: imageUri }}
+              style={{ width: 128, height: 128, borderRadius: theme.radii.lg, backgroundColor: theme.colors.surfaceSunken }}
+            />
+          ) : (
+            <View style={{ width: 128, height: 128, borderRadius: theme.radii.lg, backgroundColor: theme.colors.surfaceSunken, borderWidth: 1, borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Ionicons name="camera-outline" size={28} color={theme.colors.textMuted} />
+              <Text style={{ fontSize: 12, color: theme.colors.textMuted }}>Add photo</Text>
+            </View>
+          )}
+        </Tappable>
+
         {/* Low-stock suggestion */}
         {isEdit && (parseInt(qty, 10) || 0) === 1 && (
           <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: theme.colors.warningBg, borderWidth: 1, borderColor: theme.colors.warningBorder, borderRadius: 16, padding: 16 }}>

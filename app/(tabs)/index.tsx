@@ -9,6 +9,7 @@ import {
   Platform,
   RefreshControl,
   Animated,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -126,14 +127,21 @@ const InventoryRow = React.memo(function InventoryRow({
         gap: 14,
       }}
     >
-      {/* Leading category avatar */}
-      <View style={{ width: 44, height: 44, borderRadius: theme.radii.md, backgroundColor: C.chipBg, alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons
-          name={(CATEGORY_ICON[item.category] ?? 'pricetag-outline') as React.ComponentProps<typeof Ionicons>['name']}
-          size={20}
-          color={C.muted}
+      {/* Leading thumbnail / category avatar */}
+      {item.image_url ? (
+        <Image
+          source={{ uri: item.image_url }}
+          style={{ width: 44, height: 44, borderRadius: theme.radii.md, backgroundColor: C.chipBg }}
         />
-      </View>
+      ) : (
+        <View style={{ width: 44, height: 44, borderRadius: theme.radii.md, backgroundColor: C.chipBg, alignItems: 'center', justifyContent: 'center' }}>
+          <Ionicons
+            name={(CATEGORY_ICON[item.category] ?? 'pricetag-outline') as React.ComponentProps<typeof Ionicons>['name']}
+            size={20}
+            color={C.muted}
+          />
+        </View>
+      )}
 
       {/* Title + meta line */}
       <View style={{ flex: 1, gap: 3 }}>

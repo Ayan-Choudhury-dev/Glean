@@ -139,3 +139,24 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+
+-- ── Storage: item images ───────────────────────────────────────────────────────
+-- Public bucket; authenticated users may upload/update. Images are keyed by
+-- <house_id>/<item_id>.<ext>.
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('item-images', 'item-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "item-images: read" ON storage.objects;
+CREATE POLICY "item-images: read" ON storage.objects
+  FOR SELECT USING (bucket_id = 'item-images');
+
+DROP POLICY IF EXISTS "item-images: insert" ON storage.objects;
+CREATE POLICY "item-images: insert" ON storage.objects
+  FOR INSERT TO authenticated WITH CHECK (bucket_id = 'item-images');
+
+DROP POLICY IF EXISTS "item-images: update" ON storage.objects;
+CREATE POLICY "item-images: update" ON storage.objects
+  FOR UPDATE TO authenticated USING (bucket_id = 'item-images');
