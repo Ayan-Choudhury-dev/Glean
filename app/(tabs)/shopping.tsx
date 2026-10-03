@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tappable } from '../../components/ui/tappable';
 import { Text } from '../../components/ui/text';
-import { SwipeToDelete } from '../../components/SwipeToDelete';
 import { CollapsibleHeaderBar, LargeTitle, useCollapsibleHeader, useHeaderContentInset } from '../../components/CollapsibleHeader';
 import { NativeSheet } from '../../components/NativeSheet';
 import { useGleanStore, ShoppingItem } from '../../store/useGleanStore';
@@ -311,9 +310,7 @@ export default function ShoppingScreen() {
                   <SectionLabel label="To buy" />
                   {toBuy.map((s, i) => (
                     <View key={s.id}>
-                      <SwipeToDelete onDelete={() => handleRemove(s)}>
-                        <ShoppingRow item={s} subtitle={s.inventory_id ? categoryById[s.inventory_id] : undefined} onToggle={togglePurchased} onAdjust={adjustShoppingQty} onRemove={handleRemove} />
-                      </SwipeToDelete>
+                      <ShoppingRow item={s} subtitle={s.inventory_id ? categoryById[s.inventory_id] : undefined} onToggle={togglePurchased} onAdjust={adjustShoppingQty} onRemove={handleRemove} />
                       {i < toBuy.length - 1 && <RowSeparator />}
                     </View>
                   ))}
@@ -333,9 +330,7 @@ export default function ShoppingScreen() {
             <SectionLabel label="Purchased" />
             {purchased.map((s, i) => (
               <View key={s.id}>
-                <SwipeToDelete onDelete={() => handleRemove(s)}>
-                  <ShoppingRow item={s} subtitle={s.inventory_id ? categoryById[s.inventory_id] : undefined} onToggle={togglePurchased} onAdjust={adjustShoppingQty} onRemove={handleRemove} />
-                </SwipeToDelete>
+                <ShoppingRow item={s} subtitle={s.inventory_id ? categoryById[s.inventory_id] : undefined} onToggle={togglePurchased} onAdjust={adjustShoppingQty} onRemove={handleRemove} />
                 {i < purchased.length - 1 && <RowSeparator />}
               </View>
             ))}
