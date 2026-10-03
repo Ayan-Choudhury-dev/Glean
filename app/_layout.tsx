@@ -9,14 +9,14 @@ import {
   GeistMono_400Regular,
   GeistMono_500Medium,
 } from '@expo-google-fonts/geist-mono';
-import { DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
+import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { useFonts } from 'expo-font';
 import { Stack, router } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { View, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -50,6 +50,21 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
   const { loadSession, clearSession, handleAuthRedirect } = useGleanStore();
+  const colors = useColors();
+  const scheme = useColorScheme();
+  const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+  const navTheme = {
+    ...base,
+    colors: {
+      ...base.colors,
+      background: colors.background,
+      card: colors.surface,
+      border: colors.border,
+      text: colors.text,
+      primary: colors.accent,
+      notification: colors.accent,
+    },
+  };
 
   useEffect(() => { if (error) throw error; }, [error]);
   useEffect(() => { if (loaded) SplashScreen.hideAsync(); }, [loaded]);
@@ -103,13 +118,13 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider value={DefaultTheme}>
-          <StatusBar style="dark" />
-          <Stack>
+        <ThemeProvider value={navTheme}>
+          <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+          <Stack screenOptions={{ contentStyle: { backgroundColor: colors.background } }}>
             <Stack.Screen name="onboarding"  options={{ headerShown: false }} />
             <Stack.Screen name="house-setup" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)"      options={{ headerShown: false }} />
-            <Stack.Screen name="item-form"   options={{ headerShown: false, presentation: 'modal' }} />
+            <Stack.Screen name="item-form"   options={{ headerShown: false, presentation: 'modal', contentStyle: { backgroundColor: colors.surface } }} />
           </Stack>
           <SyncErrorBanner />
         </ThemeProvider>
