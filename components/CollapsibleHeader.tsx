@@ -42,7 +42,7 @@ export function CollapsibleHeaderBar({
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface, opacity: bgOpacity }]} />
       <Animated.View pointerEvents="none" style={[styles.border, { opacity: borderOpacity, backgroundColor: colors.border }]} />
       <View style={styles.row}>
-        <Animated.Text numberOfLines={1} pointerEvents="none" style={[styles.compactTitle, { opacity: bgOpacity, color: colors.text }]}>
+        <Animated.Text numberOfLines={1} pointerEvents="none" style={[styles.compactTitle, { opacity: bgOpacity, color: colors.text, fontFamily: theme.fonts.display }]}>
           {title}
         </Animated.Text>
         <View style={{ flex: 1 }} />
@@ -90,13 +90,11 @@ const styles = StyleSheet.create({
   },
   compactTitle: {
     fontSize: theme.type.title,
-    fontWeight: '600',
     color: theme.colors.text,
     maxWidth: '70%',
   },
   largeTitle: {
     fontSize: theme.type.display,
-    fontWeight: '700',
     letterSpacing: -0.5,
     color: theme.colors.text,
     paddingHorizontal: layout.screenPadding,

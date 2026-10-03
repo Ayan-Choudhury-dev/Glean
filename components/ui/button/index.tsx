@@ -81,7 +81,7 @@ const ButtonText = React.forwardRef<
   return (
     <RNText
       ref={ref}
-      className={['font-semibold text-muted dark:text-[#B3B3B3]', className].filter(Boolean).join(' ')}
+      className={['text-muted dark:text-[#B3B3B3]', className].filter(Boolean).join(' ')}
       style={[{ fontFamily: fonts.semibold }, style]}
       {...props}
     />

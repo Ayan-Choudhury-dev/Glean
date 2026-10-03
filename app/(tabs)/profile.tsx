@@ -411,7 +411,7 @@ export default function ProfileScreen() {
 function SectionHeader({ title }: { title: string }) {
   const colors = useColors();
   return (
-    <Text style={{ fontSize: theme.type.xl, fontWeight: '600', color: colors.primary, fontFamily: theme.fonts.display, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12 }}>{title}</Text>
+    <Text style={{ fontSize: theme.type.xl, color: colors.primary, fontFamily: theme.fonts.display, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12 }}>{title}</Text>
   );
 }
 

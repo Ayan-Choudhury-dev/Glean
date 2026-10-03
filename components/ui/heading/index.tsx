@@ -21,7 +21,7 @@ type IHeadingProps = TextProps & {
 const Heading = React.forwardRef<React.ComponentRef<typeof RNText>, IHeadingProps>(
   function Heading({ className, size = 'lg', style, ...props }, ref) {
     const sizeClass = size ? SIZE_CLASSES[size] : '';
-    const classes = ['font-bold', sizeClass, className].filter(Boolean).join(' ');
+    const classes = [sizeClass, className].filter(Boolean).join(' ');
     return (
       <RNText ref={ref} accessibilityRole="header" className={classes} style={[{ fontFamily: fonts.displayBold }, style]} {...props} />
     );

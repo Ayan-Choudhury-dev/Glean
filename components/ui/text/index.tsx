@@ -6,9 +6,11 @@ type ITextProps = TextProps & { className?: string };
 
 const Text = React.forwardRef<React.ComponentRef<typeof RNText>, ITextProps>(
   function Text({ className, style, ...props }, ref) {
-    const flat = StyleSheet.flatten(style) as TextStyle | undefined;
-    const family = flat?.fontFamily ?? fontForWeight(flat?.fontWeight);
-    return <RNText ref={ref} className={className} style={[{ fontFamily: family }, style]} {...props} />;
+    const flat = (StyleSheet.flatten(style) ?? {}) as TextStyle;
+    const family = flat.fontFamily ?? fontForWeight(flat.fontWeight);
+    // Drop fontWeight — with a custom family it makes iOS fall back to the system font.
+    const { fontWeight: _fontWeight, ...rest } = flat;
+    return <RNText ref={ref} className={className} style={[rest, { fontFamily: family }]} {...props} />;
   }
 );
 
