@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 20,
+    fontSize: theme.type.xl,
     fontWeight: '600',
   },
   link: {

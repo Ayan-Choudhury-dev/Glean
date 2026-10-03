@@ -169,17 +169,17 @@ export default function ProfileScreen() {
           {profile?.avatar_url ? (
             <Image
               source={{ uri: profile.avatar_url }}
-              style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.surfaceSunken }}
+              style={{ width: 56, height: 56, borderRadius: theme.radii.xxl, backgroundColor: colors.surfaceSunken }}
             />
           ) : (
-            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: colors.surface, fontSize: 20, fontWeight: '700' }}>{initialsFor(profile?.name ?? '')}</Text>
+            <View style={{ width: 56, height: 56, borderRadius: theme.radii.xxl, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: colors.surface, fontSize: theme.type.xl, fontWeight: '700' }}>{initialsFor(profile?.name ?? '')}</Text>
             </View>
           )}
         </Tappable>
         <View style={{ flex: 1, marginLeft: 14 }}>
           <Text style={{ fontSize: theme.type.caption, color: colors.textFaint, marginBottom: 4 }}>Signed in as</Text>
-          <Text style={{ fontSize: 20, fontWeight: '600', color: colors.primary }} numberOfLines={1}>{profile?.name ?? 'User'}</Text>
+          <Text style={{ fontSize: theme.type.xl, fontWeight: '600', color: colors.primary }} numberOfLines={1}>{profile?.name ?? 'User'}</Text>
         </View>
       </View>
 
@@ -259,7 +259,7 @@ export default function ProfileScreen() {
                 style={{
                   width: 40,
                   height: 40,
-                  borderRadius: 20,
+                  borderRadius: theme.radii.xl,
                   backgroundColor: swatch.accent,
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -411,7 +411,7 @@ export default function ProfileScreen() {
 function SectionHeader({ title }: { title: string }) {
   const colors = useColors();
   return (
-    <Text style={{ fontSize: 20, fontWeight: '600', color: colors.primary, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12 }}>{title}</Text>
+    <Text style={{ fontSize: theme.type.xl, fontWeight: '600', color: colors.primary, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12 }}>{title}</Text>
   );
 }
 

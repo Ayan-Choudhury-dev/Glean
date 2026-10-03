@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Animated,
   Image,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -151,9 +152,9 @@ const InventoryRow = React.memo(function InventoryRow({
             <Text style={{ fontSize: theme.type.label, color: C.muted }} numberOfLines={1}>{item.location}</Text>
           ) : null}
           {item.qty === 0 ? (
-            <Text style={{ fontSize: 13, fontWeight: '600', color: C.danger }}>Out of stock</Text>
+            <Text style={{ fontSize: theme.type.sm, fontWeight: '600', color: C.danger }}>Out of stock</Text>
           ) : item.qty === 1 ? (
-            <Text style={{ fontSize: 13, fontWeight: '600', color: C.warning }}>Low stock</Text>
+            <Text style={{ fontSize: theme.type.sm, fontWeight: '600', color: C.warning }}>Low stock</Text>
           ) : null}
         </View>
       </View>
@@ -231,7 +232,7 @@ function SearchPill({
       >
         <Ionicons name="search-outline" size={19} color={C.muted} />
         <TextInput
-          style={{ flex: 1, fontSize: 15, color: C.text, fontFamily: theme.fonts.regular }}
+          style={{ flex: 1, fontSize: theme.type.md, color: C.text, fontFamily: theme.fonts.regular }}
           placeholder="Search inventory"
           placeholderTextColor={C.faint}
           value={query}
@@ -257,6 +258,7 @@ export default function InventoryScreen() {
   const headerInset = useHeaderContentInset();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Filter>(null);
+  const [sortBy, setSortBy] = useState<'name' | 'qty' | 'recent'>('name');
   const [iosKeyboardOpen, setIosKeyboardOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const lastNav = useRef(0);
@@ -307,10 +309,24 @@ export default function InventoryScreen() {
       acc[item.category].push(item);
       return acc;
     }, {} as Record<string, typeof inventory>);
+    const sortItems = (items: typeof inventory) => [...items].sort((a, b) => {
+      if (sortBy === 'qty') return a.qty - b.qty || a.name.localeCompare(b.name);
+      if (sortBy === 'recent') return (b.last_restocked ?? '').localeCompare(a.last_restocked ?? '') || a.name.localeCompare(b.name);
+      return a.name.localeCompare(b.name);
+    });
     return Object.keys(groups)
       .sort()
-      .map(category => ({ title: category, data: groups[category].sort((a, b) => a.name.localeCompare(b.name)) }));
-  }, [filtered]);
+      .map(category => ({ title: category, data: sortItems(groups[category]) }));
+  }, [filtered, sortBy]);
+
+  const openSort = () => {
+    Alert.alert('Sort by', undefined, [
+      { text: 'Name (A–Z)', onPress: () => setSortBy('name') },
+      { text: 'Quantity', onPress: () => setSortBy('qty') },
+      { text: 'Recently restocked', onPress: () => setSortBy('recent') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
 
   const searchBottom = Platform.OS === 'ios' && iosKeyboardOpen ? 12 : insets.bottom + 88;
 
@@ -363,11 +379,11 @@ export default function InventoryScreen() {
 
   const emptyBlock = inventory.length === 0 ? (
     <View style={{ alignItems: 'center', paddingTop: 96, paddingHorizontal: PAD }}>
-      <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+      <View style={{ width: 72, height: 72, borderRadius: theme.radii.xl, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
         <Ionicons name="basket-outline" size={34} color={C.accent} />
       </View>
-      <Text style={{ fontSize: 20, fontWeight: '600', color: C.text }}>Add some groceries</Text>
-      <Text style={{ fontSize: 15, color: C.muted, marginTop: 6, textAlign: 'center' }}>
+      <Text style={{ fontSize: theme.type.xl, fontWeight: '600', color: C.text }}>Add some groceries</Text>
+      <Text style={{ fontSize: theme.type.md, color: C.muted, marginTop: 6, textAlign: 'center' }}>
         Tap + to add your first item, or import a CSV from Settings.
       </Text>
       <Tappable
@@ -377,13 +393,13 @@ export default function InventoryScreen() {
         accessibilityLabel="Add new item"
         style={{ marginTop: 24, backgroundColor: C.accent, borderRadius: theme.radii.md, paddingHorizontal: 24, paddingVertical: 14 }}
       >
-        <Text style={{ color: theme.colors.onAccent, fontWeight: '600', fontSize: 15 }}>Add new item</Text>
+        <Text style={{ color: theme.colors.onAccent, fontWeight: '600', fontSize: theme.type.md }}>Add new item</Text>
       </Tappable>
     </View>
   ) : (
     <View style={{ alignItems: 'center', paddingTop: 72, paddingHorizontal: PAD }}>
       <Ionicons name="search-outline" size={40} color={C.faint} />
-      <Text style={{ fontSize: 17, fontWeight: '600', color: C.text, marginTop: 16 }}>No items found</Text>
+      <Text style={{ fontSize: theme.type.lg, fontWeight: '600', color: C.text, marginTop: 16 }}>No items found</Text>
       <Text style={{ fontSize: theme.type.label, color: C.muted, marginTop: 4 }}>Try a different search or filter</Text>
     </View>
   );
@@ -394,15 +410,26 @@ export default function InventoryScreen() {
         title="Inventory"
         scrollY={scrollY}
         right={
-          <Tappable
-            onPress={() => router.push('/item-form')}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel="Add item"
-            style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Ionicons name="add" size={26} color={C.accent} />
-          </Tappable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <Tappable
+              onPress={openSort}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Sort inventory"
+              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="swap-vertical" size={22} color={C.text} />
+            </Tappable>
+            <Tappable
+              onPress={() => router.push('/item-form')}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Add item"
+              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="add" size={26} color={C.accent} />
+            </Tappable>
+          </View>
         }
       />
 

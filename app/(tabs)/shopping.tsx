@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, ScrollView, TextInput, FlatList, Alert, RefreshControl, Animated, Share } from 'react-native';
+import { View, ScrollView, TextInput, FlatList, Alert, RefreshControl, Animated, Share, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tappable } from '../../components/ui/tappable';
@@ -8,6 +8,7 @@ import { CollapsibleHeaderBar, LargeTitle, useCollapsibleHeader, useHeaderConten
 import { NativeSheet } from '../../components/NativeSheet';
 import { useGleanStore, ShoppingItem } from '../../store/useGleanStore';
 import { getRestockSuggestions, type RestockSuggestion } from '../../lib/predictions';
+import { categoryImage } from '@/constants/categoryImages';
 import { theme } from '@/constants/theme';
 import { FEATURES } from '@/constants/config';
 import { useC, useColors } from '@/lib/appearance';
@@ -23,12 +24,16 @@ const RowSeparator = () => {
 const ShoppingRow = React.memo(function ShoppingRow({
   item,
   subtitle,
+  image,
+  category,
   onToggle,
   onAdjust,
   onRemove,
 }: {
   item: ShoppingItem;
   subtitle?: string;
+  image?: string;
+  category?: string;
   onToggle: (id: string) => void;
   onAdjust: (id: string, delta: number) => void;
   onRemove: (item: ShoppingItem) => void;
@@ -54,6 +59,14 @@ const ShoppingRow = React.memo(function ShoppingRow({
           {purchased && <Ionicons name="checkmark" size={15} color={C.onAccent} />}
         </View>
       </Tappable>
+
+      {image ? (
+        <Image source={{ uri: image }} style={{ width: 40, height: 40, borderRadius: theme.radii.sm, backgroundColor: colors.surfaceSunken }} />
+      ) : categoryImage(category ?? '') ? (
+        <View style={{ width: 40, height: 40, borderRadius: theme.radii.sm, backgroundColor: colors.surfaceSunken, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          <Image source={categoryImage(category ?? '')!} style={{ width: 34, height: 34 }} resizeMode="contain" />
+        </View>
+      ) : null}
 
       <View style={{ flex: 1, gap: 3 }}>
         <Text style={{ fontSize: theme.type.body, fontWeight: '600', color: purchased ? C.faint : C.text, textDecorationLine: purchased ? 'line-through' : 'none' }} numberOfLines={1}>{item.name}</Text>
@@ -106,7 +119,7 @@ const SuggestionRow = React.memo(function SuggestionRow({
         <Ionicons name="bulb-outline" size={16} color={C.warning} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 15, fontWeight: '500', color: C.text }}>{suggestion.name}</Text>
+        <Text style={{ fontSize: theme.type.md, fontWeight: '500', color: C.text }}>{suggestion.name}</Text>
         <Text style={{ fontSize: theme.type.caption, color: C.warning, marginTop: 2 }}>Predicted to finish {suggestion.label}</Text>
       </View>
       <Tappable
@@ -117,7 +130,7 @@ const SuggestionRow = React.memo(function SuggestionRow({
         style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: C.border, borderRadius: theme.radii.pill, paddingHorizontal: 12, paddingVertical: 6 }}
       >
         <Ionicons name="add" size={14} color={C.accent} />
-        <Text style={{ fontSize: 13, fontWeight: '600', color: C.accent }}>Add</Text>
+        <Text style={{ fontSize: theme.type.sm, fontWeight: '600', color: C.accent }}>Add</Text>
       </Tappable>
     </View>
   );
@@ -166,6 +179,11 @@ export default function ShoppingScreen() {
 
   const categoryById = useMemo(
     () => Object.fromEntries(inventory.map(i => [i.id, i.category])) as Record<string, string>,
+    [inventory],
+  );
+
+  const itemById = useMemo(
+    () => Object.fromEntries(inventory.map(i => [i.id, i])) as Record<string, (typeof inventory)[number]>,
     [inventory],
   );
 
@@ -276,7 +294,7 @@ export default function ShoppingScreen() {
               >
                 <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: active ? C.text : C.muted }}>{t.label}</Text>
                 <View style={{ minWidth: 20, paddingHorizontal: 6, paddingVertical: 1, borderRadius: theme.radii.pill, backgroundColor: active ? colors.primary : C.border }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', textAlign: 'center', color: active ? C.onAccent : C.muted }}>{t.count}</Text>
+                  <Text style={{ fontSize: theme.type.micro, fontWeight: '700', textAlign: 'center', color: active ? C.onAccent : C.muted }}>{t.count}</Text>
                 </View>
               </Tappable>
             );
@@ -286,11 +304,11 @@ export default function ShoppingScreen() {
         {tab === 'to_buy' ? (
           emptyToBuy ? (
             <View style={{ alignItems: 'center', paddingTop: 72, paddingHorizontal: PAD }}>
-              <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <View style={{ width: 72, height: 72, borderRadius: theme.radii.xl, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
                 <Ionicons name="basket-outline" size={34} color={C.accent} />
               </View>
-              <Text style={{ fontSize: 17, fontWeight: '600', color: C.text }}>Nothing to buy yet</Text>
-              <Text style={{ fontSize: 15, color: C.muted, marginTop: 6, textAlign: 'center' }}>Search your inventory to add an item.</Text>
+              <Text style={{ fontSize: theme.type.lg, fontWeight: '600', color: C.text }}>Nothing to buy yet</Text>
+              <Text style={{ fontSize: theme.type.md, color: C.muted, marginTop: 6, textAlign: 'center' }}>Search your inventory to add an item.</Text>
             </View>
           ) : (
             <>
@@ -310,7 +328,7 @@ export default function ShoppingScreen() {
                   <SectionLabel label="To buy" />
                   {toBuy.map((s, i) => (
                     <View key={s.id}>
-                      <ShoppingRow item={s} subtitle={s.inventory_id ? categoryById[s.inventory_id] : undefined} onToggle={togglePurchased} onAdjust={adjustShoppingQty} onRemove={handleRemove} />
+                      <ShoppingRow item={s} subtitle={s.inventory_id ? categoryById[s.inventory_id] : undefined} image={s.inventory_id ? itemById[s.inventory_id]?.image_url : undefined} category={s.inventory_id ? itemById[s.inventory_id]?.category : undefined} onToggle={togglePurchased} onAdjust={adjustShoppingQty} onRemove={handleRemove} />
                       {i < toBuy.length - 1 && <RowSeparator />}
                     </View>
                   ))}
@@ -320,17 +338,17 @@ export default function ShoppingScreen() {
           )
         ) : purchased.length === 0 ? (
           <View style={{ alignItems: 'center', paddingTop: 72, paddingHorizontal: PAD }}>
-            <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: colors.surfaceSunken, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <View style={{ width: 72, height: 72, borderRadius: theme.radii.xl, backgroundColor: colors.surfaceSunken, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <Ionicons name="checkmark-circle-outline" size={34} color={C.muted} />
             </View>
-            <Text style={{ fontSize: 17, fontWeight: '600', color: C.text }}>No purchased items</Text>
+            <Text style={{ fontSize: theme.type.lg, fontWeight: '600', color: C.text }}>No purchased items</Text>
           </View>
         ) : (
           <>
             <SectionLabel label="Purchased" />
             {purchased.map((s, i) => (
               <View key={s.id}>
-                <ShoppingRow item={s} subtitle={s.inventory_id ? categoryById[s.inventory_id] : undefined} onToggle={togglePurchased} onAdjust={adjustShoppingQty} onRemove={handleRemove} />
+                <ShoppingRow item={s} subtitle={s.inventory_id ? categoryById[s.inventory_id] : undefined} image={s.inventory_id ? itemById[s.inventory_id]?.image_url : undefined} category={s.inventory_id ? itemById[s.inventory_id]?.category : undefined} onToggle={togglePurchased} onAdjust={adjustShoppingQty} onRemove={handleRemove} />
                 {i < purchased.length - 1 && <RowSeparator />}
               </View>
             ))}
@@ -347,7 +365,7 @@ export default function ShoppingScreen() {
             accessibilityLabel="Clear purchased items"
             style={{ borderWidth: 1, borderColor: colors.dangerBorder, borderRadius: theme.radii.md, paddingHorizontal: 16, height: 48, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text style={{ color: colors.danger, fontWeight: '600', fontSize: 15 }}>Clear</Text>
+            <Text style={{ color: colors.danger, fontWeight: '600', fontSize: theme.type.md }}>Clear</Text>
           </Tappable>
           <Tappable
             onPress={() => {
@@ -389,7 +407,7 @@ export default function ShoppingScreen() {
       <NativeSheet visible={addItemSheet} onClose={() => setAddItemSheet(false)} snapPoints={['90%']}>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 }}>
-            <Text style={{ flex: 1, fontSize: 17, fontWeight: '600', color: C.text }}>Add item</Text>
+            <Text style={{ flex: 1, fontSize: theme.type.lg, fontWeight: '600', color: C.text }}>Add item</Text>
             <Tappable onPress={() => setAddItemSheet(false)} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
               <Ionicons name="close" size={22} color={C.muted} />
             </Tappable>
@@ -399,7 +417,7 @@ export default function ShoppingScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceSunken, borderWidth: 1, borderColor: C.border, borderRadius: theme.radii.md, height: 44, paddingHorizontal: 12 }}>
               <Ionicons name="search-outline" size={18} color={C.faint} />
               <TextInput
-                style={{ flex: 1, marginLeft: 8, fontSize: 15, color: C.text, fontFamily: theme.fonts.regular }}
+                style={{ flex: 1, marginLeft: 8, fontSize: theme.type.md, color: C.text, fontFamily: theme.fonts.regular }}
                 placeholder="Search inventory…"
                 placeholderTextColor={C.faint}
                 value={addItemSearch}
@@ -427,14 +445,14 @@ export default function ShoppingScreen() {
                   }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 15, fontWeight: '500', color: C.text }}>Add "{addItemSearch.trim()}"</Text>
-                    <Text style={{ fontSize: 13, color: C.faint }}>Not in your inventory</Text>
+                    <Text style={{ fontSize: theme.type.md, fontWeight: '500', color: C.text }}>Add "{addItemSearch.trim()}"</Text>
+                    <Text style={{ fontSize: theme.type.sm, color: C.faint }}>Not in your inventory</Text>
                   </View>
                   <Ionicons name="add-circle-outline" size={22} color={C.accent} />
                 </Tappable>
               ) : (
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                  <Text style={{ fontSize: 15, color: C.faint }}>No items found</Text>
+                  <Text style={{ fontSize: theme.type.md, color: C.faint }}>No items found</Text>
                 </View>
               )
             }
@@ -454,11 +472,11 @@ export default function ShoppingScreen() {
                   disabled={alreadyQueued}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 15, fontWeight: '500', color: alreadyQueued ? C.faint : C.text }}>{item.name}</Text>
-                    <Text style={{ fontSize: 13, color: C.faint }}>{item.category}</Text>
+                    <Text style={{ fontSize: theme.type.md, fontWeight: '500', color: alreadyQueued ? C.faint : C.text }}>{item.name}</Text>
+                    <Text style={{ fontSize: theme.type.sm, color: C.faint }}>{item.category}</Text>
                   </View>
                   {alreadyQueued ? (
-                    <Text style={{ fontSize: 13, color: C.faint }}>Added</Text>
+                    <Text style={{ fontSize: theme.type.sm, color: C.faint }}>Added</Text>
                   ) : (
                     <Ionicons name="add-circle-outline" size={22} color={C.accent} />
                   )}

@@ -171,16 +171,22 @@ export const accents: Record<
   amber:   { label: 'Amber',   accent: '#D97706', soft: '#FFFBEB', border: '#FDE68A', softDark: '#3A2A12', borderDark: '#78350F' },
 };
 
-export const radii = { sm: 8, md: 12, lg: 16, pill: 999 } as const;
+export const radii = { xs: 6, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28, pill: 999 } as const;
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 
 export const type = {
+  micro: 11,
   caption: 12,
+  sm: 13,
   label: 14,
+  md: 15,
   body: 16,
+  lg: 17,
   title: 18,
+  xl: 20,
   heading: 22,
+  xxl: 30,
   display: 32,
 } as const;
 

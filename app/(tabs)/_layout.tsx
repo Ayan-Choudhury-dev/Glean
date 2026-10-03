@@ -23,8 +23,8 @@ export default function TabLayout() {
       tintColor={colors.accent}
       iconColor={{ default: colors.textMuted, selected: colors.accent }}
       labelStyle={{
-        default: { color: colors.textMuted, fontFamily: theme.fonts.medium, fontSize: 11 },
-        selected: { color: colors.accent, fontFamily: theme.fonts.semibold, fontSize: 11 },
+        default: { color: colors.textMuted, fontFamily: theme.fonts.medium, fontSize: theme.type.micro },
+        selected: { color: colors.accent, fontFamily: theme.fonts.semibold, fontSize: theme.type.micro },
       }}
       badgeBackgroundColor={colors.accent}
       rippleColor={colors.pressed}

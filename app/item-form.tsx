@@ -202,7 +202,7 @@ export default function ItemFormScreen() {
           <Tappable onPress={() => router.dismiss()} hitSlop={12} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Tappable>
-          <Text style={{ flex: 1, fontSize: 20, fontWeight: '600', color: colors.text }}>
+          <Text style={{ flex: 1, fontSize: theme.type.xl, fontWeight: '600', color: colors.text }}>
             {isEdit ? existing!.name : 'Add new item'}
           </Text>
           {isEdit && (
@@ -230,7 +230,7 @@ export default function ItemFormScreen() {
           ) : (
             <View style={{ width: '100%', height: 160, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Ionicons name="camera-outline" size={28} color={colors.textMuted} />
-              <Text style={{ fontSize: 13, color: colors.textMuted }}>Add photo</Text>
+              <Text style={{ fontSize: theme.type.sm, color: colors.textMuted }}>Add photo</Text>
             </View>
           )}
         </Tappable>
@@ -296,7 +296,7 @@ export default function ItemFormScreen() {
             accessibilityLabel="Item name"
           />
           {nameError ? (
-            <Text style={{ color: colors.danger, fontSize: 13, marginTop: 6 }}>{nameError}</Text>
+            <Text style={{ color: colors.danger, fontSize: theme.type.sm, marginTop: 6 }}>{nameError}</Text>
           ) : null}
         </Field>
 
@@ -395,7 +395,7 @@ export default function ItemFormScreen() {
             opacity: isDirty ? 1 : 0.6,
           }}
         >
-          <Text style={{ color: isDirty ? colors.surface : colors.textFaint, fontWeight: '600', fontSize: 15 }}>Save</Text>
+          <Text style={{ color: isDirty ? colors.surface : colors.textFaint, fontWeight: '600', fontSize: theme.type.md }}>Save</Text>
         </Tappable>
         {isEdit && (
           <Tappable
@@ -411,7 +411,7 @@ export default function ItemFormScreen() {
               opacity: isDirty ? 1 : 0.6,
             }}
           >
-            <Text style={{ color: colors.text, fontWeight: '500', fontSize: 15 }}>Revert changes</Text>
+            <Text style={{ color: colors.text, fontWeight: '500', fontSize: theme.type.md }}>Revert changes</Text>
           </Tappable>
         )}
       </View>

@@ -2,6 +2,7 @@ import { File } from 'expo-file-system';
 import { supabase } from './supabase';
 
 const BUCKET = 'item-images';
+const AVATAR_BUCKET = 'avatars';
 
 function contentTypeFor(uri: string): string {
   const ext = (uri.split('?')[0].split('.').pop() ?? 'jpg').toLowerCase();
@@ -50,7 +51,7 @@ export async function uploadAvatar(uri: string, userId: string): Promise<string 
     const bytes = await new File(uri).arrayBuffer();
 
     const { error } = await supabase.storage
-      .from(BUCKET)
+      .from(AVATAR_BUCKET)
       .upload(path, bytes, { upsert: true, contentType: contentTypeFor(uri) });
 
     if (error) {
@@ -58,7 +59,7 @@ export async function uploadAvatar(uri: string, userId: string): Promise<string 
       return null;
     }
 
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
     return data.publicUrl;
   } catch (e) {
     console.error('[upload] avatar failed:', e);

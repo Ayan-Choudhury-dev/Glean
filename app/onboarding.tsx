@@ -32,8 +32,8 @@ const makeInputStyle = (colors: AppColors) => ({
   borderWidth: 1,
   borderRadius: theme.radii.md,
   paddingHorizontal: 16,
-  height: 48,
-  fontSize: theme.type.label,
+  height: 52,
+  fontSize: theme.type.body,
   color: colors.text,
   fontFamily: theme.fonts.regular,
 });
@@ -144,7 +144,7 @@ export default function OnboardingScreen() {
           <View style={{ width: 80, height: 80, backgroundColor: colors.accent, borderRadius: theme.radii.lg, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             <Ionicons name="cube" size={40} color={colors.surface} />
           </View>
-          <Text style={{ fontSize: 30, fontWeight: '700', color: colors.text }}>Glean</Text>
+          <Text style={{ fontSize: theme.type.xxl, fontWeight: '700', color: colors.text }}>Glean</Text>
           <Text style={{ color: colors.textFaint, fontSize: theme.type.label, marginTop: 4 }}>Your household inventory</Text>
         </View>
 
@@ -254,7 +254,7 @@ export default function OnboardingScreen() {
             }}
           >
             {busy && <ActivityIndicator color={colors.surface} />}
-            <Text style={{ color: colors.surface, fontSize: 15, fontWeight: '600' }}>
+            <Text style={{ color: colors.surface, fontSize: theme.type.md, fontWeight: '600' }}>
               {mode === 'sign_up' ? 'Create account' : 'Sign in'}
             </Text>
           </Tappable>

@@ -14,7 +14,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#FF385C"
       },
       "predictiveBackGestureEnabled": false,
       "package": "io.github.ayanchoudhury.glean"
@@ -38,7 +38,7 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#FF385C"
         }
       ],
       "expo-status-bar",

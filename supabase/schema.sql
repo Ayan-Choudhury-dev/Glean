@@ -161,6 +161,23 @@ DROP POLICY IF EXISTS "item-images: update" ON storage.objects;
 CREATE POLICY "item-images: update" ON storage.objects
   FOR UPDATE TO authenticated USING (bucket_id = 'item-images');
 
+-- Avatars (separate bucket; keyed by <user_id>.<ext>)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "avatars: read" ON storage.objects;
+CREATE POLICY "avatars: read" ON storage.objects
+  FOR SELECT USING (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "avatars: insert" ON storage.objects;
+CREATE POLICY "avatars: insert" ON storage.objects
+  FOR INSERT TO authenticated WITH CHECK (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "avatars: update" ON storage.objects;
+CREATE POLICY "avatars: update" ON storage.objects
+  FOR UPDATE TO authenticated USING (bucket_id = 'avatars');
+
 
 -- ── Realtime ───────────────────────────────────────────────────────────────────
 -- Publish household tables so members see each other's changes live.
