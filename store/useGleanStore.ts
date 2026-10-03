@@ -121,11 +121,9 @@ interface GleanState {
   profile:         Profile | null;
   house:           House | null;
   inventory:       InventoryItem[];
-  inventorySearchQuery: string;
   shoppingList:    ShoppingItem[];
   consumptionLogs: ConsumptionLog[];
   houseOptions: HouseOption[];
-  loading:         boolean;
   lastPantryUpdate: {
     items: ShoppingItem[];
     previousInventory: InventoryItem[];
@@ -148,10 +146,8 @@ interface GleanState {
   // Data sync: load everything from Supabase for the current house
   loadHouseData: (houseId: string) => Promise<void>;
   addHouseOption: (type: HouseOptionType, name: string, icon: string) => HouseOption | null;
-  setInventorySearchQuery: (query: string) => void;
 
   // Inventory
-  updateQty:           (id: string, delta: number)                          => void;
   adjustInventoryQty:  (id: string, delta: number, action?: 'used' | 'restocked') => void;
   addInventoryItem:    (item: Omit<InventoryItem, 'id'>)                    => string;
   editInventoryItem:   (id: string, updates: Partial<Omit<InventoryItem, 'id'>>) => void;
@@ -162,7 +158,6 @@ interface GleanState {
 
   // Shopping list
   addToShoppingList:   (name: string, inventoryId?: string, targetQty?: number) => void;
-  updateShoppingQty:   (id: string, qty: number) => void;
   adjustShoppingQty:  (id: string, delta: number) => void;
   markAsPurchased:     (id: string) => void;
   unmarkPurchased:     (id: string) => void;
@@ -248,11 +243,9 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   profile:         null,
   house:           null,
   inventory:       [],
-  inventorySearchQuery: '',
   shoppingList:    [],
   consumptionLogs: [],
   houseOptions: [],
-  loading:         false,
   lastPantryUpdate: null,
 
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -377,7 +370,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   },
 
   clearSession: () => {
-    set({ profile: null, house: null, inventory: [], inventorySearchQuery: '', shoppingList: [], consumptionLogs: [], houseOptions: [], lastPantryUpdate: null });
+    set({ profile: null, house: null, inventory: [], shoppingList: [], consumptionLogs: [], houseOptions: [], lastPantryUpdate: null });
   },
 
   loadSession: async () => {
@@ -451,7 +444,6 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   // ── Data loading ──────────────────────────────────────────────────────────
 
   loadHouseData: async (houseId) => {
-    set({ loading: true });
 
     const [invRes, shopRes, logRes, houseRes, optionsRes, memberRes] = await Promise.all([
       supabase.from('inventory').select('*').eq('house_id', houseId),
@@ -483,7 +475,6 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       consumptionLogs: logRes.data   ?? [],
       house,
       houseOptions,
-      loading:         false,
     });
   },
 
@@ -507,20 +498,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     return option;
   },
 
-  setInventorySearchQuery: (query) => set({ inventorySearchQuery: query }),
-
   // ── Inventory ─────────────────────────────────────────────────────────────
-
-  updateQty: (id, delta) => {
-    set(state => ({
-      inventory: state.inventory.map(item =>
-        item.id === id ? { ...item, qty: Math.max(0, item.qty + delta) } : item
-      ),
-    }));
-    const { inventory, house } = get();
-    const item = inventory.find(i => i.id === id);
-    if (item && house) sbUpdateDelayed('inventory', id, { qty: item.qty });
-  },
 
   adjustInventoryQty: (id, delta, action = delta < 0 ? 'used' : 'restocked') => {
     const { profile, house } = get();
@@ -607,16 +585,6 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     };
     set(state => ({ shoppingList: [...state.shoppingList, item] }));
     if (house) sbInsert('shopping_list', { ...item, house_id: house.id });
-  },
-
-  updateShoppingQty: (id, qty) => {
-    const safeQty = Math.max(1, qty);
-    set(state => ({
-      shoppingList: state.shoppingList.map(i =>
-        i.id === id ? { ...i, target_qty: safeQty } : i
-      ),
-    }));
-    sbUpdateDelayed('shopping_list', id, { target_qty: safeQty });
   },
 
   adjustShoppingQty: (id, delta) => {
