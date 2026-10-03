@@ -250,8 +250,8 @@ export default function ShoppingScreen() {
                 accessibilityLabel={`${t.label}, ${t.count}`}
                 style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: theme.radii.sm, backgroundColor: active ? theme.colors.surface : 'transparent', ...(active ? theme.elevation.raised : null) }}
               >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: active ? C.accent : C.muted }}>{t.label}</Text>
-                <View style={{ minWidth: 20, paddingHorizontal: 6, paddingVertical: 1, borderRadius: theme.radii.pill, backgroundColor: active ? C.accent : C.border }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: active ? C.text : C.muted }}>{t.label}</Text>
+                <View style={{ minWidth: 20, paddingHorizontal: 6, paddingVertical: 1, borderRadius: theme.radii.pill, backgroundColor: active ? theme.colors.primary : C.border }}>
                   <Text style={{ fontSize: 11, fontWeight: '700', textAlign: 'center', color: active ? C.onAccent : C.muted }}>{t.count}</Text>
                 </View>
               </Tappable>

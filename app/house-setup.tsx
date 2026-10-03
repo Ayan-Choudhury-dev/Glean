@@ -60,10 +60,10 @@ export default function HouseSetupScreen() {
         <View className="flex-1 px-8 justify-center">
           <BackButton onPress={() => setMode('pick')} />
           <Heading size="xl" className="mb-2 mt-4">Name your household</Heading>
-          <Text className="text-slate-400 text-sm mb-8">You can invite housemates after setup.</Text>
+          <Text className="text-muted text-sm mb-8">You can invite housemates after setup.</Text>
           <VStack space="md">
             <TextInput
-              className="bg-slate-50 border border-slate-200 rounded-xl px-4 h-12 text-base text-slate-900"
+              className="bg-surfaceMuted border border-line rounded-xl px-4 h-12 text-base text-ink"
               style={{ fontFamily: theme.fonts.regular }}
               placeholder="e.g. The Choudhury Home"
               placeholderTextColor={theme.colors.textFaint}
@@ -74,7 +74,7 @@ export default function HouseSetupScreen() {
               returnKeyType="done"
               onSubmitEditing={handleCreate}
             />
-            <Button size="lg" className="bg-emerald-600 rounded-xl" onPress={handleCreate} disabled={busy || !houseName.trim()}>
+            <Button size="lg" className="bg-brand rounded-xl" onPress={handleCreate} disabled={busy || !houseName.trim()}>
               <ButtonText className="text-white">{busy ? 'Creating…' : 'Create house'}</ButtonText>
             </Button>
           </VStack>
@@ -92,10 +92,10 @@ export default function HouseSetupScreen() {
         <View className="flex-1 px-8 justify-center">
           <BackButton onPress={() => setMode('pick')} />
           <Heading size="xl" className="mb-2 mt-4">Join a household</Heading>
-          <Text className="text-slate-400 text-sm mb-8">Ask a housemate for their 6-character invite code.</Text>
+          <Text className="text-muted text-sm mb-8">Ask a housemate for their 6-character invite code.</Text>
           <VStack space="md">
             <TextInput
-              className="bg-slate-50 border border-slate-200 rounded-xl px-4 h-12 text-base text-slate-900 tracking-widest uppercase font-mono"
+              className="bg-surfaceMuted border border-line rounded-xl px-4 h-12 text-base text-ink tracking-widest uppercase font-mono"
               style={{ fontFamily: theme.fonts.mono }}
               placeholder="ABC123"
               placeholderTextColor={theme.colors.textFaint}
@@ -108,7 +108,7 @@ export default function HouseSetupScreen() {
               returnKeyType="done"
               onSubmitEditing={handleJoin}
             />
-            <Button size="lg" className="bg-emerald-600 rounded-xl" onPress={handleJoin} disabled={busy || inviteCode.length < 6}>
+            <Button size="lg" className="bg-brand rounded-xl" onPress={handleJoin} disabled={busy || inviteCode.length < 6}>
               <ButtonText className="text-white">{busy ? 'Joining…' : 'Join house'}</ButtonText>
             </Button>
           </VStack>
@@ -120,11 +120,11 @@ export default function HouseSetupScreen() {
   return (
     <View className="flex-1 bg-white px-8 justify-center">
       <View className="items-center mb-10">
-        <View className="w-16 h-16 bg-slate-100 rounded-2xl items-center justify-center mb-4">
+        <View className="w-16 h-16 bg-surfaceMuted rounded-2xl items-center justify-center mb-4">
           <Ionicons name="home-outline" size={32} color={theme.colors.textMuted} />
         </View>
         <Heading size="xl" className="text-center">Set up your household</Heading>
-        <Text className="text-slate-400 text-sm mt-2 text-center">
+        <Text className="text-muted text-sm mt-2 text-center">
           Hi {profile?.name}! Create a new home or join an existing one.
         </Text>
       </View>
@@ -140,7 +140,7 @@ function BackButton({ onPress }: { onPress: () => void }) {
   return (
     <Button size="sm" variant="link" action="secondary" onPress={onPress} className="self-start -ml-2">
       <Ionicons name="arrow-back" size={18} color={theme.colors.textMuted} />
-      <ButtonText className="text-slate-500 ml-1">Back</ButtonText>
+      <ButtonText className="text-muted ml-1">Back</ButtonText>
     </Button>
   );
 }
@@ -150,14 +150,14 @@ function OptionCard({ icon, title, subtitle, onPress }: {
   title: string; subtitle: string; onPress: () => void;
 }) {
   return (
-    <Button size="lg" variant="outline" action="secondary" className="rounded-xl border-slate-200 h-auto py-4" onPress={onPress}>
+    <Button size="lg" variant="outline" action="secondary" className="rounded-xl border-line h-auto py-4" onPress={onPress}>
       <HStack className="items-center flex-1 px-1">
-        <View className="w-10 h-10 bg-slate-100 rounded-xl items-center justify-center mr-4">
+        <View className="w-10 h-10 bg-surfaceMuted rounded-xl items-center justify-center mr-4">
           <Ionicons name={icon} size={20} color={theme.colors.textMuted} />
         </View>
         <VStack className="flex-1 items-start">
-          <ButtonText className="text-slate-900 font-semibold text-base">{title}</ButtonText>
-          <Text className="text-slate-400 text-xs">{subtitle}</Text>
+          <ButtonText className="text-ink font-semibold text-base">{title}</ButtonText>
+          <Text className="text-muted text-xs">{subtitle}</Text>
         </VStack>
         <Ionicons name="chevron-forward" size={16} color={theme.colors.borderStrong} />
       </HStack>

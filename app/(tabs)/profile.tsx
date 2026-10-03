@@ -157,11 +157,11 @@ export default function ProfileScreen() {
         <Divider />
         <Tappable onPress={() => setInviteSheetOpen(true)}>
           <HStack className="items-center px-4 py-3">
-            <View className="w-8 h-8 rounded-lg bg-slate-100 items-center justify-center mr-3">
+            <View className="w-8 h-8 rounded-lg bg-surfaceMuted items-center justify-center mr-3">
               <Ionicons name="person-add-outline" size={16} color={theme.colors.textMuted} />
             </View>
-            <Text className="flex-1 text-sm font-medium text-slate-600">Invite a member</Text>
-            <Text className="text-xs text-slate-400">Share invite code</Text>
+            <Text className="flex-1 text-sm font-medium text-muted">Invite a member</Text>
+            <Text className="text-xs text-muted">Share invite code</Text>
           </HStack>
         </Tappable>
       </Card>
@@ -171,12 +171,12 @@ export default function ProfileScreen() {
       <Card>
         <Tappable onPress={() => setDataSheetOpen(true)}>
           <HStack className="items-center px-4 py-3">
-            <View className="w-8 h-8 rounded-lg bg-slate-100 items-center justify-center mr-3">
+            <View className="w-8 h-8 rounded-lg bg-surfaceMuted items-center justify-center mr-3">
               <Ionicons name="swap-horizontal-outline" size={16} color={theme.colors.textMuted} />
             </View>
             <VStack className="flex-1">
-              <Text className="text-sm font-medium text-slate-600">Import / export data</Text>
-              <Text className="text-xs text-slate-400">{inventory.length} items · CSV format</Text>
+              <Text className="text-sm font-medium text-muted">Import / export data</Text>
+              <Text className="text-xs text-muted">{inventory.length} items · CSV format</Text>
             </VStack>
             <Ionicons name="chevron-forward" size={16} color={theme.colors.borderStrong} />
           </HStack>
@@ -209,24 +209,24 @@ export default function ProfileScreen() {
         <VStack className="px-6 pt-2 pb-10" space="lg">
           <VStack space="xs">
             <Heading size="md">Invite a member</Heading>
-            <Text className="text-sm text-slate-500">
+            <Text className="text-sm text-muted">
               Share this invite code with housemates so they can join{' '}
               {house?.name ?? 'your household'}.
             </Text>
           </VStack>
-          <View className="bg-slate-100 border border-slate-200 rounded-xl py-6 items-center">
-            <Text className="text-3xl font-bold text-slate-900 tracking-[0.3em]">
+          <View className="bg-surfaceMuted border border-line rounded-xl py-6 items-center">
+            <Text className="text-3xl font-bold text-ink tracking-[0.3em]">
               {house?.invite_code ?? '—'}
             </Text>
           </View>
           <VStack space="sm">
-            <Button size="lg" className="bg-emerald-600 rounded-xl" onPress={copyInvite}>
+            <Button size="lg" className="bg-brand rounded-xl" onPress={copyInvite}>
               <Ionicons name="copy-outline" size={16} color={theme.colors.onAccent} style={{ marginRight: 6 }} />
               <ButtonText className="text-white">Copy code</ButtonText>
             </Button>
-            <Button size="lg" variant="outline" action="secondary" className="rounded-xl border-slate-200" onPress={shareInvite}>
+            <Button size="lg" variant="outline" action="secondary" className="rounded-xl border-line" onPress={shareInvite}>
               <Ionicons name="share-outline" size={16} color={theme.colors.text} style={{ marginRight: 6 }} />
-              <ButtonText className="text-slate-700">Share invite</ButtonText>
+              <ButtonText className="text-ink">Share invite</ButtonText>
             </Button>
           </VStack>
         </VStack>
@@ -242,7 +242,7 @@ export default function ProfileScreen() {
               <Ionicons name="close" size={20} color={theme.colors.textMuted} />
             </Tappable>
           </HStack>
-          <HStack className="bg-slate-100 rounded-xl p-1">
+          <HStack className="bg-surfaceMuted rounded-xl p-1">
             {(['import', 'export'] as const).map(tab => (
               <Tappable
                 key={tab}
@@ -250,7 +250,7 @@ export default function ProfileScreen() {
                 style={dataTab === tab ? { shadowColor: theme.colors.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 } : undefined}
                 onPress={() => setDataTab(tab)}
               >
-                <Text className={`text-sm font-semibold capitalize ${dataTab === tab ? 'text-slate-900' : 'text-slate-400'}`}>
+                <Text className={`text-sm font-semibold capitalize ${dataTab === tab ? 'text-ink' : 'text-muted'}`}>
                   {tab === 'import' ? 'Import' : 'Export'}
                 </Text>
               </Tappable>
@@ -259,15 +259,15 @@ export default function ProfileScreen() {
 
           {dataTab === 'import' ? (
             <VStack className="pt-4" space="sm">
-              <Text className="text-xs text-slate-500">
+              <Text className="text-xs text-muted">
                 Paste a CSV with headers:{' '}
                 <Text className="font-mono font-semibold">Name, Quantity, Category, Location</Text>
               </Text>
-              <Text className="text-xs text-slate-400">
+              <Text className="text-xs text-muted">
                 Upsert logic: existing items get their quantity incremented; new items are created.
               </Text>
               <TextInput
-                className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-800 font-mono"
+                className="bg-surfaceMuted border border-line rounded-lg p-3 text-xs text-ink font-mono"
                 style={{ minHeight: 140, textAlignVertical: 'top', fontFamily: theme.fonts.mono }}
                 multiline
                 placeholder={'Name,Quantity,Category,Location\nMilk,2,Dairy,Fridge\nRice,5,Grains,Pantry'}
@@ -279,7 +279,7 @@ export default function ProfileScreen() {
               />
               <Button
                 size="md"
-                className="bg-emerald-600 rounded-xl mt-1"
+                className="bg-brand rounded-xl mt-1"
                 onPress={handleImport}
                 disabled={importing}
               >
@@ -289,17 +289,17 @@ export default function ProfileScreen() {
             </VStack>
           ) : (
             <VStack className="pt-4" space="sm">
-              <Text className="text-xs text-slate-500">
+              <Text className="text-xs text-muted">
                 Your inventory will be exported as a CSV file you can back up or share.
               </Text>
-              <Tappable className="bg-slate-100 border border-slate-200 rounded-lg px-4 py-2">
-                <Text className="text-xs text-slate-400 font-mono" numberOfLines={2}>
+              <Tappable className="bg-surfaceMuted border border-line rounded-lg px-4 py-2">
+                <Text className="text-xs text-muted font-mono" numberOfLines={2}>
                   Name,Quantity,Category,Location · {inventory.length} rows
                 </Text>
               </Tappable>
               <Button
                 size="md"
-                className="bg-emerald-600 rounded-xl mt-1"
+                className="bg-brand rounded-xl mt-1"
                 onPress={() => { setDataSheetOpen(false); handleExport(); }}
               >
                 <Ionicons name="download-outline" size={16} color={theme.colors.surface} style={{ marginRight: 6 }} />
@@ -332,7 +332,7 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 
 function Divider() {
-  return <View className="h-px bg-slate-100 ml-[52px]" />;
+  return <View className="h-px bg-surfaceMuted ml-[52px]" />;
 }
 
 function SettingRow({
@@ -350,11 +350,11 @@ function SettingRow({
 }) {
   const row = (
     <HStack className="items-center px-4 py-3">
-      <View className="w-8 h-8 rounded-lg bg-emerald-50 items-center justify-center mr-3">
+      <View className="w-8 h-8 rounded-lg bg-brandSoft items-center justify-center mr-3">
         <Ionicons name={icon} size={16} color={theme.colors.accent} />
       </View>
-      <Text className="flex-1 text-sm font-medium text-slate-900">{label}</Text>
-      {value && <Text className="text-sm text-slate-500 mr-2">{value}</Text>}
+      <Text className="flex-1 text-sm font-medium text-ink">{label}</Text>
+      {value && <Text className="text-sm text-muted mr-2">{value}</Text>}
       {chevron && <Ionicons name="chevron-forward" size={16} color={theme.colors.borderStrong} />}
     </HStack>
   );

@@ -74,9 +74,9 @@ function Chip({
         height: 40,
         minWidth: 56,
         borderRadius: theme.radii.pill,
-        backgroundColor: active ? C.accentSoft : C.card,
+        backgroundColor: active ? theme.colors.primary : C.card,
         borderWidth: 1,
-        borderColor: active ? C.accentBorder : C.border,
+        borderColor: active ? theme.colors.primary : C.border,
         flexShrink: 0,
         flexDirection: 'row',
         alignItems: 'center',
@@ -85,8 +85,8 @@ function Chip({
         gap: 6,
       }}
     >
-      <Ionicons name={icon} size={15} color={active ? C.accent : C.muted} />
-      <Text style={{ fontSize: 14, fontWeight: '500', color: active ? C.accent : C.text }}>
+      <Ionicons name={icon} size={15} color={active ? theme.colors.onPrimary : C.muted} />
+      <Text style={{ fontSize: 14, fontWeight: '500', color: active ? theme.colors.onPrimary : C.text }}>
         {label}
       </Text>
     </Tappable>

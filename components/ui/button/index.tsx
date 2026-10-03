@@ -18,14 +18,14 @@ const SIZE_CLASSES = {
 
 const VARIANT_CLASSES = {
   solid: '',
-  outline: 'bg-transparent border border-slate-200',
+  outline: 'bg-transparent border border-line',
   link: 'bg-transparent px-0',
 };
 
 const ACTION_CLASSES = {
-  primary: 'bg-emerald-600',
-  secondary: 'bg-slate-200',
-  positive: 'bg-emerald-500',
+  primary: 'bg-brand',
+  secondary: 'bg-line',
+  positive: 'bg-brandSoft0',
   negative: 'bg-red-500',
   default: 'bg-transparent',
 };
@@ -81,7 +81,7 @@ const ButtonText = React.forwardRef<
   return (
     <RNText
       ref={ref}
-      className={['font-semibold text-slate-500', className].filter(Boolean).join(' ')}
+      className={['font-semibold text-muted', className].filter(Boolean).join(' ')}
       style={[{ fontFamily: fonts.semibold }, style]}
       {...props}
     />

@@ -1,75 +1,73 @@
-// Design tokens — "Fresh Pantry" direction.
+// Design tokens — Airbnb-inspired direction.
 // Single source of truth for inline styles; keep aligned with NativeWind className usage.
 
 export const palette = {
-  slate50: '#F8FAFC',
-  slate100: '#F1F5F9',
-  slate200: '#E2E8F0',
-  slate300: '#CBD5E1',
-  slate400: '#94A3B8',
-  slate500: '#64748B',
-  slate600: '#475569',
-  slate700: '#334155',
-  slate800: '#1E293B',
-  slate900: '#0F172A',
+  ink: '#222222',
+  muted: '#717171',
+  faint: '#B0B0B0',
+  line: '#DDDDDD',
+  lineLight: '#EBEBEB',
+  surfaceMuted: '#F7F7F7',
   white: '#FFFFFF',
   black: '#000000',
-  emerald600: '#059669',
-  emerald50: '#ECFDF5',
-  emerald200: '#A7F3D0',
+  rausch: '#FF385C',
+  rauschSoft: '#FFF1F3',
+  rauschBorder: '#FFB3C1',
+  green: '#008A05',
+  red: '#C13515',
 } as const;
 
 export const colors = {
-  background: '#F6F7F9',
+  background: palette.white,
   surface: palette.white,
-  surfaceMuted: '#F8FAFC',
-  surfaceSunken: '#EEF1F4',
+  surfaceMuted: palette.surfaceMuted,
+  surfaceSunken: palette.surfaceMuted,
 
   // All text tokens pass WCAG AA (4.5:1) on surface.
-  text: palette.slate900,
-  textMuted: palette.slate600,
-  textFaint: palette.slate500,
+  text: palette.ink,
+  textMuted: palette.muted,
+  textFaint: palette.muted,
 
-  border: '#E4E7EB',
-  borderLight: '#EEF1F4',
-  borderStrong: palette.slate300,
+  border: palette.line,
+  borderLight: palette.lineLight,
+  borderStrong: palette.faint,
 
-  // Neutral emphasis (headings, dark surfaces) vs. action accent (buttons, selection).
-  primary: palette.slate900,
+  // Neutral emphasis (headings, dark surfaces) vs. brand accent (actions, selection).
+  primary: palette.ink,
   onPrimary: palette.white,
-  accent: palette.emerald600,
+  accent: palette.rausch,
   onAccent: palette.white,
-  accentSoft: palette.emerald50,
-  accentBorder: palette.emerald200,
+  accentSoft: palette.rauschSoft,
+  accentBorder: palette.rauschBorder,
 
-  disabledBg: '#EEF1F4',
-  disabledText: palette.slate400,
+  disabledBg: palette.lineLight,
+  disabledText: palette.faint,
 
-  chipBg: '#EEF1F4',
-  chipActive: palette.slate900,
+  chipBg: palette.surfaceMuted,
+  chipActive: palette.ink,
 
-  danger: '#DC2626',
-  dangerBg: '#FEE2E2',
-  dangerBorder: '#FECACA',
-  dangerText: '#991B1B',
+  danger: palette.red,
+  dangerBg: '#FCEEEA',
+  dangerBorder: '#F5C6B5',
+  dangerText: palette.red,
 
   warning: '#B45309',
   warningBg: '#FEF3C7',
   warningBorder: '#FDE68A',
   warningText: '#92400E',
 
-  success: palette.emerald600,
+  success: palette.green,
   successBright: '#34D399',
   info: '#2563EB',
   infoSoft: '#93C5FD',
 
-  snackbarBg: palette.slate800,
+  snackbarBg: palette.ink,
   overlay: 'rgba(0, 0, 0, 0.25)',
-  pressed: 'rgba(5, 150, 105, 0.12)',
-  shadow: palette.slate900,
+  pressed: 'rgba(0, 0, 0, 0.06)',
+  shadow: palette.black,
 } as const;
 
-export const radii = { sm: 10, md: 14, lg: 18, pill: 999 } as const;
+export const radii = { sm: 8, md: 12, lg: 16, pill: 999 } as const;
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 
@@ -77,7 +75,7 @@ export const type = {
   caption: 12,
   label: 14,
   body: 16,
-  title: 17,
+  title: 18,
   heading: 22,
   display: 32,
 } as const;
@@ -109,21 +107,21 @@ export function fontForWeight(weight?: string | number | null): string {
   return fonts.regular;
 }
 
-/** Soft two-layer elevation for floating surfaces only; cards use hairline borders. */
+/** Soft, low elevation — Airbnb-style. */
 export const elevation = {
   floating: {
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
-    elevation: 6,
+    elevation: 8,
   },
   raised: {
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
   },
 } as const;
 
