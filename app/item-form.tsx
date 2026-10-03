@@ -37,6 +37,7 @@ export default function ItemFormScreen() {
   const [location, setLocation] = useState(existing?.location ?? '');
   const [imageUri, setImageUri] = useState<string | null>(existing?.image_url ?? null);
   const [imageDirty, setImageDirty] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
 
   const isDirty = imageDirty || (isEdit
     ? name.trim() !== (existing?.name ?? '') ||
@@ -105,15 +106,16 @@ export default function ItemFormScreen() {
   const handleSave = () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      Alert.alert('Required', 'Please enter an item name.');
+      setNameError('Enter an item name.');
       return;
     }
+    setNameError(null);
 
     const duplicate = inventory.find(
       i => i.name.toLowerCase() === trimmedName.toLowerCase() && i.id !== existing?.id
     );
     if (duplicate) {
-      Alert.alert('Already exists', `"${trimmedName}" is already in your inventory.`);
+      setNameError(`"${trimmedName}" is already in your inventory.`);
       return;
     }
 
@@ -281,14 +283,18 @@ export default function ItemFormScreen() {
         {/* Item name */}
         <Field label="Item name">
           <TextInput
-            style={{ backgroundColor: theme.colors.surfaceMuted, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 12, paddingHorizontal: 16, height: 48, fontSize: 14, color: theme.colors.text, fontFamily: theme.fonts.regular }}
+            style={{ backgroundColor: theme.colors.surfaceMuted, borderWidth: 1, borderColor: nameError ? theme.colors.danger : theme.colors.border, borderRadius: 12, paddingHorizontal: 16, height: 48, fontSize: 14, color: theme.colors.text, fontFamily: theme.fonts.regular }}
             placeholder='"Atta" or "Rice"'
             placeholderTextColor={theme.colors.textFaint}
             value={name}
-            onChangeText={setName}
+            onChangeText={v => { setName(v); setNameError(null); }}
             autoFocus={!isEdit}
             autoCorrect={false}
+            accessibilityLabel="Item name"
           />
+          {nameError ? (
+            <Text style={{ color: theme.colors.danger, fontSize: 13, marginTop: 6 }}>{nameError}</Text>
+          ) : null}
         </Field>
 
         {/* Category */}
@@ -322,7 +328,7 @@ export default function ItemFormScreen() {
             <Tappable
               onPress={() => setQty(String(Math.max(0, (parseInt(qty, 10) || 0) - 1)))}
               disabled={(parseInt(qty, 10) || 0) === 0}
-              style={{ width: 56, height: 56, borderRadius: 999, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center', opacity: (parseInt(qty, 10) || 0) === 0 ? 0.3 : 1 }}
+              style={{ width: 56, height: 56, borderRadius: 999, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center', opacity: (parseInt(qty, 10) || 0) === 0 ? 0.5 : 1 }}
             >
               <Ionicons name="remove" size={22} color={theme.colors.text} />
             </Tappable>

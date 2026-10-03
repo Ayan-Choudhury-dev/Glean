@@ -26,8 +26,9 @@ const androidRipple = { color: theme.colors.pressed, foreground: true } as const
 export const Tappable = React.forwardRef<
   React.ComponentRef<typeof Pressable>,
   PressableProps
->(function Tappable({ style, android_ripple, onPressIn, onPressOut, ...props }, ref) {
+>(function Tappable({ style, android_ripple, onPressIn, onPressOut, onFocus, onBlur, ...props }, ref) {
   const [pressed, setPressed] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   const resolved =
     typeof style === 'function'
@@ -38,6 +39,8 @@ export const Tappable = React.forwardRef<
     resolved,
     Platform.OS === 'android' ? { overflow: 'hidden' } : null,
     Platform.OS === 'ios' && pressed ? { opacity: 0.65 } : null,
+    // Visible focus ring for keyboard / switch-control navigation.
+    focused ? { outlineStyle: 'solid', outlineWidth: 2, outlineColor: theme.colors.accent, outlineOffset: 2 } : null,
   ];
 
   return (
@@ -54,6 +57,14 @@ export const Tappable = React.forwardRef<
       onPressOut={event => {
         setPressed(false);
         onPressOut?.(event);
+      }}
+      onFocus={event => {
+        setFocused(true);
+        onFocus?.(event);
+      }}
+      onBlur={event => {
+        setFocused(false);
+        onBlur?.(event);
       }}
       {...props}
     />

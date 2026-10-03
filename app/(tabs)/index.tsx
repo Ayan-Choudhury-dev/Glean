@@ -89,14 +89,14 @@ function Chip({
         minWidth: 56,
         borderRadius: theme.radii.pill,
         backgroundColor: active ? theme.colors.surfaceMuted : C.card,
-        borderWidth: 1.5,
+        borderWidth: 1,
         borderColor: active ? C.text : C.border,
         flexShrink: 0,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 14,
-        gap: 7,
+        gap: 8,
       }}
     >
       {image ? (
@@ -180,7 +180,7 @@ const InventoryRow = React.memo(function InventoryRow({
           accessibilityRole="button"
           accessibilityLabel={`Decrease ${item.name}`}
           hitSlop={10}
-          style={{ width: 32, height: 32, borderRadius: theme.radii.pill, backgroundColor: C.chipBg, alignItems: 'center', justifyContent: 'center', opacity: item.qty === 0 ? 0.35 : 1 }}
+          style={{ width: 32, height: 32, borderRadius: theme.radii.pill, backgroundColor: C.chipBg, alignItems: 'center', justifyContent: 'center', opacity: item.qty === 0 ? 0.5 : 1 }}
         >
           <Ionicons name="remove" size={15} color={C.text} />
         </Tappable>
@@ -263,7 +263,7 @@ function SearchPill({
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function InventoryScreen() {
-  const { inventory, house, adjustInventoryQty, loadHouseData } = useGleanStore();
+  const { inventory, house, adjustInventoryQty, loadHouseData, loading } = useGleanStore();
   const insets = useSafeAreaInsets();
   const { scrollY, onScroll } = useCollapsibleHeader();
   const headerInset = useHeaderContentInset();
@@ -322,6 +322,22 @@ export default function InventoryScreen() {
   }, [filtered]);
 
   const searchBottom = Platform.OS === 'ios' && iosKeyboardOpen ? 12 : insets.bottom + 88;
+
+  // Static skeleton (no animation, per the design rules) shown on first load.
+  const showSkeleton = loading && inventory.length === 0;
+  const skeletonBlock = (
+    <View>
+      {[0, 1, 2, 3, 4].map(i => (
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: PAD, paddingVertical: 10, gap: 14 }}>
+          <View style={{ width: 64, height: 64, borderRadius: theme.radii.lg, backgroundColor: theme.colors.surfaceSunken }} />
+          <View style={{ flex: 1, gap: 8 }}>
+            <View style={{ width: '60%', height: 14, borderRadius: theme.radii.sm, backgroundColor: theme.colors.surfaceSunken }} />
+            <View style={{ width: '35%', height: 12, borderRadius: theme.radii.sm, backgroundColor: theme.colors.surfaceSunken }} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
 
   const headerBlock = (
     <View>
@@ -396,7 +412,7 @@ export default function InventoryScreen() {
         onScroll={onScroll}
         scrollEventThrottle={16}
         ListHeaderComponent={headerBlock}
-        ListEmptyComponent={emptyBlock}
+        ListEmptyComponent={showSkeleton ? skeletonBlock : emptyBlock}
         contentContainerStyle={{ paddingTop: headerInset, paddingBottom: 160, width: '100%', maxWidth: 720, alignSelf: 'center' }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} colors={[C.accent]} />

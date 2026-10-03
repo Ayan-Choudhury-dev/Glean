@@ -124,6 +124,7 @@ interface GleanState {
   shoppingList:    ShoppingItem[];
   consumptionLogs: ConsumptionLog[];
   houseOptions: HouseOption[];
+  loading: boolean;
   syncError: string | null;
   lastPantryUpdate: {
     items: ShoppingItem[];
@@ -270,6 +271,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   shoppingList:    [],
   consumptionLogs: [],
   houseOptions: [],
+  loading: false,
   syncError: null,
   lastPantryUpdate: null,
 
@@ -471,6 +473,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   // ── Data loading ──────────────────────────────────────────────────────────
 
   loadHouseData: async (houseId) => {
+    set({ loading: true });
 
     const [invRes, shopRes, logRes, houseRes, optionsRes, memberRes] = await Promise.all([
       supabase.from('inventory').select('*').eq('house_id', houseId),
@@ -502,6 +505,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       consumptionLogs: logRes.data   ?? [],
       house,
       houseOptions,
+      loading: false,
     });
   },
 

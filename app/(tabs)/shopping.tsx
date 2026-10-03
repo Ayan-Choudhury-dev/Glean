@@ -80,7 +80,7 @@ const ShoppingRow = React.memo(function ShoppingRow({
             accessibilityRole="button"
             accessibilityLabel={`Decrease ${item.name}`}
             hitSlop={10}
-            style={{ width: 32, height: 32, borderRadius: theme.radii.pill, backgroundColor: C.chipBg, alignItems: 'center', justifyContent: 'center', opacity: item.target_qty <= 1 ? 0.35 : 1 }}
+            style={{ width: 32, height: 32, borderRadius: theme.radii.pill, backgroundColor: C.chipBg, alignItems: 'center', justifyContent: 'center', opacity: item.target_qty <= 1 ? 0.5 : 1 }}
           >
             <Ionicons name="remove" size={15} color={C.text} />
           </Tappable>
@@ -259,7 +259,7 @@ export default function ShoppingScreen() {
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={`${t.label}, ${t.count}`}
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: theme.radii.sm, backgroundColor: active ? theme.colors.surface : 'transparent', ...(active ? theme.elevation.raised : null) }}
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: theme.radii.sm, backgroundColor: active ? theme.colors.surface : 'transparent', ...(active ? theme.elevation.raised : null) }}
               >
                 <Text style={{ fontSize: 14, fontWeight: '600', color: active ? C.text : C.muted }}>{t.label}</Text>
                 <View style={{ minWidth: 20, paddingHorizontal: 6, paddingVertical: 1, borderRadius: theme.radii.pill, backgroundColor: active ? theme.colors.primary : C.border }}>
@@ -430,7 +430,7 @@ export default function ShoppingScreen() {
                 <Tappable
                   accessibilityRole="button"
                   accessibilityLabel={alreadyQueued ? `${item.name}, already added` : `Add ${item.name}`}
-                  style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, opacity: alreadyQueued ? 0.4 : 1 }}
+                  style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, opacity: alreadyQueued ? 0.5 : 1 }}
                   onPress={() => {
                     if (!alreadyQueued) {
                       addToShoppingList(item.name, item.id);

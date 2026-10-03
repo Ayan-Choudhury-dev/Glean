@@ -32,8 +32,8 @@ const styles = StyleSheet.create({
     color: theme.colors.accent,
   },
   link: {
-    marginTop: 15,
-    paddingVertical: 15,
+    marginTop: 16,
+    paddingVertical: 16,
   },
   linkText: {
     fontSize: 14,
