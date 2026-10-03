@@ -226,13 +226,12 @@ export default function ShoppingScreen() {
         right={
           <Tappable
             onPress={() => { setAddItemSearch(''); setAddItemSheet(true); }}
-            hitSlop={8}
+            hitSlop={10}
             accessibilityRole="button"
             accessibilityLabel="Add item to list"
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.accent, borderRadius: theme.radii.pill, paddingHorizontal: 14, paddingVertical: 8 }}
+            style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Ionicons name="add" size={16} color={C.onAccent} />
-            <Text style={{ color: C.onAccent, fontSize: 13, fontWeight: '600' }}>Add item</Text>
+            <Ionicons name="add" size={26} color={C.accent} />
           </Tappable>
         }
       />

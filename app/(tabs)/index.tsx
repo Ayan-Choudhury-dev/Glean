@@ -272,6 +272,7 @@ export default function InventoryScreen() {
   const [iosKeyboardOpen, setIosKeyboardOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const lastNav = useRef(0);
+  const shimmer = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (Platform.OS !== 'ios') return;
@@ -323,10 +324,22 @@ export default function InventoryScreen() {
 
   const searchBottom = Platform.OS === 'ios' && iosKeyboardOpen ? 12 : insets.bottom + 88;
 
-  // Static skeleton (no animation, per the design rules) shown on first load.
+  // Skeleton shown on first load; opacity-only shimmer (compositor prop).
   const showSkeleton = loading && inventory.length === 0;
+  useEffect(() => {
+    if (!showSkeleton) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmer, { toValue: 0.5, duration: 200, useNativeDriver: true }),
+        Animated.timing(shimmer, { toValue: 1, duration: 200, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [showSkeleton, shimmer]);
+
   const skeletonBlock = (
-    <View>
+    <Animated.View style={{ opacity: shimmer }}>
       {[0, 1, 2, 3, 4].map(i => (
         <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: PAD, paddingVertical: 10, gap: 14 }}>
           <View style={{ width: 64, height: 64, borderRadius: theme.radii.lg, backgroundColor: theme.colors.surfaceSunken }} />
@@ -336,7 +349,7 @@ export default function InventoryScreen() {
           </View>
         </View>
       ))}
-    </View>
+    </Animated.View>
   );
 
   const headerBlock = (
