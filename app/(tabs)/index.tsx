@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGleanStore, InventoryItem, DEFAULT_HOUSE_OPTIONS } from '../../store/useGleanStore';
 import { theme } from '@/constants/theme';
 import { categoryImage } from '@/constants/categoryImages';
+import type { ImageSourcePropType } from 'react-native';
 import { Tappable } from '../../components/ui/tappable';
 import { Text } from '../../components/ui/text';
 import {
@@ -60,17 +61,19 @@ const CATEGORY_ICON: Record<string, React.ComponentProps<typeof Ionicons>['name'
     o.icon as React.ComponentProps<typeof Ionicons>['name'],
   ]),
 );
-const ROW_INSET = 24 + 44 + 14; // screen padding + avatar + gap
+const ROW_INSET = 24 + 64 + 14; // screen padding + tile + gap
 
 // ─── Chip ─────────────────────────────────────────────────────────────────────
 function Chip({
   label,
   icon,
+  image,
   active,
   onPress,
 }: {
   label: string;
-  icon: React.ComponentProps<typeof Ionicons>['name'];
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
+  image?: ImageSourcePropType;
   active: boolean;
   onPress: () => void;
 }) {
@@ -85,19 +88,23 @@ function Chip({
         height: 40,
         minWidth: 56,
         borderRadius: theme.radii.pill,
-        backgroundColor: active ? theme.colors.primary : C.card,
-        borderWidth: 1,
-        borderColor: active ? theme.colors.primary : C.border,
+        backgroundColor: active ? theme.colors.surfaceMuted : C.card,
+        borderWidth: 1.5,
+        borderColor: active ? C.text : C.border,
         flexShrink: 0,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 16,
-        gap: 6,
+        paddingHorizontal: 14,
+        gap: 7,
       }}
     >
-      <Ionicons name={icon} size={15} color={active ? theme.colors.onPrimary : C.muted} />
-      <Text style={{ fontSize: 14, fontWeight: '500', color: active ? theme.colors.onPrimary : C.text }}>
+      {image ? (
+        <Image source={image} style={{ width: 22, height: 22 }} resizeMode="contain" />
+      ) : icon ? (
+        <Ionicons name={icon} size={15} color={active ? C.text : C.muted} />
+      ) : null}
+      <Text style={{ fontSize: 14, fontWeight: active ? '600' : '500', color: C.text }}>
         {label}
       </Text>
     </Tappable>
@@ -122,9 +129,9 @@ const InventoryRow = React.memo(function InventoryRow({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        minHeight: 72,
+        minHeight: 84,
         paddingHorizontal: PAD,
-        paddingVertical: 14,
+        paddingVertical: 10,
         gap: 14,
       }}
     >
@@ -132,16 +139,16 @@ const InventoryRow = React.memo(function InventoryRow({
       {item.image_url ? (
         <Image
           source={{ uri: item.image_url }}
-          style={{ width: 44, height: 44, borderRadius: theme.radii.md, backgroundColor: C.chipBg }}
+          style={{ width: 64, height: 64, borderRadius: theme.radii.lg, backgroundColor: C.chipBg }}
         />
       ) : (
-        <View style={{ width: 44, height: 44, borderRadius: theme.radii.md, backgroundColor: C.chipBg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        <View style={{ width: 64, height: 64, borderRadius: theme.radii.lg, backgroundColor: C.chipBg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           {categoryImage(item.category) ? (
-            <Image source={categoryImage(item.category)!} style={{ width: 36, height: 36 }} resizeMode="contain" />
+            <Image source={categoryImage(item.category)!} style={{ width: 54, height: 54 }} resizeMode="contain" />
           ) : (
             <Ionicons
               name={(CATEGORY_ICON[item.category] ?? 'pricetag-outline') as React.ComponentProps<typeof Ionicons>['name']}
-              size={20}
+              size={24}
               color={C.muted}
             />
           )}
@@ -329,7 +336,7 @@ export default function InventoryScreen() {
         <Chip label="Low stock" icon="alert-circle-outline" active={selectedCategory === 'low-stock'} onPress={() => setSelectedCategory(selectedCategory === 'low-stock' ? null : 'low-stock')} />
         <Chip label="Out of stock" icon="close-circle-outline" active={selectedCategory === 'out-of-stock'} onPress={() => setSelectedCategory(selectedCategory === 'out-of-stock' ? null : 'out-of-stock')} />
         {availableCategories.map(cat => (
-          <Chip key={cat} label={cat} icon="pricetag-outline" active={selectedCategory === cat} onPress={() => setSelectedCategory(selectedCategory === cat ? null : cat)} />
+          <Chip key={cat} label={cat} image={categoryImage(cat)} active={selectedCategory === cat} onPress={() => setSelectedCategory(selectedCategory === cat ? null : cat)} />
         ))}
       </ScrollView>
     </View>
