@@ -11,6 +11,7 @@ import {
   Animated,
   Image,
   Alert,
+  AccessibilityInfo,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -332,8 +333,15 @@ export default function InventoryScreen() {
 
   // Skeleton shown on first load; opacity-only shimmer (compositor prop).
   const showSkeleton = loading && inventory.length === 0;
+  const [reduceMotion, setReduceMotion] = useState(false);
   useEffect(() => {
-    if (!showSkeleton) return;
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    if (!showSkeleton || reduceMotion) return;
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(shimmer, { toValue: 0.5, duration: 200, useNativeDriver: true }),
@@ -342,7 +350,7 @@ export default function InventoryScreen() {
     );
     loop.start();
     return () => loop.stop();
-  }, [showSkeleton, shimmer]);
+  }, [showSkeleton, shimmer, reduceMotion]);
 
   const skeletonBlock = (
     <Animated.View style={{ opacity: shimmer }}>

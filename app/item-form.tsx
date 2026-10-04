@@ -199,14 +199,14 @@ export default function ItemFormScreen() {
       {/* Header */}
       <View style={{ paddingTop: insets.top + 8 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, gap: 8 }}>
-          <Tappable onPress={() => router.dismiss()} hitSlop={12} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
+          <Tappable onPress={() => router.dismiss()} hitSlop={12} accessibilityRole="button" accessibilityLabel="Go back" style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Tappable>
           <Text style={{ flex: 1, fontSize: theme.type.xl, color: colors.text, fontFamily: theme.fonts.display }}>
             {isEdit ? existing!.name : 'Add new item'}
           </Text>
           {isEdit && (
-            <Tappable onPress={handleDelete} hitSlop={12} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
+            <Tappable onPress={handleDelete} hitSlop={12} accessibilityRole="button" accessibilityLabel="Delete item" style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="trash-outline" size={22} color={colors.danger} />
             </Tappable>
           )}
@@ -304,6 +304,8 @@ export default function ItemFormScreen() {
         <Field label="Category">
           <Tappable
             onPress={() => setCategorySheet(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Select category"
             style={{ backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: theme.radii.md, paddingHorizontal: 16, height: 48, flexDirection: 'row', alignItems: 'center' }}
           >
             {category && <Ionicons name={(categoryOptions.find(option => option.name === category)?.icon ?? 'pricetag-outline') as React.ComponentProps<typeof Ionicons>['name']} size={18} color={colors.textMuted} style={{ marginRight: 10 }} />}
@@ -316,6 +318,8 @@ export default function ItemFormScreen() {
         <Field label="Location">
           <Tappable
             onPress={() => setLocationSheet(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Select location"
             style={{ backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: theme.radii.md, paddingHorizontal: 16, height: 48, flexDirection: 'row', alignItems: 'center' }}
           >
             {location && <Ionicons name={(locationOptions.find(option => option.name === location)?.icon ?? 'location-outline') as React.ComponentProps<typeof Ionicons>['name']} size={18} color={colors.textMuted} style={{ marginRight: 10 }} />}
@@ -331,6 +335,8 @@ export default function ItemFormScreen() {
             <Tappable
               onPress={() => setQty(String(Math.max(0, (parseInt(qty, 10) || 0) - 1)))}
               disabled={(parseInt(qty, 10) || 0) === 0}
+              accessibilityRole="button"
+              accessibilityLabel="Decrease quantity"
               style={{ width: 56, height: 56, borderRadius: theme.radii.pill, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', opacity: (parseInt(qty, 10) || 0) === 0 ? 0.5 : 1 }}
             >
               <Ionicons name="remove" size={22} color={colors.text} />
@@ -338,6 +344,8 @@ export default function ItemFormScreen() {
             <Text style={{ fontSize: theme.type.display, fontWeight: '700', color: colors.text, fontFamily: theme.fonts.monoMedium }}>{parseInt(qty, 10) || 0}</Text>
             <Tappable
               onPress={() => setQty(String((parseInt(qty, 10) || 0) + 1))}
+              accessibilityRole="button"
+              accessibilityLabel="Increase quantity"
               style={{ width: 56, height: 56, borderRadius: theme.radii.pill, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}
             >
               <Ionicons name="add" size={22} color={colors.surface} />
@@ -392,7 +400,7 @@ export default function ItemFormScreen() {
             borderRadius: theme.radii.md,
             paddingVertical: 14,
             alignItems: 'center',
-            opacity: isDirty ? 1 : 0.6,
+            opacity: isDirty ? 1 : 0.5,
           }}
         >
           <Text style={{ color: isDirty ? colors.surface : colors.textFaint, fontWeight: '600', fontSize: theme.type.md }}>Save</Text>
@@ -408,7 +416,7 @@ export default function ItemFormScreen() {
               borderRadius: theme.radii.md,
               paddingVertical: 14,
               alignItems: 'center',
-              opacity: isDirty ? 1 : 0.6,
+              opacity: isDirty ? 1 : 0.5,
             }}
           >
             <Text style={{ color: colors.text, fontWeight: '500', fontSize: theme.type.md }}>Revert changes</Text>
@@ -538,7 +546,7 @@ function PickerSheet({
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 }}>
           <Text style={{ flex: 1, fontSize: theme.type.body, fontWeight: '600', color: colors.text }}>{title}</Text>
-          <Tappable onPress={onClose} hitSlop={12}>
+          <Tappable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
             <Ionicons name="close" size={20} color={colors.textMuted} />
           </Tappable>
         </View>

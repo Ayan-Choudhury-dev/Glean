@@ -230,6 +230,8 @@ export default function OnboardingScreen() {
               <Tappable
                 onPress={() => setShowPwd(v => !v)}
                 hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel={showPwd ? 'Hide password' : 'Show password'}
                 style={{ position: 'absolute', right: 16, top: 12 }}
               >
                 <Ionicons name={showPwd ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textFaint} />
