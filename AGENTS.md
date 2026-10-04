@@ -27,7 +27,7 @@ Use the shared `components/ui/tappable.tsx` (`Tappable`) for tappable surfaces:
 
 Do not add per-screen press-feedback code; extend `Tappable` if a variant is needed. `expo-haptics` is a native module — changes to it require a dev-client rebuild (`npx expo run:ios` / `run:android`), while JS-side changes do not.
 
-Do not override the tab bar with custom components — the native tab bar already handles native press feedback, and overrides have caused tab-bar misalignment. Tabs are declarative via `NativeTabs` from `expo-router/unstable-native-tabs` in `app/(tabs)/_layout.tsx`; keep them that way.
+Tabs use expo-router's JS `Tabs` with `lucide-react-native` icons (`app/(tabs)/_layout.tsx`). Customize via `screenOptions` / `tabBarIcon` only — do not override `tabBarButton` with custom components (it handles native press feedback and overrides have caused tab-bar misalignment).
 
 ## Verification workflow
 
