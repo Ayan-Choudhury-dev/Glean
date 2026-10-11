@@ -1,24 +1,30 @@
 import React, { useEffect } from 'react';
 import { View, type ColorValue } from 'react-native';
 import { Tabs, router } from 'expo-router';
-import { LayoutGrid, ShoppingCart, Settings } from 'lucide-react-native';
-import type { LucideIcon } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 import { useGleanStore } from '@/store/useGleanStore';
 import { theme } from '@/constants/theme';
 import { useColors } from '@/lib/appearance';
 
+const TAB_BAR_HEIGHT = 56;
+
 export default function TabLayout() {
   const { profile } = useGleanStore();
   const colors = useColors();
+  // Gesture bar / home indicator height — the bar must clear it, otherwise the
+  // labels sit underneath the system swipe area.
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!profile) router.replace('/onboarding');
+    else if (!profile.house_id) router.replace('/house-setup');
   }, [profile]);
 
-  if (!profile) return <View style={{ flex: 1, backgroundColor: colors.surface }} />;
+  if (!profile || !profile.house_id) return <View style={{ flex: 1, backgroundColor: colors.surface }} />;
 
-  const renderIcon = (Icon: LucideIcon) =>
+  const renderIcon = (base: 'grid' | 'cart' | 'settings') =>
     ({ focused, color }: { focused: boolean; color: ColorValue }) => (
       <View
         style={{
@@ -30,7 +36,7 @@ export default function TabLayout() {
           justifyContent: 'center',
         }}
       >
-        <Icon color={color as string} size={22} strokeWidth={focused ? 2.4 : 2} />
+        <Ionicons name={focused ? base : `${base}-outline`} color={color as string} size={22} />
       </View>
     );
 
@@ -44,6 +50,8 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopWidth: 0,
+          height: TAB_BAR_HEIGHT + insets.bottom,
+          paddingBottom: insets.bottom,
           elevation: 12,
           shadowColor: colors.shadow,
           shadowOffset: { width: 0, height: -2 },
@@ -57,9 +65,9 @@ export default function TabLayout() {
         },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Inventory', tabBarIcon: renderIcon(LayoutGrid) }} />
-      <Tabs.Screen name="shopping" options={{ title: 'Shopping list', tabBarIcon: renderIcon(ShoppingCart) }} />
-      <Tabs.Screen name="profile" options={{ title: 'Settings', tabBarIcon: renderIcon(Settings) }} />
+      <Tabs.Screen name="index" options={{ title: 'Pantry', tabBarIcon: renderIcon('grid') }} />
+      <Tabs.Screen name="shopping" options={{ title: 'Shopping list', tabBarIcon: renderIcon('cart') }} />
+      <Tabs.Screen name="profile" options={{ title: 'Settings', tabBarIcon: renderIcon('settings') }} />
     </Tabs>
   );
 }

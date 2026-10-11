@@ -10,7 +10,6 @@ import {
   RefreshControl,
   Animated,
   Image,
-  Alert,
   AccessibilityInfo,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGleanStore, InventoryItem, DEFAULT_HOUSE_OPTIONS } from '../../store/useGleanStore';
 import { theme } from '@/constants/theme';
 import { useC, useColors } from '@/lib/appearance';
+import { showMenu } from '@/lib/overlay';
 import { categoryImage } from '@/constants/categoryImages';
 import type { ImageSourcePropType } from 'react-native';
 import { Tappable } from '../../components/ui/tappable';
@@ -234,12 +234,12 @@ function SearchPill({
         <Ionicons name="search-outline" size={19} color={C.muted} />
         <TextInput
           style={{ flex: 1, fontSize: theme.type.md, color: C.text, fontFamily: theme.fonts.regular }}
-          placeholder="Search inventory"
+          placeholder="Search pantry"
           placeholderTextColor={C.faint}
           value={query}
           onChangeText={onQueryChange}
           returnKeyType="search"
-          accessibilityLabel="Search inventory"
+          accessibilityLabel="Search pantry"
         />
         {query.length > 0 && (
           <Tappable onPress={onClear} hitSlop={12} accessibilityRole="button" accessibilityLabel="Clear search">
@@ -321,12 +321,14 @@ export default function InventoryScreen() {
   }, [filtered, sortBy]);
 
   const openSort = () => {
-    Alert.alert('Sort by', undefined, [
-      { text: 'Name (A–Z)', onPress: () => setSortBy('name') },
-      { text: 'Quantity', onPress: () => setSortBy('qty') },
-      { text: 'Recently restocked', onPress: () => setSortBy('recent') },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    showMenu({
+      title: 'Sort by',
+      options: [
+        { label: 'Name (A–Z)', selected: sortBy === 'name', onPress: () => setSortBy('name') },
+        { label: 'Quantity', selected: sortBy === 'qty', onPress: () => setSortBy('qty') },
+        { label: 'Recently restocked', selected: sortBy === 'recent', onPress: () => setSortBy('recent') },
+      ],
+    });
   };
 
   const searchBottom = Platform.OS === 'ios' && iosKeyboardOpen ? 12 : insets.bottom + 88;
@@ -368,7 +370,7 @@ export default function InventoryScreen() {
 
   const headerBlock = (
     <View>
-      <LargeTitle title="Inventory" scrollY={scrollY} />
+      <LargeTitle title="Pantry" scrollY={scrollY} />
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -415,7 +417,7 @@ export default function InventoryScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior="padding">
       <CollapsibleHeaderBar
-        title="Inventory"
+        title="Pantry"
         scrollY={scrollY}
         right={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
@@ -423,16 +425,16 @@ export default function InventoryScreen() {
               onPress={openSort}
               hitSlop={10}
               accessibilityRole="button"
-              accessibilityLabel="Sort inventory"
+              accessibilityLabel="Sort pantry"
               style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
             >
               <Ionicons name="swap-vertical" size={22} color={C.text} />
             </Tappable>
             <Tappable
-              onPress={() => router.push('/item-form')}
+              onPress={() => router.push('/scan')}
               hitSlop={10}
               accessibilityRole="button"
-              accessibilityLabel="Add item"
+              accessibilityLabel="Add item — scan a barcode or enter manually"
               style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
             >
               <Ionicons name="add" size={26} color={C.accent} />

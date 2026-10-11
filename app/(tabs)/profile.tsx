@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, ScrollView, Alert, Share, Linking, RefreshControl, Animated, Image } from 'react-native';
+import { View, TextInput, ScrollView, Share, Linking, RefreshControl, Animated, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -19,26 +19,25 @@ import { Button, ButtonText } from '@/components/ui/button';
 import { NativeSheet } from '../../components/NativeSheet';
 import { theme, accents, type AccentKey } from '@/constants/theme';
 import { useAppearance, useColors } from '@/lib/appearance';
-
-function initialsFor(name: string): string {
-  const initials = name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(part => part[0]?.toUpperCase())
-    .join('');
-  return initials || '?';
-}
+import { showDialog, showToast } from '@/lib/overlay';
+import { HouseAvatar } from '@/components/HouseAvatar';
+import { MemberStack } from '@/components/MemberStack';
+import { initialsFor } from '@/lib/initials';
+import { HOUSE_IMAGES } from '@/constants/houseImages';
 
 export default function ProfileScreen() {
-  const { profile, house, inventory, importCSV, signOut, loadHouseData, setAvatar } = useGleanStore();
+  const { profile, house, inventory, importCSV, signOut, loadHouseData, setAvatar, setName, renameHouse, leaveHouse, setHouseImage } = useGleanStore();
   const colors = useColors();
   const appearanceMode = useAppearance(s => s.mode);
   const setAppearanceMode = useAppearance(s => s.setMode);
   const accentKey = useAppearance(s => s.accent);
   const setAccentKey = useAppearance(s => s.setAccent);
   const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameText, setRenameText] = useState('');
+  const [nameOpen, setNameOpen] = useState(false);
+  const [nameText, setNameText] = useState('');
+  const [imageOpen, setImageOpen] = useState(false);
   const [dataSheetOpen, setDataSheetOpen] = useState(false);
   const [dataTab, setDataTab] = useState<'import' | 'export'>('import');
   const { scrollY, onScroll } = useCollapsibleHeader();
@@ -54,7 +53,7 @@ export default function ProfileScreen() {
   const copyInvite = async () => {
     if (!house?.invite_code) return;
     await Clipboard.setStringAsync(house.invite_code);
-    Alert.alert('Copied', 'Invite code copied to clipboard.');
+    showToast('Invite code copied');
   };
 
   const shareInvite = async () => {
@@ -67,7 +66,7 @@ export default function ProfileScreen() {
   const pickAvatar = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Permission needed', 'Allow photo access to set your profile photo.');
+      showDialog({ title: 'Permission needed', message: 'Allow photo access to set your profile photo.', cancelLabel: null });
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -83,39 +82,74 @@ export default function ProfileScreen() {
   };
 
   const handleSignOut = () => {
-    Alert.alert('Sign out', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign out',
-        style: 'destructive',
-        onPress: async () => {
-          await signOut();
-          router.replace('/onboarding');
-        },
+    showDialog({
+      title: 'Sign out',
+      message: 'Are you sure?',
+      confirmLabel: 'Sign out',
+      destructive: true,
+      onConfirm: async () => {
+        await signOut();
+        router.replace('/onboarding');
       },
-    ]);
+    });
   };
   const [csvText, setCsvText] = useState('');
   const [importing, setImporting] = useState(false);
 
-  const memberCount = house?.member_ids?.length ?? 1;
+  const handleRename = async () => {
+    const name = renameText.trim();
+    if (!name) return;
+    setRenameOpen(false);
+    await renameHouse(name);
+  };
+
+  const handleSaveName = () => {
+    const name = nameText.trim();
+    if (!name) return;
+    setNameOpen(false);
+    setName(name);
+    showToast('Name updated');
+  };
+
+  const handlePickImage = async (key: string) => {
+    setImageOpen(false);
+    const ok = await setHouseImage(key);
+    if (ok) showToast('House image updated');
+  };
+
+  const handleLeave = () => {
+    showDialog({
+      title: 'Leave household',
+      message: `Leave "${house?.name ?? 'this household'}"? You can rejoin later with an invite code.`,
+      confirmLabel: 'Leave',
+      destructive: true,
+      onConfirm: async () => {
+        await leaveHouse();
+        router.replace('/house-setup');
+      },
+    });
+  };
+
+  const memberCount = house?.members?.length ?? 1;
   const membersLabel = memberCount === 1 ? '1 member' : `${memberCount} members`;
+  const isOwner = !!house && house.owner_id === profile?.id;
 
   const handleImport = () => {
     if (!csvText.trim()) {
-      Alert.alert('Empty input', 'Paste your CSV content first.');
+      showDialog({ title: 'Empty input', message: 'Paste your CSV content first.', cancelLabel: null });
       return;
     }
     setImporting(true);
     try {
       const { added, updated } = importCSV(csvText);
       setCsvText('');
-      Alert.alert(
-        'Import complete',
-        `${added} item${added !== 1 ? 's' : ''} added, ${updated} item${updated !== 1 ? 's' : ''} updated.`
-      );
+      showDialog({
+        title: 'Import complete',
+        message: `${added} item${added !== 1 ? 's' : ''} added, ${updated} item${updated !== 1 ? 's' : ''} updated.`,
+        cancelLabel: null,
+      });
     } catch {
-      Alert.alert('Parse error', 'Could not read the CSV. Check the format and try again.');
+      showDialog({ title: 'Parse error', message: 'Could not read the CSV. Check the format and try again.', cancelLabel: null });
     } finally {
       setImporting(false);
     }
@@ -134,7 +168,7 @@ export default function ProfileScreen() {
   const handleExport = async () => {
     try {
       if (!(await Sharing.isAvailableAsync())) {
-        Alert.alert('Export unavailable', 'Sharing is not supported on this platform.');
+        showDialog({ title: 'Export unavailable', message: 'Sharing is not supported on this platform.', cancelLabel: null });
         return;
       }
       const file = new File(Paths.cache, 'glean-inventory.csv');
@@ -148,7 +182,7 @@ export default function ProfileScreen() {
       });
     } catch (e) {
       console.error('[export] failed:', e);
-      Alert.alert('Export failed', 'Could not export your inventory. Please try again.');
+      showDialog({ title: 'Export failed', message: 'Could not export your inventory. Please try again.', cancelLabel: null });
     }
   };
 
@@ -181,14 +215,59 @@ export default function ProfileScreen() {
           <Text style={{ fontSize: theme.type.caption, color: colors.textFaint, marginBottom: 4 }}>Signed in as</Text>
           <Text style={{ fontSize: theme.type.xl, fontWeight: '600', color: colors.primary }} numberOfLines={1}>{profile?.name ?? 'User'}</Text>
         </View>
+        <Tappable
+          onPress={() => { setNameText(profile?.name ?? ''); setNameOpen(true); }}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Edit your name"
+          style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Ionicons name="pencil-outline" size={18} color={colors.textMuted} />
+        </Tappable>
       </View>
 
       {/* ── Household ──────────────────────────────────────────────────── */}
       <SectionHeader title="Household" />
       <Card>
-        <SettingRow icon="home-outline" label="House name" value={house?.name ?? 'No house'} />
+        {/* House identity */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 }}>
+          <HouseAvatar imageKey={house?.image_key} size={56} radius={theme.radii.lg} />
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={{ flexShrink: 1, fontSize: theme.type.title, fontFamily: theme.fonts.medium, color: colors.text }} numberOfLines={1}>
+                {house?.name ?? 'No house'}
+              </Text>
+              {isOwner && (
+                <Tappable
+                  onPress={() => { setRenameText(house?.name ?? ''); setRenameOpen(true); }}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  accessibilityLabel="Rename household"
+                  style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Ionicons name="pencil-outline" size={15} color={colors.textMuted} />
+                </Tappable>
+              )}
+            </View>
+            <Tappable
+              onPress={() => router.push('/members')}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${membersLabel}`}
+              style={{ alignSelf: 'flex-start', marginTop: 8 }}
+            >
+              <MemberStack members={house?.members ?? []} />
+            </Tappable>
+          </View>
+        </View>
         <Divider />
-        <SettingRow icon="people-outline" label="Members" value={membersLabel} />
+        <SettingRow
+          icon="image-outline"
+          label="House image"
+          value={HOUSE_IMAGES.find(p => p.key === house?.image_key)?.label ?? 'Default'}
+          onPress={() => setImageOpen(true)}
+        />
+        <Divider />
+        <SettingRow icon="people-outline" label="Members" value={membersLabel} onPress={() => router.push('/members')} />
         <Divider />
         <Tappable onPress={() => setInviteSheetOpen(true)}>
           <HStack className="items-center px-4 py-3">
@@ -285,6 +364,15 @@ export default function ProfileScreen() {
       {/* ── Account ────────────────────────────────────────────────────── */}
       <SectionHeader title="Account" />
       <Card>
+        <Tappable onPress={handleLeave}>
+          <HStack className="items-center px-4 py-3">
+            <View className="w-8 h-8 rounded-lg bg-surfaceMuted dark:bg-[#2A2A2A] items-center justify-center mr-3">
+              <Ionicons name="exit-outline" size={16} color={colors.textMuted} />
+            </View>
+            <Text className="flex-1 text-sm font-medium text-muted dark:text-[#B3B3B3]">Leave household</Text>
+          </HStack>
+        </Tappable>
+        <Divider />
         <Tappable onPress={handleSignOut}>
           <HStack className="items-center px-4 py-3">
             <View className="w-8 h-8 rounded-lg bg-red-50 dark:bg-[#3A1E1E] items-center justify-center mr-3">
@@ -294,6 +382,85 @@ export default function ProfileScreen() {
           </HStack>
         </Tappable>
       </Card>
+
+      {/* Rename household sheet */}
+      <NativeSheet visible={renameOpen} onClose={() => setRenameOpen(false)}>
+        <VStack className="px-6 pt-2 pb-10" space="lg">
+          <VStack space="xs">
+            <Heading size="md">Household name</Heading>
+            <Text className="text-sm text-muted dark:text-[#B3B3B3]">This is what members see across Glean.</Text>
+          </VStack>
+          <TextInput
+            className="bg-surfaceMuted dark:bg-[#2A2A2A] border border-line dark:border-[#333333] rounded-xl px-4 h-12 text-base text-ink dark:text-[#F2F2F2]"
+            style={{ fontFamily: theme.fonts.regular }}
+            placeholder="e.g. The Choudhury Home"
+            placeholderTextColor={colors.textFaint}
+            value={renameText}
+            onChangeText={setRenameText}
+            autoFocus
+            autoCorrect={false}
+            returnKeyType="done"
+            onSubmitEditing={handleRename}
+          />
+          <Button size="lg" className="bg-brand rounded-xl" onPress={handleRename} disabled={!renameText.trim()}>
+            <ButtonText className="text-white">Save name</ButtonText>
+          </Button>
+        </VStack>
+      </NativeSheet>
+
+      {/* Your name sheet */}
+      <NativeSheet visible={nameOpen} onClose={() => setNameOpen(false)}>
+        <VStack className="px-6 pt-2 pb-10" space="lg">
+          <VStack space="xs">
+            <Heading size="md">Your name</Heading>
+            <Text className="text-sm text-muted dark:text-[#B3B3B3]">Shown to everyone in your household.</Text>
+          </VStack>
+          <TextInput
+            className="bg-surfaceMuted dark:bg-[#2A2A2A] border border-line dark:border-[#333333] rounded-xl px-4 h-12 text-base text-ink dark:text-[#F2F2F2]"
+            style={{ fontFamily: theme.fonts.regular }}
+            placeholder="Your name"
+            placeholderTextColor={colors.textFaint}
+            value={nameText}
+            onChangeText={setNameText}
+            autoFocus
+            autoCorrect={false}
+            returnKeyType="done"
+            onSubmitEditing={handleSaveName}
+          />
+          <Button size="lg" className="bg-brand rounded-xl" onPress={handleSaveName} disabled={!nameText.trim()}>
+            <ButtonText className="text-white">Save</ButtonText>
+          </Button>
+        </VStack>
+      </NativeSheet>
+
+      {/* House image sheet */}
+      <NativeSheet visible={imageOpen} onClose={() => setImageOpen(false)}>
+        <VStack className="px-6 pt-2 pb-10" space="lg">
+          <VStack space="xs">
+            <Heading size="md">House image</Heading>
+            <Text className="text-sm text-muted dark:text-[#B3B3B3]">Shown to everyone in the household.</Text>
+          </VStack>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'center' }}>
+            {HOUSE_IMAGES.map(preset => {
+              const selected = house?.image_key === preset.key;
+              return (
+                <Tappable
+                  key={preset.key}
+                  onPress={() => handlePickImage(preset.key)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={`House image ${preset.label}`}
+                  style={{ alignItems: 'center', width: 88 }}
+                >
+                  <View style={{ borderWidth: selected ? 3 : 0, borderColor: colors.accent, borderRadius: theme.radii.lg, padding: 2 }}>
+                    <HouseAvatar imageKey={preset.key} size={64} radius={theme.radii.md} />
+                  </View>
+                </Tappable>
+              );
+            })}
+          </View>
+        </VStack>
+      </NativeSheet>
 
       {/* Invite sheet */}
       <NativeSheet visible={inviteSheetOpen} onClose={() => setInviteSheetOpen(false)}>

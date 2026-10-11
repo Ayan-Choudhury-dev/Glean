@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, ScrollView, TextInput, FlatList, Alert, RefreshControl, Animated, Share, Image } from 'react-native';
+import { View, ScrollView, TextInput, FlatList, RefreshControl, Animated, Share, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { Svg, Path, Defs, Pattern, Circle, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tappable } from '../../components/ui/tappable';
 import { Text } from '../../components/ui/text';
@@ -12,6 +14,7 @@ import { categoryImage } from '@/constants/categoryImages';
 import { theme } from '@/constants/theme';
 import { FEATURES } from '@/constants/config';
 import { useC, useColors } from '@/lib/appearance';
+import { showDialog } from '@/lib/overlay';
 
 const PAD = 24;
 type Tab = 'to_buy' | 'purchased';
@@ -145,6 +148,81 @@ function SectionLabel({ label }: { label: string }) {
   );
 }
 
+const DashedSeparator = () => {
+  const C = useC();
+  return <View style={{ height: 0, borderTopWidth: 1, borderTopColor: C.border, borderStyle: 'dashed', marginHorizontal: 16 }} />;
+};
+
+/** Full-bleed notebook rule between to-do rows. */
+const PaperRule = () => {
+  const C = useC();
+  return <View style={{ height: 1, backgroundColor: C.border, marginHorizontal: 0 }} />;
+};
+
+const RECEIPT_TEETH = 20;
+
+/** Torn receipt edge: fill-only triangles, no top rule. */
+const ReceiptTeeth = ({ fill }: { fill: string }) => {
+  const teeth = Array.from({ length: RECEIPT_TEETH }, (_, i) => `L ${i * 20 + 10} 10 L ${(i + 1) * 20} 0`).join(' ');
+  return (
+    <Svg width="100%" height="10" viewBox={`0 0 ${RECEIPT_TEETH * 20} 10`} preserveAspectRatio="none" style={{ marginTop: -1 }}>
+      <Path d={`M 0 0 ${teeth} Z`} fill={fill} stroke="none" />
+    </Svg>
+  );
+};
+
+/** Subtle dot-grain paper texture overlay. */
+const PaperTexture = ({ color }: { color: string }) => (
+  <Svg width="100%" height="100%" pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+    <Defs>
+      <Pattern id="paperDots" width="12" height="12" patternUnits="userSpaceOnUse">
+        <Circle cx="2" cy="2" r="1" fill={color} opacity={0.06} />
+      </Pattern>
+    </Defs>
+    <Rect width="100%" height="100%" fill="url(#paperDots)" />
+  </Svg>
+);
+
+/** To Buy renders as a clean paper sheet with ruled rows. */
+const PaperCard = ({ children }: { children: React.ReactNode }) => {
+  const C = useC();
+  return (
+    <View style={{ marginHorizontal: PAD, marginTop: 12, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: theme.radii.lg, overflow: 'hidden' }}>
+      {children}
+    </View>
+  );
+};
+
+/** Purchased renders as a store receipt: dashed rules, mono meta, total footer. */
+const ReceiptCard = ({ count, children }: { count: number; children: React.ReactNode }) => {
+  const C = useC();
+  const colors = useColors();
+  const paper = colors.surfaceSunken;
+  const today = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  return (
+    <View style={{ marginHorizontal: PAD, marginTop: 12 }}>
+      <View style={{ backgroundColor: paper, borderTopLeftRadius: theme.radii.sm, borderTopRightRadius: theme.radii.sm, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20, elevation: 10 }}>
+      <View style={{ borderTopLeftRadius: theme.radii.sm, borderTopRightRadius: theme.radii.sm, overflow: 'hidden' }}>
+        <PaperTexture color={C.muted} />
+        <View style={{ alignItems: 'center', paddingVertical: 12, gap: 2 }}>
+          <Ionicons name="receipt-outline" size={20} color={C.muted} />
+          <Text style={{ fontSize: theme.type.caption, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5 }}>Receipt</Text>
+          <Text style={{ fontSize: theme.type.caption, color: C.faint, fontFamily: theme.fonts.monoMedium }}>{today} · {count} item{count !== 1 ? 's' : ''}</Text>
+        </View>
+        <DashedSeparator />
+        {children}
+        <DashedSeparator />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 }}>
+          <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: C.text }}>Total items</Text>
+          <Text style={{ fontSize: theme.type.label, fontWeight: '700', color: C.text, fontFamily: theme.fonts.monoMedium, fontVariant: ['tabular-nums'] }}>{count}</Text>
+        </View>
+      </View>
+      </View>
+      <ReceiptTeeth fill={paper} />
+    </View>
+  );
+};
+
 export default function ShoppingScreen() {
   const {
     inventory, shoppingList, consumptionLogs, house,
@@ -206,17 +284,23 @@ export default function ShoppingScreen() {
   }, [addToShoppingList]);
 
   const handleRemove = useCallback((item: ShoppingItem) => {
-    Alert.alert('Remove item', `Remove "${item.name}" from your list?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => removeFromShoppingList(item.id) },
-    ]);
+    showDialog({
+      title: 'Remove item',
+      message: `Remove "${item.name}" from your list?`,
+      confirmLabel: 'Remove',
+      destructive: true,
+      onConfirm: () => removeFromShoppingList(item.id),
+    });
   }, [removeFromShoppingList]);
 
   const handleClearPurchased = useCallback(() => {
-    Alert.alert('Clear purchased', `Remove ${purchased.length} purchased item${purchased.length !== 1 ? 's' : ''}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Clear', style: 'destructive', onPress: () => clearPurchased() },
-    ]);
+    showDialog({
+      title: 'Clear purchased',
+      message: `Remove ${purchased.length} purchased item${purchased.length !== 1 ? 's' : ''}?`,
+      confirmLabel: 'Clear',
+      destructive: true,
+      onConfirm: () => clearPurchased(),
+    });
   }, [purchased.length, clearPurchased]);
 
   const shareList = useCallback(async () => {
@@ -255,7 +339,7 @@ export default function ShoppingScreen() {
               <Ionicons name="share-outline" size={22} color={C.text} />
             </Tappable>
             <Tappable
-              onPress={() => { setAddItemSearch(''); setAddItemSheet(true); }}
+              onPress={() => router.push('/scan')}
               haptic
               hitSlop={10}
               accessibilityRole="button"
@@ -272,15 +356,15 @@ export default function ShoppingScreen() {
         style={{ flex: 1 }}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingTop: headerInset, paddingBottom: 200, width: '100%', maxWidth: 720, alignSelf: 'center' }}
+        contentContainerStyle={{ paddingTop: headerInset, paddingBottom: 48, width: '100%', maxWidth: 720, alignSelf: 'center' }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} colors={[C.accent]} />
         }
       >
         <LargeTitle title="Shopping list" scrollY={scrollY} />
 
-        {/* Segmented control */}
-        <View style={{ flexDirection: 'row', backgroundColor: C.chipBg, borderRadius: theme.radii.md, padding: 4, marginHorizontal: PAD, marginBottom: 4 }}>
+        {/* Filter chips — uniform with Inventory */}
+        <View style={{ flexDirection: 'row', gap: 8, marginHorizontal: PAD, marginBottom: 4 }}>
           {tabs.map(t => {
             const active = tab === t.key;
             return (
@@ -290,12 +374,10 @@ export default function ShoppingScreen() {
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={`${t.label}, ${t.count}`}
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: theme.radii.sm, backgroundColor: active ? colors.surface : 'transparent', ...(active ? theme.elevation.raised : null) }}
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: theme.radii.pill, backgroundColor: active ? C.chipBg : C.card, borderWidth: 1, borderColor: active ? C.text : C.border }}
               >
-                <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: active ? C.text : C.muted }}>{t.label}</Text>
-                <View style={{ minWidth: 20, paddingHorizontal: 6, paddingVertical: 1, borderRadius: theme.radii.pill, backgroundColor: active ? colors.primary : C.border }}>
-                  <Text style={{ fontSize: theme.type.micro, fontWeight: '700', textAlign: 'center', color: active ? C.onAccent : C.muted }}>{t.count}</Text>
-                </View>
+                <Text style={{ fontSize: theme.type.label, fontWeight: active ? '600' : '500', color: C.text }}>{t.label}</Text>
+                <Text style={{ fontSize: theme.type.micro, fontWeight: '700', color: active ? C.text : C.muted, fontFamily: theme.fonts.monoMedium, fontVariant: ['tabular-nums'] }}>{t.count}</Text>
               </Tappable>
             );
           })}
@@ -324,15 +406,14 @@ export default function ShoppingScreen() {
                 </>
               )}
               {toBuy.length > 0 && (
-                <>
-                  <SectionLabel label="To buy" />
+                <PaperCard>
                   {toBuy.map((s, i) => (
                     <View key={s.id}>
                       <ShoppingRow item={s} subtitle={s.inventory_id ? categoryById[s.inventory_id] : undefined} image={s.inventory_id ? itemById[s.inventory_id]?.image_url : undefined} category={s.inventory_id ? itemById[s.inventory_id]?.category : undefined} onToggle={togglePurchased} onAdjust={adjustShoppingQty} onRemove={handleRemove} />
-                      {i < toBuy.length - 1 && <RowSeparator />}
+                      {i < toBuy.length - 1 && <PaperRule />}
                     </View>
                   ))}
-                </>
+                </PaperCard>
               )}
             </>
           )
@@ -344,21 +425,20 @@ export default function ShoppingScreen() {
             <Text style={{ fontSize: theme.type.lg, fontWeight: '600', color: C.text }}>No purchased items</Text>
           </View>
         ) : (
-          <>
-            <SectionLabel label="Purchased" />
+          <ReceiptCard count={purchased.length}>
             {purchased.map((s, i) => (
               <View key={s.id}>
                 <ShoppingRow item={s} subtitle={s.inventory_id ? categoryById[s.inventory_id] : undefined} image={s.inventory_id ? itemById[s.inventory_id]?.image_url : undefined} category={s.inventory_id ? itemById[s.inventory_id]?.category : undefined} onToggle={togglePurchased} onAdjust={adjustShoppingQty} onRemove={handleRemove} />
-                {i < purchased.length - 1 && <RowSeparator />}
+                {i < purchased.length - 1 && <DashedSeparator />}
               </View>
             ))}
-          </>
+          </ReceiptCard>
         )}
       </Animated.ScrollView>
 
-      {/* Bottom actions */}
+      {/* Bottom actions — docked footer above tab bar, not floating */}
       {tab === 'purchased' && purchased.length > 0 && (
-        <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: PAD, paddingTop: 12, paddingBottom: insets.bottom + 88 }}>
+        <View style={{ backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: C.border, flexDirection: 'row', gap: 10, paddingHorizontal: PAD, paddingTop: 12, paddingBottom: 12 }}>
           <Tappable
             onPress={handleClearPurchased}
             accessibilityRole="button"
@@ -387,7 +467,7 @@ export default function ShoppingScreen() {
       )}
 
       {snackbar && (
-        <View style={{ position: 'absolute', left: PAD, right: PAD, bottom: insets.bottom + 148, minHeight: 52, borderRadius: theme.radii.md, backgroundColor: colors.snackbarBg, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 8, gap: 12 }}>
+        <View style={{ position: 'absolute', left: PAD, right: PAD, bottom: insets.bottom + 88, minHeight: 52, borderRadius: theme.radii.md, backgroundColor: colors.snackbarBg, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 8, gap: 12 }}>
           <Text style={{ flex: 1, color: colors.surface, fontSize: theme.type.label }} numberOfLines={1}>{snackbar.message}</Text>
           {snackbar.canUndo && (
             <Tappable

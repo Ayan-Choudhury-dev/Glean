@@ -1,172 +1,287 @@
 import React, { useState } from 'react';
-import { View, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGleanStore } from '../store/useGleanStore';
-
-import { Heading } from '@/components/ui/heading';
-import { Text } from '@/components/ui/text';
-import { Button, ButtonText } from '@/components/ui/button';
-import { VStack } from '@/components/ui/vstack';
-import { HStack } from '@/components/ui/hstack';
+import { Tappable } from '../components/ui/tappable';
+import { Text } from '../components/ui/text';
 import { theme } from '@/constants/theme';
+import { useColors } from '@/lib/appearance';
+import { showDialog } from '@/lib/overlay';
 
 type Mode = 'pick' | 'create' | 'join';
 
-// ─── house-setup ────────────────────────────────────────────────────────────
-import { useColors } from '@/lib/appearance';
-
 export default function HouseSetupScreen() {
-  const { profile, createHouse, joinHouse } = useGleanStore();
+  const { profile, createHouse, joinHouse, signOut } = useGleanStore();
   const colors = useColors();
-  const [mode,        setMode]        = useState<Mode>('pick');
-  const [houseName,   setHouseName]   = useState('');
-  const [inviteCode,  setInviteCode]  = useState('');
-  const [busy,        setBusy]        = useState(false);
+  const insets = useSafeAreaInsets();
+  const [mode, setMode] = useState<Mode>('pick');
+  const [houseName, setHouseName] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const handleCreate = async () => {
-    if (!houseName.trim()) return;
+    if (busy || !houseName.trim()) return;
     setBusy(true);
     const result = await createHouse(houseName.trim());
     setBusy(false);
 
     if (typeof result === 'string') {
-      Alert.alert('Error', result);
+      showDialog({ title: 'Could not create', message: result, cancelLabel: null });
       return;
     }
 
-    Alert.alert(
-      'House created!',
-      `Share this invite code with housemates:\n\n${result.invite_code}`,
-      [{ text: "Let's go", onPress: () => router.replace('/(tabs)') }]
-    );
+    showDialog({
+      title: 'House created',
+      message: `Share this invite code with housemates:\n\n${result.invite_code}`,
+      confirmLabel: "Let's go",
+      cancelLabel: null,
+      onConfirm: () => router.replace('/(tabs)'),
+    });
   };
 
   const handleJoin = async () => {
-    if (inviteCode.length < 6) return;
+    if (busy || inviteCode.length < 6) return;
     setBusy(true);
     const success = await joinHouse(inviteCode.trim());
     setBusy(false);
 
-    if (success) {
-      router.replace('/(tabs)');
-    } else {
-      Alert.alert('Code not found', 'Double-check the invite code and try again.');
-    }
+    if (success) router.replace('/joined');
+    else showDialog({ title: 'Code not found', message: 'Double-check the invite code and try again.', cancelLabel: null });
   };
 
-  if (mode === 'create') {
-    return (
-      <KeyboardAvoidingView
-        className="flex-1 bg-white"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  const handleSignOut = () => {
+    showDialog({
+      title: 'Log out',
+      message: 'You can set up or join a household again after signing back in.',
+      confirmLabel: 'Log out',
+      destructive: true,
+      onConfirm: async () => {
+        await signOut();
+        router.replace('/onboarding');
+      },
+    });
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 32, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}
       >
-        <View className="flex-1 px-8 justify-center">
-          <BackButton onPress={() => setMode('pick')} />
-          <Heading size="xl" className="mb-2 mt-4">Name your household</Heading>
-          <Text className="text-muted dark:text-[#B3B3B3] text-sm mb-8">You can invite housemates after setup.</Text>
-          <VStack space="md">
-            <TextInput
-              className="bg-surfaceMuted dark:bg-[#2A2A2A] border border-line dark:border-[#333333] rounded-xl px-4 h-12 text-base text-ink dark:text-[#F2F2F2]"
-              style={{ fontFamily: theme.fonts.regular }}
-              placeholder="e.g. The Choudhury Home"
-              placeholderTextColor={colors.textFaint}
+        {mode === 'pick' && (
+          <>
+            <View style={{ alignItems: 'center', marginBottom: 40 }}>
+              <View style={{ width: 64, height: 64, borderRadius: theme.radii.lg, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                <Ionicons name="home-outline" size={30} color={colors.accent} />
+              </View>
+              <Text style={{ fontSize: theme.type.xxl, color: colors.text, fontFamily: theme.fonts.displayBold, textAlign: 'center' }}>
+                Set up your household
+              </Text>
+              <Text style={{ fontSize: theme.type.label, color: colors.textMuted, marginTop: 6, textAlign: 'center' }}>
+                Hi {profile?.name ?? 'there'} — create a new home or join one.
+              </Text>
+            </View>
+
+            <View style={{ gap: 12 }}>
+              <OptionCard
+                icon="add-circle-outline"
+                title="Create a house"
+                subtitle="Start fresh and invite housemates"
+                onPress={() => setMode('create')}
+              />
+              <OptionCard
+                icon="enter-outline"
+                title="Join a house"
+                subtitle="Enter an invite code from a housemate"
+                onPress={() => setMode('join')}
+              />
+            </View>
+
+            <Tappable
+              onPress={handleSignOut}
+              accessibilityRole="button"
+              accessibilityLabel="Log out"
+              style={{ alignSelf: 'center', marginTop: 32, paddingVertical: 12, paddingHorizontal: 20 }}
+            >
+              <Text style={{ fontSize: theme.type.label, color: colors.textMuted, fontFamily: theme.fonts.medium }}>
+                Log out
+              </Text>
+            </Tappable>
+          </>
+        )}
+
+        {mode === 'create' && (
+          <>
+            <BackButton onPress={() => setMode('pick')} />
+            <Text style={{ fontSize: theme.type.heading, color: colors.text, fontFamily: theme.fonts.display, marginTop: 16, marginBottom: 6 }}>
+              Name your household
+            </Text>
+            <Text style={{ fontSize: theme.type.label, color: colors.textMuted, marginBottom: 24 }}>
+              You can invite housemates after setup.
+            </Text>
+
+            <Field
+              label="Household name"
               value={houseName}
               onChangeText={setHouseName}
+              placeholder="e.g. The Choudhury Home"
               autoFocus
-              autoCorrect={false}
+              accessibilityLabel="Household name"
               returnKeyType="done"
               onSubmitEditing={handleCreate}
             />
-            <Button size="lg" className="bg-brand rounded-xl" onPress={handleCreate} disabled={busy || !houseName.trim()}>
-              <ButtonText className="text-white">{busy ? 'Creating…' : 'Create house'}</ButtonText>
-            </Button>
-          </VStack>
-        </View>
-      </KeyboardAvoidingView>
-    );
-  }
 
-  if (mode === 'join') {
-    return (
-      <KeyboardAvoidingView
-        className="flex-1 bg-white"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View className="flex-1 px-8 justify-center">
-          <BackButton onPress={() => setMode('pick')} />
-          <Heading size="xl" className="mb-2 mt-4">Join a household</Heading>
-          <Text className="text-muted dark:text-[#B3B3B3] text-sm mb-8">Ask a housemate for their 6-character invite code.</Text>
-          <VStack space="md">
-            <TextInput
-              className="bg-surfaceMuted dark:bg-[#2A2A2A] border border-line dark:border-[#333333] rounded-xl px-4 h-12 text-base text-ink dark:text-[#F2F2F2] tracking-widest uppercase font-mono"
-              style={{ fontFamily: theme.fonts.mono }}
-              placeholder="ABC123"
-              placeholderTextColor={colors.textFaint}
+            <PrimaryButton label={busy ? 'Creating…' : 'Create house'} onPress={handleCreate} disabled={busy || !houseName.trim()} />
+          </>
+        )}
+
+        {mode === 'join' && (
+          <>
+            <BackButton onPress={() => setMode('pick')} />
+            <Text style={{ fontSize: theme.type.heading, color: colors.text, fontFamily: theme.fonts.display, marginTop: 16, marginBottom: 6 }}>
+              Join a household
+            </Text>
+            <Text style={{ fontSize: theme.type.label, color: colors.textMuted, marginBottom: 24 }}>
+              Ask a housemate for their 6-character invite code.
+            </Text>
+
+            <Field
+              label="Invite code"
               value={inviteCode}
               onChangeText={v => setInviteCode(v.toUpperCase())}
+              placeholder="ABC123"
               autoFocus
-              autoCorrect={false}
               autoCapitalize="characters"
               maxLength={6}
+              accessibilityLabel="Invite code"
               returnKeyType="done"
               onSubmitEditing={handleJoin}
+              inputStyle={{ fontFamily: theme.fonts.mono, letterSpacing: 6, textAlign: 'center', textTransform: 'uppercase' }}
             />
-            <Button size="lg" className="bg-brand rounded-xl" onPress={handleJoin} disabled={busy || inviteCode.length < 6}>
-              <ButtonText className="text-white">{busy ? 'Joining…' : 'Join house'}</ButtonText>
-            </Button>
-          </VStack>
-        </View>
-      </KeyboardAvoidingView>
-    );
-  }
 
+            <PrimaryButton label={busy ? 'Joining…' : 'Join house'} onPress={handleJoin} disabled={busy || inviteCode.length < 6} />
+          </>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  inputStyle,
+  ...rest
+}: {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder: string;
+  inputStyle?: object;
+} & Omit<React.ComponentProps<typeof TextInput>, 'value' | 'onChangeText' | 'placeholder' | 'style'>) {
+  const colors = useColors();
+  const [focused, setFocused] = useState(false);
   return (
-    <View className="flex-1 bg-white px-8 justify-center">
-      <View className="items-center mb-10">
-        <View className="w-16 h-16 bg-surfaceMuted dark:bg-[#2A2A2A] rounded-2xl items-center justify-center mb-4">
-          <Ionicons name="home-outline" size={32} color={colors.textMuted} />
-        </View>
-        <Heading size="xl" className="text-center">Set up your household</Heading>
-        <Text className="text-muted dark:text-[#B3B3B3] text-sm mt-2 text-center">
-          Hi {profile?.name}! Create a new home or join an existing one.
-        </Text>
-      </View>
-      <VStack space="md">
-        <OptionCard icon="add-circle-outline" title="Create a house"   subtitle="Start fresh and invite housemates" onPress={() => setMode('create')} />
-        <OptionCard icon="enter-outline"      title="Join a house"     subtitle="Enter an invite code from a housemate"   onPress={() => setMode('join')} />
-      </VStack>
+    <View>
+      <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, fontFamily: theme.fonts.medium, marginBottom: 6, marginLeft: 4 }}>
+        {label}
+      </Text>
+      <TextInput
+      style={[
+        {
+          backgroundColor: colors.surfaceMuted,
+          borderWidth: 1,
+          borderColor: focused ? colors.accent : colors.border,
+          borderRadius: theme.radii.md,
+          paddingHorizontal: 16,
+          height: 52,
+          fontSize: theme.type.body,
+          color: colors.text,
+          fontFamily: theme.fonts.regular,
+        },
+        inputStyle,
+      ]}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor={colors.textFaint}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      autoCorrect={false}
+      {...rest}
+    />
     </View>
+  );
+}
+
+function PrimaryButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
+  const colors = useColors();
+  return (
+    <Tappable
+      onPress={onPress}
+      disabled={disabled}
+      haptic
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
+      style={{ backgroundColor: colors.accent, borderRadius: theme.radii.md, minHeight: 52, marginTop: 16, alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.5 : 1 }}
+    >
+      <Text style={{ color: colors.onAccent, fontSize: theme.type.body, fontFamily: theme.fonts.medium }}>{label}</Text>
+    </Tappable>
   );
 }
 
 function BackButton({ onPress }: { onPress: () => void }) {
   const colors = useColors();
   return (
-    <Button size="sm" variant="link" action="secondary" onPress={onPress} className="self-start -ml-2">
+    <Tappable
+      onPress={onPress}
+      hitSlop={12}
+      accessibilityRole="button"
+      accessibilityLabel="Back"
+      style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 4, paddingVertical: 10, paddingRight: 12 }}
+    >
       <Ionicons name="arrow-back" size={18} color={colors.textMuted} />
-      <ButtonText className="text-muted dark:text-[#B3B3B3] ml-1">Back</ButtonText>
-    </Button>
+      <Text style={{ fontSize: theme.type.label, color: colors.textMuted }}>Back</Text>
+    </Tappable>
   );
 }
 
-function OptionCard({ icon, title, subtitle, onPress }: {
+function OptionCard({
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
-  title: string; subtitle: string; onPress: () => void;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
 }) {
   const colors = useColors();
   return (
-    <Button size="lg" variant="outline" action="secondary" className="rounded-xl border-line dark:border-[#333333] h-auto py-4" onPress={onPress}>
-      <HStack className="items-center flex-1 px-1">
-        <View className="w-10 h-10 bg-surfaceMuted dark:bg-[#2A2A2A] rounded-xl items-center justify-center mr-4">
-          <Ionicons name={icon} size={20} color={colors.textMuted} />
-        </View>
-        <VStack className="flex-1 items-start">
-          <ButtonText className="text-ink dark:text-[#F2F2F2] font-semibold text-base">{title}</ButtonText>
-          <Text className="text-muted dark:text-[#B3B3B3] text-xs">{subtitle}</Text>
-        </VStack>
-        <Ionicons name="chevron-forward" size={16} color={colors.borderStrong} />
-      </HStack>
-    </Button>
+    <Tappable
+      onPress={onPress}
+      haptic
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${subtitle}`}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface }}
+    >
+      <View style={{ width: 44, height: 44, borderRadius: theme.radii.md, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={icon} size={22} color={colors.textMuted} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: theme.type.body, color: colors.text, fontFamily: theme.fonts.medium }}>{title}</Text>
+        <Text style={{ fontSize: theme.type.caption, color: colors.textMuted, marginTop: 2 }}>{subtitle}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={colors.borderStrong} />
+    </Tappable>
   );
 }

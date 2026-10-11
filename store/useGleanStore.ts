@@ -25,11 +25,19 @@ export interface Profile {
   avatar_url?: string | null;
 }
 
+export interface Member {
+  id:         string;
+  name:       string;
+  avatar_url?: string | null;
+}
+
 export interface House {
   id:          string;
   name:        string;
   invite_code: string;
-  member_ids:  string[];
+  owner_id:    string;
+  image_key?:  string | null;
+  members:     Member[];
 }
 
 export interface InventoryItem {
@@ -39,6 +47,7 @@ export interface InventoryItem {
   category:       string;
   location?:      string;
   image_url?:     string;
+  barcode?:       string;
   last_restocked?: string;
 }
 
@@ -58,6 +67,8 @@ export interface ConsumptionLog {
   consumed_at:  string;
   qty:          number;
   action:       'used' | 'restocked' | 'added';
+  /** Member who made the change (null on rows written before attribution existed). */
+  user_id?:     string | null;
 }
 
 export type HouseOptionType = 'category' | 'location';
@@ -139,16 +150,25 @@ interface GleanState {
   signUp:   (name: string, email: string, password: string) => Promise<string | null>;
   signIn:           (email: string, password: string)               => Promise<string | null>;
   signInWithMagicLink: (email: string)                              => Promise<string | null>;
+  sendPasswordReset:   (email: string)                              => Promise<string | null>;
+  updatePassword:      (password: string)                           => Promise<string | null>;
   handleAuthRedirect:  (url: string)                               => Promise<void>;
   signOut:      ()                                              => Promise<void>;
   clearSession: ()                                              => void;
   clearSyncError: ()                                            => void;
   setAvatar:    (url: string | null)                            => void;
+  setName:      (name: string)                                  => void;
   loadSession:  ()                                              => Promise<void>;
 
   // House
   createHouse: (name: string) => Promise<House | string>; // returns House or error string
   joinHouse:   (inviteCode: string) => Promise<boolean>;
+  renameHouse: (name: string) => Promise<boolean>;
+  setHouseImage: (imageKey: string | null) => Promise<boolean>;
+  leaveHouse:  () => Promise<void>;
+  removeMember: (memberId: string) => Promise<void>;
+  /** Re-read own membership from the DB (e.g. after being removed by the owner). */
+  refreshMembership: () => Promise<void>;
 
   // Data sync: load everything from Supabase for the current house
   loadHouseData: (houseId: string) => Promise<void>;
@@ -156,6 +176,8 @@ interface GleanState {
 
   // Inventory
   adjustInventoryQty:  (id: string, delta: number, action?: 'used' | 'restocked') => void;
+  /** Add stock atomically on the server (safe when several phones restock at once). */
+  restockInventory:    (id: string, qty: number) => void;
   addInventoryItem:    (item: Omit<InventoryItem, 'id'>)                    => string;
   editInventoryItem:   (id: string, updates: Partial<Omit<InventoryItem, 'id'>>) => void;
   deleteInventoryItem: (id: string)                                         => void;
@@ -272,10 +294,6 @@ function sbDelete(table: string, id: string) {
       void flushQueue();
     }
   });
-}
-
-function generateInviteCode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
 // ─── Realtime sync (multi-user) ────────────────────────────────────────────────
@@ -426,6 +444,21 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     return null;
   },
 
+  sendPasswordReset: async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: 'glean://reset-password',
+    });
+    if (error) return error.message;
+    return null;
+  },
+
+  updatePassword: async (password) => {
+    if (password.length < 6) return 'Use at least 6 characters.';
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) return error.message;
+    return null;
+  },
+
   handleAuthRedirect: async (url) => {
     const parsed = new URL(url);
     // Supabase puts tokens in the hash fragment: #access_token=...&refresh_token=...
@@ -485,6 +518,20 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     });
   },
 
+  setName: (name) => {
+    const { profile } = get();
+    if (!profile) return;
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === profile.name) return;
+    set({ profile: { ...profile, name: trimmed } });
+    supabase.from('profiles').update({ name: trimmed }).eq('id', profile.id).then(({ error }) => {
+      if (error) {
+        console.error('[sb] update profiles.name:', error.message);
+        reportSyncError("Couldn't save your name — check your connection.");
+      }
+    });
+  },
+
   loadSession: async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
@@ -507,16 +554,19 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     const { profile } = get();
     if (!profile) return 'Not signed in.';
 
-    const invite_code = generateInviteCode();
-    const houseId     = uid();
-
-    const { error } = await supabase
-      .from('houses')
-      .insert({ id: houseId, name, invite_code });
+    // Atomic on the server: house row + profile link in one transaction, with a
+    // cryptographically-random invite code.
+    const { data, error } = await supabase.rpc('create_house', { p_name: name });
 
     if (error) return error.message;
 
-    await supabase.from('profiles').update({ house_id: houseId }).eq('id', profile.id);
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | { house_id: string; invite_code: string }
+      | undefined;
+    if (!row?.house_id) return 'Could not create the household.';
+
+    const houseId = row.house_id;
+
     const seededOptions = DEFAULT_HOUSE_OPTIONS.map(option => ({
       ...option,
       id: uid(),
@@ -525,7 +575,14 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     }));
     await supabase.from('house_options').insert(seededOptions);
 
-    const house: House = { id: houseId, name, invite_code, member_ids: [profile.id] };
+    const house: House = {
+      id: houseId,
+      name: name.trim(),
+      invite_code: row.invite_code,
+      owner_id: profile.id,
+      image_key: null,
+      members: [{ id: profile.id, name: profile.name, avatar_url: profile.avatar_url }],
+    };
     set({ house, profile: { ...profile, house_id: houseId }, houseOptions: seededOptions });
     return house;
   },
@@ -534,23 +591,129 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     const { profile } = get();
     if (!profile) return false;
 
-    const { data: house } = await supabase
-      .from('houses')
-      .select('*')
-      .eq('invite_code', inviteCode.trim().toUpperCase())
-      .single();
-
-    if (!house) return false;
-
-    await supabase.from('profiles').update({ house_id: house.id }).eq('id', profile.id);
-
-    set({
-      profile: { ...profile, house_id: house.id },
-      house:   { ...house, member_ids: [] },
+    const { data: houseId, error } = await supabase.rpc('join_house', {
+      invite: inviteCode.trim().toUpperCase(),
     });
 
-    await get().loadHouseData(house.id);
+    if (error) {
+      console.error('[sb] rpc join_house:', error.message);
+      reportSyncError("Couldn't join — check your connection.");
+      return false;
+    }
+    if (!houseId) {
+      console.warn('[sb] join_house: no house for code', inviteCode.trim().toUpperCase());
+      return false;
+    }
+
+    set({ profile: { ...profile, house_id: houseId } });
+    await get().loadHouseData(houseId);
     return true;
+  },
+
+  setHouseImage: async (imageKey) => {
+    const { house, profile } = get();
+    if (!house) return false;
+    // Owner-only, matching rename/kick.
+    if (profile && house.owner_id && profile.id !== house.owner_id) return false;
+
+    set(state => (state.house ? { house: { ...state.house, image_key: imageKey } } : {}));
+
+    const { error } = await supabase.from('houses').update({ image_key: imageKey }).eq('id', house.id);
+    if (error) {
+      console.error('[sb] update houses.image_key:', error.message);
+      reportSyncError("Couldn't save the house image.");
+      return false;
+    }
+    return true;
+  },
+
+  renameHouse: async (name) => {
+    const { house, profile } = get();
+    const trimmed = name.trim();
+    if (!house || !trimmed) return false;
+    // ponytail: app-side owner gate; RLS lets any member update. Move to an RPC if abuse matters.
+    if (profile && house.owner_id && profile.id !== house.owner_id) return false;
+
+    set(state => (state.house ? { house: { ...state.house, name: trimmed } } : {}));
+
+    const { error } = await supabase.from('houses').update({ name: trimmed }).eq('id', house.id);
+    if (error) {
+      console.error('[sb] update houses.name:', error.message);
+      reportSyncError("Couldn't rename the household.");
+      return false;
+    }
+    return true;
+  },
+
+  leaveHouse: async () => {
+    const { profile } = get();
+    if (!profile) return;
+
+    const { error } = await supabase.rpc('leave_house');
+    if (error) {
+      console.error('[sb] rpc leave_house:', error.message);
+      reportSyncError("Couldn't leave the household.");
+      return;
+    }
+
+    stopRealtime();
+    set({
+      profile: { ...profile, house_id: null },
+      house: null,
+      inventory: [],
+      shoppingList: [],
+      consumptionLogs: [],
+      houseOptions: [],
+    });
+  },
+
+  removeMember: async (memberId) => {
+    const { house } = get();
+    if (!house) return;
+
+    const { error } = await supabase.rpc('remove_member', { target: memberId });
+    if (error) {
+      console.error('[sb] rpc remove_member:', error.message);
+      reportSyncError("Couldn't remove that member.");
+      return;
+    }
+
+    set(state => (state.house
+      ? { house: { ...state.house, members: state.house.members.filter(m => m.id !== memberId) } }
+      : {}));
+  },
+
+  refreshMembership: async () => {
+    const { profile } = get();
+    if (!profile) return;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('house_id')
+      .eq('id', profile.id)
+      .single();
+    if (error || !data) return;
+
+    const remote = (data.house_id as string | null) ?? null;
+    if (remote === (profile.house_id ?? null)) return; // unchanged
+
+    if (remote) {
+      set({ profile: { ...profile, house_id: remote } });
+      await get().loadHouseData(remote);
+      return;
+    }
+
+    // No longer in a house (removed by the owner, or left elsewhere) — drop all
+    // local house state so the UI cannot show another house's data.
+    stopRealtime();
+    set({
+      profile: { ...profile, house_id: null },
+      house: null,
+      inventory: [],
+      shoppingList: [],
+      consumptionLogs: [],
+      houseOptions: [],
+    });
   },
 
   // ── Data loading ──────────────────────────────────────────────────────────
@@ -564,7 +727,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       supabase.from('consumption_logs').select('*').eq('house_id', houseId),
       supabase.from('houses').select('*').eq('id', houseId).single(),
       supabase.from('house_options').select('*').eq('house_id', houseId).order('type').order('name'),
-      supabase.from('profiles').select('id').eq('house_id', houseId),
+      supabase.from('profiles').select('id, name, avatar_url').eq('house_id', houseId),
     ]);
 
     const loadedOptions = optionsRes.data ?? [];
@@ -579,7 +742,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     }
 
     const house = houseRes.data
-      ? { ...(houseRes.data as House), member_ids: ((memberRes.data ?? []) as { id: string }[]).map(p => p.id) }
+      ? { ...(houseRes.data as House), members: ((memberRes.data ?? []) as Member[]) }
       : null;
 
     set({
@@ -633,6 +796,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
         consumed_at: new Date().toISOString(),
         qty: Math.abs(delta),
         action,
+        user_id: profile?.id ?? null,
       };
       return {
         inventory: state.inventory.map(current => current.id === id ? changedItem! : current),
@@ -642,6 +806,31 @@ export const useGleanStore = create<GleanState>((set, get) => ({
 
     if (changedItem && house) sbUpdateDelayed('inventory', id, { qty: changedItem.qty });
     if (log?.house_id) sbInsertConsumptionLog(log);
+  },
+
+  restockInventory: (id, qty) => {
+    if (qty <= 0) return;
+
+    // Optimistic bump; the RPC returns the authoritative quantity and also
+    // writes the consumption log server-side.
+    set(state => ({
+      inventory: state.inventory.map(i =>
+        i.id === id ? { ...i, qty: i.qty + qty, last_restocked: new Date().toISOString() } : i
+      ),
+    }));
+
+    supabase.rpc('restock_inventory', { p_id: id, p_qty: qty }).then(({ data, error }) => {
+      if (error) {
+        console.error('[sb] rpc restock_inventory:', error.message);
+        reportSyncError("Couldn't update the pantry — check your connection.");
+        return;
+      }
+      if (typeof data === 'number') {
+        set(state => ({
+          inventory: state.inventory.map(i => (i.id === id ? { ...i, qty: data } : i)),
+        }));
+      }
+    });
   },
 
   addInventoryItem: (item) => {
@@ -685,6 +874,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       consumed_at:  new Date().toISOString(),
       qty,
       action,
+      user_id:      profile?.id ?? null,
     };
     set(state => ({ consumptionLogs: [...state.consumptionLogs, log] }));
     if (profile?.house_id) sbInsertConsumptionLog(log);

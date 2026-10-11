@@ -10,6 +10,8 @@ import {
   GeistMono_500Medium,
 } from '@expo-google-fonts/geist-mono';
 import {
+  Fraunces_300Light,
+  Fraunces_500Medium,
   Fraunces_600SemiBold,
   Fraunces_700Bold,
 } from '@expo-google-fonts/fraunces';
@@ -20,7 +22,7 @@ import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { View, useColorScheme } from 'react-native';
+import { AppState, View, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -30,6 +32,7 @@ import { supabase } from '@/lib/supabase';
 import { useGleanStore } from '@/store/useGleanStore';
 import { Tappable } from '@/components/ui/tappable';
 import { Text } from '@/components/ui/text';
+import { OverlayHost } from '@/components/OverlayHost';
 import { theme } from '@/constants/theme';
 import { initSyncQueue } from '@/lib/syncQueue';
 import { useAppearance, useColors } from '@/lib/appearance';
@@ -51,11 +54,13 @@ export default function RootLayout() {
     Geist_700Bold,
     GeistMono_400Regular,
     GeistMono_500Medium,
+    Fraunces_300Light,
+    Fraunces_500Medium,
     Fraunces_600SemiBold,
     Fraunces_700Bold,
     ...FontAwesome.font,
   });
-  const { loadSession, clearSession, handleAuthRedirect } = useGleanStore();
+  const { loadSession, clearSession, handleAuthRedirect, refreshMembership } = useGleanStore();
   const colors = useColors();
   const scheme = useColorScheme();
   const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
@@ -79,6 +84,15 @@ export default function RootLayout() {
   useEffect(() => {
     loadSession();
   }, []);
+
+  // Re-verify membership when the app returns to the foreground — catches being
+  // removed from a house by its owner while the app was backgrounded.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') void refreshMembership();
+    });
+    return () => sub.remove();
+  }, [refreshMembership]);
 
   // Flush any writes queued while offline.
   useEffect(() => {
@@ -104,6 +118,11 @@ export default function RootLayout() {
     const onUrl = async ({ url }: { url: string }) => {
       if (url.includes('access_token')) {
         await handleAuthRedirect(url);
+        // Password-recovery links land here too; send the user to set a new one.
+        if (url.includes('type=recovery')) {
+          router.replace('/reset-password');
+          return;
+        }
         const { profile } = useGleanStore.getState();
         if (profile) {
           router.replace(profile.house_id ? '/(tabs)' : '/house-setup');
@@ -121,6 +140,12 @@ export default function RootLayout() {
     return () => sub.remove();
   }, []);
 
+  // Keep the splash up until the fonts are actually registered. Rendering the
+  // tree first lays text out with fallback metrics; when the custom fonts swap in
+  // the glyph widths change but RN does not always re-measure, which clipped the
+  // first screen ("Glea", "Sign up" -> "Sign").
+  if (!loaded && !error) return null;
+
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <SafeAreaProvider>
@@ -131,8 +156,13 @@ export default function RootLayout() {
             <Stack.Screen name="house-setup" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)"      options={{ headerShown: false }} />
             <Stack.Screen name="item-form"   options={{ headerShown: false, presentation: 'modal', contentStyle: { backgroundColor: colors.surface } }} />
+            <Stack.Screen name="members"     options={{ title: 'Members', headerBackTitle: 'Settings', contentStyle: { backgroundColor: colors.background } }} />
+            <Stack.Screen name="reset-password" options={{ headerShown: false }} />
+            <Stack.Screen name="joined"     options={{ headerShown: false }} />
+            <Stack.Screen name="scan"       options={{ headerShown: false, presentation: 'fullScreenModal' }} />
           </Stack>
           <SyncErrorBanner />
+          <OverlayHost />
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

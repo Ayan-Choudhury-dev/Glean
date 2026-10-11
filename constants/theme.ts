@@ -207,6 +207,8 @@ export const fonts = {
   // Display serif for headings.
   display: 'Fraunces_600SemiBold',
   displayBold: 'Fraunces_700Bold',
+  displayMedium: 'Fraunces_500Medium',
+  displayLight: 'Fraunces_300Light',
 } as const;
 
 /** Map a numeric/keyword fontWeight to the matching Geist family. */

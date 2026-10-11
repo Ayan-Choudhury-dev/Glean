@@ -14,7 +14,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#FF385C"
+        "backgroundColor": "#F7F1E8"
       },
       "predictiveBackGestureEnabled": false,
       "package": "io.github.ayanchoudhury.glean"
@@ -32,13 +32,19 @@
           "photosPermission": "Glean uses your photos so you can add images to inventory items."
         }
       ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Glean uses the camera to scan product barcodes when adding items."
+        }
+      ],
       "expo-font",
       [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#FF385C"
+          "backgroundColor": "#F7F1E8"
         }
       ],
       "expo-status-bar",

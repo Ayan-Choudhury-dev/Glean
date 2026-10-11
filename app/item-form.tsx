@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
-  Alert,
   Animated,
   View,
   TextInput,
@@ -16,12 +15,14 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeSheet } from '../components/NativeSheet';
+import { PickerSheet } from '../components/PickerSheet';
 import { DEFAULT_HOUSE_OPTIONS, HouseOption, HouseOptionType, useGleanStore } from '../store/useGleanStore';
 import { Tappable } from '../components/ui/tappable';
 import { Text } from '../components/ui/text';
 import { theme } from '@/constants/theme';
 import { uploadItemImage } from '../lib/upload';
 import { useColors } from '@/lib/appearance';
+import { showDialog } from '@/lib/overlay';
 
 export default function ItemFormScreen() {
   const insets = useSafeAreaInsets();
@@ -32,6 +33,10 @@ export default function ItemFormScreen() {
 
   const existing = itemId ? inventory.find(i => i.id === itemId) : null;
   const isEdit = !!existing;
+
+  // Name of the member who made a given activity entry (null on legacy rows).
+  const memberName = (userId?: string | null) =>
+    userId ? house?.members.find(m => m.id === userId)?.name ?? null : null;
 
   const [name, setName] = useState(existing?.name ?? '');
   const [qty, setQty] = useState(String(existing?.qty ?? ''));
@@ -81,7 +86,7 @@ export default function ItemFormScreen() {
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Permission needed', 'Allow photo access to add an item photo.');
+      showDialog({ title: 'Permission needed', message: 'Allow photo access to add an item photo.', cancelLabel: null });
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -96,12 +101,18 @@ export default function ItemFormScreen() {
     }
   };
 
-  // Upload a freshly-picked photo and persist its public URL (falls back to the
-  // local URI if the upload fails, so the image still shows on this device).
+  // Upload a freshly-picked photo and persist its public URL. On failure we keep
+  // the existing value (or none) — a device-local file:// URI must never be stored,
+  // it can't load on another device or after a cache clear.
   const commitImage = (id: string) => {
     if (!imageDirty || !imageUri || imageUri.startsWith('http')) return;
-    uploadItemImage(imageUri, house?.id ?? 'unknown', id).then(url => {
-      editInventoryItem(id, { image_url: url ?? imageUri });
+    if (!house?.id) {
+      console.warn('[upload] no house loaded; skipping image upload');
+      return;
+    }
+    uploadItemImage(imageUri, house.id, id).then(url => {
+      if (url) editInventoryItem(id, { image_url: url });
+      else console.warn('[upload] item image not saved for', id);
     });
   };
 
@@ -225,10 +236,10 @@ export default function ItemFormScreen() {
             <Image
               source={{ uri: imageUri }}
               resizeMode="cover"
-              style={{ width: '100%', height: 220, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken }}
+              style={{ width: '100%', aspectRatio: 1, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken }}
             />
           ) : (
-            <View style={{ width: '100%', height: 160, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <View style={{ width: '100%', aspectRatio: 1, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Ionicons name="camera-outline" size={28} color={colors.textMuted} />
               <Text style={{ fontSize: theme.type.sm, color: colors.textMuted }}>Add photo</Text>
             </View>
@@ -237,9 +248,9 @@ export default function ItemFormScreen() {
 
         {/* Low-stock suggestion */}
         {isEdit && (parseInt(qty, 10) || 0) === 1 && (
-          <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: colors.warningBg, borderWidth: 1, borderColor: colors.warningBorder, borderRadius: theme.radii.lg, padding: 16 }}>
+          <View style={{ marginTop: 8, marginBottom: 16, flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: colors.warningBg, borderWidth: 1, borderColor: colors.warningBorder, borderRadius: theme.radii.lg, padding: 16 }}>
             <Ionicons name="alert-circle-outline" size={20} color={colors.warning} style={{ marginTop: 1 }} />
-        <View style={{ flex: 1 }}>
+            <View style={{ flex: 1 }}>
               <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: colors.warningText }}>Running low</Text>
               <Text style={{ fontSize: theme.type.caption, color: colors.warningText, lineHeight: 20 }}>Only 1 left — consider restocking soon.</Text>
               {isInShoppingList ? (
@@ -261,7 +272,7 @@ export default function ItemFormScreen() {
 
         {/* Out-of-stock suggestion */}
         {isEdit && (parseInt(qty, 10) || 0) === 0 && (
-          <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: colors.dangerBg, borderWidth: 1, borderColor: colors.dangerBorder, borderRadius: theme.radii.lg, padding: 16 }}>
+          <View style={{ marginTop: 8, marginBottom: 16, flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: colors.dangerBg, borderWidth: 1, borderColor: colors.dangerBorder, borderRadius: theme.radii.lg, padding: 16 }}>
             <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={{ marginTop: 1 }} />
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: colors.dangerText }}>Out of stock</Text>
@@ -300,6 +311,31 @@ export default function ItemFormScreen() {
           ) : null}
         </Field>
 
+        {/* Quantity */}
+        <View style={{ backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: theme.radii.lg, padding: 20, marginBottom: 16 }}>
+          <Text style={{ fontSize: theme.type.caption, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>Quantity</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Tappable
+              onPress={() => setQty(String(Math.max(0, (parseInt(qty, 10) || 0) - 1)))}
+              disabled={(parseInt(qty, 10) || 0) === 0}
+              accessibilityRole="button"
+              accessibilityLabel="Decrease quantity"
+              style={{ width: 56, height: 56, borderRadius: theme.radii.pill, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', opacity: (parseInt(qty, 10) || 0) === 0 ? 0.5 : 1 }}
+            >
+              <Ionicons name="remove" size={22} color={colors.text} />
+            </Tappable>
+            <Text style={{ fontSize: theme.type.display, fontWeight: '700', color: colors.text, fontFamily: theme.fonts.monoMedium }}>{parseInt(qty, 10) || 0}</Text>
+            <Tappable
+              onPress={() => setQty(String((parseInt(qty, 10) || 0) + 1))}
+              accessibilityRole="button"
+              accessibilityLabel="Increase quantity"
+              style={{ width: 56, height: 56, borderRadius: theme.radii.pill, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="add" size={22} color={colors.surface} />
+            </Tappable>
+          </View>
+        </View>
+
         {/* Category */}
         <Field label="Category">
           <Tappable
@@ -328,31 +364,6 @@ export default function ItemFormScreen() {
           </Tappable>
         </Field>
 
-        {/* Quantity */}
-        <View style={{ backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: theme.radii.lg, padding: 20, marginTop: 8 }}>
-          <Text style={{ fontSize: theme.type.caption, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>Quantity</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Tappable
-              onPress={() => setQty(String(Math.max(0, (parseInt(qty, 10) || 0) - 1)))}
-              disabled={(parseInt(qty, 10) || 0) === 0}
-              accessibilityRole="button"
-              accessibilityLabel="Decrease quantity"
-              style={{ width: 56, height: 56, borderRadius: theme.radii.pill, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', opacity: (parseInt(qty, 10) || 0) === 0 ? 0.5 : 1 }}
-            >
-              <Ionicons name="remove" size={22} color={colors.text} />
-            </Tappable>
-            <Text style={{ fontSize: theme.type.display, fontWeight: '700', color: colors.text, fontFamily: theme.fonts.monoMedium }}>{parseInt(qty, 10) || 0}</Text>
-            <Tappable
-              onPress={() => setQty(String((parseInt(qty, 10) || 0) + 1))}
-              accessibilityRole="button"
-              accessibilityLabel="Increase quantity"
-              style={{ width: 56, height: 56, borderRadius: theme.radii.pill, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Ionicons name="add" size={22} color={colors.surface} />
-            </Tappable>
-          </View>
-        </View>
-
         {/* Recent Activity */}
         {isEdit && (() => {
           const logs = consumptionLogs
@@ -378,7 +389,9 @@ export default function ItemFormScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: theme.type.label, color: colors.primary, fontWeight: '500' }}>{label}</Text>
-                      <Text style={{ fontSize: theme.type.caption, color: colors.textMuted }}>{formatActivityDate(log.consumed_at)}</Text>
+                      <Text style={{ fontSize: theme.type.caption, color: colors.textMuted }} numberOfLines={1}>
+                        {[memberName(log.user_id), formatActivityDate(log.consumed_at)].filter(Boolean).join(' · ')}
+                      </Text>
                     </View>
                   </View>
                 );
@@ -516,74 +529,5 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: colors.text, marginBottom: 8 }}>{label}</Text>
       {children}
     </View>
-  );
-}
-
-function PickerSheet({
-  visible, title, type, options, selected, onSelect, onCreate, onClose,
-}: {
-  visible: boolean;
-  title: string;
-  type: HouseOptionType;
-  options: HouseOption[];
-  selected: string;
-  onSelect: (value: string) => void;
-  onCreate: (value: string) => void;
-  onClose: () => void;
-}) {
-  const [query, setQuery] = useState('');
-  const colors = useColors();
-  const normalizedQuery = query.trim().toLowerCase();
-  const filteredOptions = options.filter(option => option.name.toLowerCase().includes(normalizedQuery));
-  const exactMatch = options.some(option => option.name.toLowerCase() === normalizedQuery);
-
-  useEffect(() => {
-    if (!visible) setQuery('');
-  }, [visible]);
-
-  return (
-    <NativeSheet visible={visible} onClose={onClose} snapPoints={['50%', '90%']}>
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 }}>
-          <Text style={{ flex: 1, fontSize: theme.type.body, fontWeight: '600', color: colors.text }}>{title}</Text>
-          <Tappable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
-            <Ionicons name="close" size={20} color={colors.textMuted} />
-          </Tappable>
-        </View>
-        <View style={{ marginHorizontal: 16, marginBottom: 8, height: 44, borderRadius: theme.radii.md, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 }}>
-          <Ionicons name="search-outline" size={18} color={colors.textFaint} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={`Search ${type}s`}
-            placeholderTextColor={colors.textFaint}
-            autoCapitalize="words"
-            style={{ flex: 1, marginLeft: 8, fontSize: theme.type.label, color: colors.text, fontFamily: theme.fonts.regular }}
-          />
-        </View>
-        <FlatList
-          data={filteredOptions}
-          keyExtractor={item => item.id}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 16 }}
-          keyboardShouldPersistTaps="handled"
-          ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: colors.surfaceSunken, marginLeft: 16, marginRight: 16 }} />}
-          renderItem={({ item }) => (
-            <Tappable onPress={() => onSelect(item.name)} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16 }}>
-              <Ionicons name={item.icon as React.ComponentProps<typeof Ionicons>['name']} size={20} color={colors.textMuted} style={{ marginRight: 12 }} />
-              <Text style={{ flex: 1, fontSize: theme.type.label, color: colors.text }}>{item.name}</Text>
-              {selected === item.name && <Ionicons name="checkmark" size={18} color={colors.accent} />}
-            </Tappable>
-          )}
-          ListEmptyComponent={normalizedQuery && exactMatch ? null : <Text style={{ padding: 24, textAlign: 'center', color: colors.textFaint }}>No {type}s found</Text>}
-        />
-        {normalizedQuery && !exactMatch && (
-          <Tappable onPress={() => onCreate(query)} style={{ height: 44, marginHorizontal: 16, marginBottom: 16, borderRadius: theme.radii.md, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <Ionicons name="add-circle-outline" size={18} color={colors.surface} />
-            <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: colors.surface }}>Add “{query.trim()}”</Text>
-          </Tappable>
-        )}
-      </View>
-    </NativeSheet>
   );
 }
