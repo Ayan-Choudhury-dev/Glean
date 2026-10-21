@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { enqueue, flushQueue } from '../lib/syncQueue';
 import { deleteItemImage } from '../lib/upload';
 import { saveProfile, loadProfile, clearProfile } from '../lib/profileCache';
+import { localSaveHouse, localLoadHouse, localClearHouse } from '../lib/db/client';
 import { RECENT_ACTIVITY_FETCH_LIMIT } from '../constants/config';
 
 // ─── UUID helper ──────────────────────────────────────────────────────────────
@@ -516,6 +517,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   clearSession: () => {
     stopRealtime();
     set({ profile: null, house: null, inventory: [], shoppingList: [], consumptionLogs: [], houseOptions: [], lastPantryUpdate: null });
+    void localClearHouse();
   },
 
   clearSyncError: () => set({ syncError: null }),
@@ -681,6 +683,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     }
 
     stopRealtime();
+    void localClearHouse();
     set({
       profile: { ...profile, house_id: null },
       house: null,
@@ -730,6 +733,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     // No longer in a house (removed by the owner, or left elsewhere) — drop all
     // local house state so the UI cannot show another house's data.
     stopRealtime();
+    void localClearHouse();
     set({
       profile: { ...profile, house_id: null },
       house: null,
@@ -743,8 +747,22 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   // ── Data loading ──────────────────────────────────────────────────────────
 
   loadHouseData: async (houseId) => {
-    set({ loading: true });
+    // 1. Paint instantly from the local cache when this house was last synced.
+    const cached = await localLoadHouse(houseId);
+    if (cached) {
+      set({
+        inventory: cached.inventory,
+        shoppingList: cached.shoppingList,
+        consumptionLogs: cached.consumptionLogs,
+        house: cached.house,
+        houseOptions: cached.houseOptions,
+        loading: false,
+      });
+    } else {
+      set({ loading: true });
+    }
 
+    // 2. Fetch fresh from Supabase (authoritative while household sync is live).
     const [invRes, shopRes, logRes, houseRes, optionsRes, memberRes] = await Promise.all([
       supabase.from('inventory').select('*').eq('house_id', houseId),
       supabase.from('shopping_list').select('*').eq('house_id', houseId),
@@ -765,18 +783,35 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       );
     }
 
-    const house = houseRes.data
+    const freshHouse = houseRes.data
       ? { ...(houseRes.data as House), members: ((memberRes.data ?? []) as Member[]) }
       : null;
 
-    set({
-      inventory:       invRes.data   ?? [],
-      shoppingList:    shopRes.data  ?? [],
-      consumptionLogs: logRes.data   ?? [],
-      house,
-      houseOptions,
-      loading: false,
-    });
+    // Only overwrite cached data when the fetch succeeded; otherwise keep the
+    // cached pantry (offline resilience) instead of blanking it.
+    const freshOk = !invRes.error && !shopRes.error && !logRes.error && !houseRes.error && !optionsRes.error;
+    if (freshOk) {
+      set({
+        inventory:       invRes.data   ?? [],
+        shoppingList:    shopRes.data  ?? [],
+        consumptionLogs: logRes.data   ?? [],
+        house:           freshHouse,
+        houseOptions,
+        loading: false,
+      });
+      if (freshHouse) {
+        void localSaveHouse(houseId, {
+          house: freshHouse,
+          inventory:       invRes.data   ?? [],
+          shoppingList:    shopRes.data  ?? [],
+          consumptionLogs: logRes.data   ?? [],
+          houseOptions,
+        });
+      }
+    } else {
+      set({ loading: false });
+      reportSyncError("Couldn't load fresh data — showing saved pantry.");
+    }
 
     startRealtime(houseId);
   },
