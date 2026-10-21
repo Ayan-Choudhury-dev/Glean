@@ -34,7 +34,7 @@ import { Tappable } from '@/components/ui/tappable';
 import { Text } from '@/components/ui/text';
 import { OverlayHost } from '@/components/OverlayHost';
 import { theme } from '@/constants/theme';
-import { initSyncQueue } from '@/lib/syncQueue';
+import { initSyncQueue } from '@/lib/db/syncQueue';
 import { useAppearance, useColors } from '@/lib/appearance';
 import '@/global.css';
 

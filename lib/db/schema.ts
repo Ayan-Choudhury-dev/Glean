@@ -65,6 +65,14 @@ CREATE TABLE IF NOT EXISTS meta (
   value TEXT
 );
 
+CREATE TABLE IF NOT EXISTS pending_ops (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind       TEXT NOT NULL,
+  table_name TEXT NOT NULL,
+  row_id     TEXT,
+  payload    TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_inventory_house ON inventory(house_id);
 CREATE INDEX IF NOT EXISTS idx_shopping_house  ON shopping_list(house_id);
 CREATE INDEX IF NOT EXISTS idx_logs_house      ON consumption_logs(house_id);

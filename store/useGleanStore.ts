@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import { enqueue, flushQueue } from '../lib/syncQueue';
+import { enqueueSyncOp, drainSyncQueue } from '../lib/db/syncQueue';
 import { deleteItemImage } from '../lib/upload';
 import { saveProfile, loadProfile, clearProfile } from '../lib/profileCache';
 import { localSaveHouse, localLoadHouse, localClearHouse } from '../lib/db/client';
@@ -215,27 +215,11 @@ function reportSyncError(message: string) {
 }
 
 function sbInsert(table: string, row: Record<string, unknown>) {
-  supabase.from(table).insert(row).then(({ error }) => {
-    if (error) {
-      console.error(`[sb] insert ${table}:`, error.message);
-      enqueue({ table, kind: 'insert', payload: row });
-      reportSyncError("Couldn't save changes — check your connection.");
-    } else {
-      void flushQueue();
-    }
-  });
+  void enqueueSyncOp({ table, kind: 'insert', payload: row });
 }
 
 function sbUpdate(table: string, id: string, updates: Record<string, unknown>) {
-  supabase.from(table).update(updates).eq('id', id).then(({ error }) => {
-    if (error) {
-      console.error(`[sb] update ${table}:`, error.message);
-      enqueue({ table, kind: 'update', id, payload: updates });
-      reportSyncError("Couldn't save changes — check your connection.");
-    } else {
-      void flushQueue();
-    }
-  });
+  void enqueueSyncOp({ table, kind: 'update', id, payload: updates });
 }
 
 const delayedUpdates = new Map<string, {
@@ -254,15 +238,7 @@ function sbInsertConsumptionLog(log: ConsumptionLog) {
     delayedLogs = [];
     delayedLogsTimer = null;
     if (logs.length > 0) {
-      supabase.from('consumption_logs').insert(logs as unknown as Record<string, unknown>[]).then(({ error }) => {
-        if (error) {
-          console.error('[sb] insert consumption_logs:', error.message);
-          enqueue({ table: 'consumption_logs', kind: 'insert', payload: logs });
-          reportSyncError("Couldn't save changes — check your connection.");
-        } else {
-          void flushQueue();
-        }
-      });
+      void enqueueSyncOp({ table: 'consumption_logs', kind: 'insert', payload: logs });
     }
   }, 500);
 }
@@ -290,15 +266,7 @@ function cancelDelayedUpdate(table: string, id: string) {
 }
 
 function sbDelete(table: string, id: string) {
-  supabase.from(table).delete().eq('id', id).then(({ error }) => {
-    if (error) {
-      console.error(`[sb] delete ${table}:`, error.message);
-      enqueue({ table, kind: 'delete', id });
-      reportSyncError("Couldn't save changes — check your connection.");
-    } else {
-      void flushQueue();
-    }
-  });
+  void enqueueSyncOp({ table, kind: 'delete', id });
 }
 
 // ─── Realtime sync (multi-user) ────────────────────────────────────────────────
@@ -762,7 +730,8 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       set({ loading: true });
     }
 
-    // 2. Fetch fresh from Supabase (authoritative while household sync is live).
+    // 2. Push any pending local writes first, then fetch fresh from Supabase.
+    await drainSyncQueue();
     const [invRes, shopRes, logRes, houseRes, optionsRes, memberRes] = await Promise.all([
       supabase.from('inventory').select('*').eq('house_id', houseId),
       supabase.from('shopping_list').select('*').eq('house_id', houseId),
