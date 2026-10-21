@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tappable } from '../../components/ui/tappable';
 import { Text } from '../../components/ui/text';
 import { CollapsibleHeaderBar, LargeTitle, useCollapsibleHeader, useHeaderContentInset } from '../../components/CollapsibleHeader';
-import { NativeSheet } from '../../components/NativeSheet';
+import { NativeSheet, useSheetScroll } from '../../components/NativeSheet';
 import { useGleanStore, ShoppingItem } from '../../store/useGleanStore';
 import { getRestockSuggestions, type RestockSuggestion } from '../../lib/predictions';
 import { categoryImage } from '@/constants/categoryImages';
@@ -234,6 +234,7 @@ export default function ShoppingScreen() {
   const headerInset = useHeaderContentInset();
   const C = useC();
   const colors = useColors();
+  const sheetScroll = useSheetScroll();
   const [tab, setTab] = useState<Tab>('to_buy');
   const [addItemSheet, setAddItemSheet] = useState(false);
   const [addItemSearch, setAddItemSearch] = useState('');
@@ -510,6 +511,9 @@ export default function ShoppingScreen() {
           <FlatList
             data={addItemResults}
             keyExtractor={item => item.id}
+            nestedScrollEnabled
+            scrollEventThrottle={16}
+            onScroll={sheetScroll ? e => { sheetScroll.current = e.nativeEvent.contentOffset.y; } : undefined}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 40 }}
             ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: colors.borderLight, marginLeft: 16, marginRight: 16 }} />}

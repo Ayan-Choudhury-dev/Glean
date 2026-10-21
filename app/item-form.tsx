@@ -19,9 +19,12 @@ import { PickerSheet } from '../components/PickerSheet';
 import { DEFAULT_HOUSE_OPTIONS, HouseOption, HouseOptionType, useGleanStore } from '../store/useGleanStore';
 import { Tappable } from '../components/ui/tappable';
 import { Text } from '../components/ui/text';
+import { AnimatedNumber } from '../components/animated-number';
 import { theme } from '@/constants/theme';
 import { uploadItemImage } from '../lib/upload';
 import { useColors } from '@/lib/appearance';
+import { categoryImage } from '@/constants/categoryImages';
+import { RECENT_ACTIVITY_DISPLAY_LIMIT } from '@/constants/config';
 import { showDialog } from '@/lib/overlay';
 
 export default function ItemFormScreen() {
@@ -68,6 +71,7 @@ export default function ItemFormScreen() {
   };
 
   const [categorySheet, setCategorySheet] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
   const [locationSheet, setLocationSheet] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [zeroQtySheet, setZeroQtySheet] = useState(false);
@@ -82,6 +86,7 @@ export default function ItemFormScreen() {
 
   const categoryOptions = availableOptions.filter(option => option.type === 'category');
   const locationOptions = availableOptions.filter(option => option.type === 'location');
+  const categoryArt = categoryImage(category);
 
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -225,11 +230,11 @@ export default function ItemFormScreen() {
       </View>
 
       <ScrollView style={{ flex: 1, paddingHorizontal: 24 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 16 }}>
-        {/* Photo */}
+        {/* Photo — tap to expand and change */}
         <Tappable
-          onPress={pickImage}
+          onPress={() => setPhotoOpen(true)}
           accessibilityRole="button"
-          accessibilityLabel={imageUri ? 'Change item photo' : 'Add item photo'}
+          accessibilityLabel="Item photo — tap to view or change"
           style={{ marginTop: 8, marginBottom: 20 }}
         >
           {imageUri ? (
@@ -238,9 +243,13 @@ export default function ItemFormScreen() {
               resizeMode="cover"
               style={{ width: '100%', aspectRatio: 1, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken }}
             />
+          ) : categoryArt ? (
+            <View style={{ width: '100%', aspectRatio: 1, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken, alignItems: 'center', justifyContent: 'center' }}>
+              <Image source={categoryArt} resizeMode="contain" style={{ width: '68%', height: '68%' }} />
+            </View>
           ) : (
             <View style={{ width: '100%', aspectRatio: 1, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Ionicons name="camera-outline" size={28} color={colors.textMuted} />
+              <Ionicons name="image-outline" size={28} color={colors.textMuted} />
               <Text style={{ fontSize: theme.type.sm, color: colors.textMuted }}>Add photo</Text>
             </View>
           )}
@@ -324,7 +333,7 @@ export default function ItemFormScreen() {
             >
               <Ionicons name="remove" size={22} color={colors.text} />
             </Tappable>
-            <Text style={{ fontSize: theme.type.display, fontWeight: '700', color: colors.text, fontFamily: theme.fonts.monoMedium }}>{parseInt(qty, 10) || 0}</Text>
+            <AnimatedNumber value={parseInt(qty, 10) || 0} style={{ fontSize: theme.type.display, color: colors.text, fontFamily: theme.fonts.monoMedium }} />
             <Tappable
               onPress={() => setQty(String((parseInt(qty, 10) || 0) + 1))}
               accessibilityRole="button"
@@ -369,7 +378,7 @@ export default function ItemFormScreen() {
           const logs = consumptionLogs
             .filter(l => l.inventory_id === existing!.id)
             .sort((a, b) => new Date(b.consumed_at).getTime() - new Date(a.consumed_at).getTime())
-            .slice(0, 8);
+            .slice(0, RECENT_ACTIVITY_DISPLAY_LIMIT);
           if (logs.length === 0) return null;
           return (
             <View style={{ marginTop: 8, borderRadius: theme.radii.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
@@ -396,6 +405,11 @@ export default function ItemFormScreen() {
                   </View>
                 );
               })}
+              <View style={{ backgroundColor: colors.surfaceSunken, paddingHorizontal: 16, justifyContent: 'center', height: 32 }}>
+                <Text style={{ fontSize: theme.type.caption, color: colors.textMuted }}>
+                  Showing the last {logs.length} action{logs.length !== 1 ? 's' : ''}
+                </Text>
+              </View>
             </View>
           );
         })()}
@@ -460,6 +474,40 @@ export default function ItemFormScreen() {
         onCreate={value => { const option = addHouseOption('location', value, 'location-outline'); if (option) { setLocation(option.name); setLocationSheet(false); } }}
         onClose={() => setLocationSheet(false)}
       />
+
+      {/* Photo expanded view */}
+      <NativeSheet visible={photoOpen} onClose={() => setPhotoOpen(false)}>
+        <View style={{ paddingHorizontal: 24, paddingTop: 4, paddingBottom: 24, alignItems: 'center' }}>
+          <View style={{ width: '100%', aspectRatio: 1, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
+            ) : categoryArt ? (
+              <Image source={categoryArt} resizeMode="contain" style={{ width: '68%', height: '68%' }} />
+            ) : (
+              <Ionicons name="image-outline" size={40} color={colors.textMuted} />
+            )}
+          </View>
+          <Tappable
+            onPress={() => { setPhotoOpen(false); void pickImage(); }}
+            accessibilityRole="button"
+            accessibilityLabel={imageUri ? 'Change photo' : 'Add custom photo'}
+            style={{ marginTop: 20, backgroundColor: colors.accent, borderRadius: theme.radii.md, minHeight: 48, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}
+          >
+            <Ionicons name="camera-outline" size={18} color={colors.onAccent} />
+            <Text style={{ color: colors.onAccent, fontSize: theme.type.md, fontFamily: theme.fonts.medium }}>{imageUri ? 'Change photo' : 'Add custom photo'}</Text>
+          </Tappable>
+          {imageUri && (
+            <Tappable
+              onPress={() => { setImageUri(null); setImageDirty(true); setPhotoOpen(false); }}
+              accessibilityRole="button"
+              accessibilityLabel="Remove photo"
+              style={{ marginTop: 8, paddingVertical: 12, paddingHorizontal: 16 }}
+            >
+              <Text style={{ color: colors.textMuted, fontSize: theme.type.label, fontFamily: theme.fonts.medium }}>Remove photo</Text>
+            </Tappable>
+          )}
+        </View>
+      </NativeSheet>
 
       {/* Zero-qty shopping list sheet */}
       <NativeSheet visible={zeroQtySheet} onClose={handleZeroQtyNotNow}>

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, type ColorValue } from 'react-native';
+import { Animated, View, type ColorValue } from 'react-native';
 import { Tabs, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,29 @@ import { theme } from '@/constants/theme';
 import { useColors } from '@/lib/appearance';
 
 const TAB_BAR_HEIGHT = 56;
+
+function TabIcon({ base, focused, color }: { base: 'grid' | 'cart' | 'settings'; focused: boolean; color: ColorValue }) {
+  const colors = useColors();
+  const scale = React.useRef(new Animated.Value(focused ? 1 : 0.9)).current;
+  React.useEffect(() => {
+    Animated.spring(scale, { toValue: focused ? 1 : 0.9, useNativeDriver: true, speed: 18, bounciness: 10 }).start();
+  }, [focused, scale]);
+  return (
+    <Animated.View
+      style={{
+        width: 56,
+        height: 32,
+        borderRadius: theme.radii.pill,
+        backgroundColor: focused ? colors.accentSoft : 'transparent',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transform: [{ scale }],
+      }}
+    >
+      <Ionicons name={focused ? base : `${base}-outline`} color={color as string} size={22} />
+    </Animated.View>
+  );
+}
 
 export default function TabLayout() {
   const { profile } = useGleanStore();
@@ -26,18 +49,7 @@ export default function TabLayout() {
 
   const renderIcon = (base: 'grid' | 'cart' | 'settings') =>
     ({ focused, color }: { focused: boolean; color: ColorValue }) => (
-      <View
-        style={{
-          width: 56,
-          height: 32,
-          borderRadius: theme.radii.pill,
-          backgroundColor: focused ? colors.accentSoft : 'transparent',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Ionicons name={focused ? base : `${base}-outline`} color={color as string} size={22} />
-      </View>
+      <TabIcon base={base} focused={focused} color={color} />
     );
 
   return (

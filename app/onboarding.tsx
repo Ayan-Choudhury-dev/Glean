@@ -6,6 +6,7 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
+  Animated,
 } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { router } from 'expo-router';
@@ -55,6 +56,49 @@ function FormLabel({ text }: { text: string }) {
     <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, fontFamily: theme.fonts.medium, marginBottom: 6, marginLeft: 4 }}>
       {text}
     </Text>
+  );
+}
+
+// Hero: the app's own category art, arranged like a stocked shelf and animated
+// in on mount (staggered rise + scale + fade) to sell the pantry concept.
+const HERO_GROCERIES = [
+  { src: require('../assets/images/categories/vegetables.png'), size: 62, offset: 0 },
+  { src: require('../assets/images/categories/dairy.png'),      size: 54, offset: 18 },
+  { src: require('../assets/images/categories/fruits.png'),     size: 58, offset: 4 },
+  { src: require('../assets/images/categories/grains.png'),     size: 54, offset: 18 },
+  { src: require('../assets/images/categories/spices.png'),     size: 62, offset: 0 },
+] as const;
+
+function GroceryHero() {
+  const anims = React.useRef(HERO_GROCERIES.map(() => new Animated.Value(0))).current;
+
+  React.useEffect(() => {
+    Animated.stagger(
+      90,
+      anims.map(a => Animated.spring(a, { toValue: 1, useNativeDriver: true, friction: 7, tension: 70 })),
+    ).start();
+  }, [anims]);
+
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: 6, marginTop: 22 }}>
+      {HERO_GROCERIES.map((g, i) => (
+        <View key={i} style={{ marginTop: g.offset }}>
+          <Animated.Image
+            source={g.src}
+            resizeMode="contain"
+            style={{
+              width: g.size,
+              height: g.size,
+              opacity: anims[i],
+              transform: [
+                { translateY: anims[i].interpolate({ inputRange: [0, 1], outputRange: [26, 0] }) },
+                { scale: anims[i].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) },
+              ],
+            }}
+          />
+        </View>
+      ))}
+    </View>
   );
 }
 
@@ -170,13 +214,15 @@ export default function OnboardingScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 32, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}
       >
-        {/* App mark */}
-        <View style={{ alignItems: 'center', marginBottom: 40 }}>
-          <View style={{ width: 80, height: 80, backgroundColor: colors.accent, borderRadius: theme.radii.lg, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-            <Ionicons name="cube" size={40} color={colors.onAccent} />
-          </View>
-          <Text style={{ fontSize: theme.type.xxl, color: colors.text, fontFamily: theme.fonts.displayBold }}>Glean</Text>
-          <Text style={{ color: colors.textMuted, fontSize: theme.type.label, marginTop: 4 }}>Your household inventory</Text>
+        {/* Brand hero */}
+        <View style={{ alignItems: 'center', marginBottom: 36 }}>
+          <Text style={{ fontSize: 44, color: colors.text, fontFamily: theme.fonts.displayBold, letterSpacing: -0.5 }}>
+            Glean
+          </Text>
+          <Text style={{ color: colors.textMuted, fontSize: theme.type.md, marginTop: 6, textAlign: 'center' }}>
+            Know what's in your pantry — never run out.
+          </Text>
+          <GroceryHero />
         </View>
 
         {/* Mode toggle */}

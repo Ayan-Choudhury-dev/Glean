@@ -41,7 +41,9 @@ import '@/global.css';
 export { ErrorBoundary } from 'expo-router';
 
 export const unstable_settings = {
-  initialRouteName: 'onboarding',
+  // Start on the tabs so a restored session never flashes the login screen;
+  // (tabs)/_layout redirects to onboarding when there is no session.
+  initialRouteName: '(tabs)',
 };
 
 SplashScreen.preventAutoHideAsync();
@@ -61,6 +63,7 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
   const { loadSession, clearSession, handleAuthRedirect, refreshMembership } = useGleanStore();
+  const sessionLoaded = useGleanStore(s => s.sessionLoaded);
   const colors = useColors();
   const scheme = useColorScheme();
   const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
@@ -78,11 +81,21 @@ export default function RootLayout() {
   };
 
   useEffect(() => { if (error) throw error; }, [error]);
-  useEffect(() => { if (loaded) SplashScreen.hideAsync(); }, [loaded]);
+  // Keep the splash up until fonts AND the restored session are ready — otherwise
+  // the login screen flashes before the session resolves.
+  useEffect(() => { if (loaded && sessionLoaded) SplashScreen.hideAsync(); }, [loaded, sessionLoaded]);
 
   // Restore session on cold start
   useEffect(() => {
     loadSession();
+  }, []);
+
+  // Safety: never let a slow/hung session request trap the app on the splash.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!useGleanStore.getState().sessionLoaded) useGleanStore.setState({ sessionLoaded: true });
+    }, 4000);
+    return () => clearTimeout(t);
   }, []);
 
   // Re-verify membership when the app returns to the foreground — catches being
@@ -144,7 +157,7 @@ export default function RootLayout() {
   // tree first lays text out with fallback metrics; when the custom fonts swap in
   // the glyph widths change but RN does not always re-measure, which clipped the
   // first screen ("Glea", "Sign up" -> "Sign").
-  if (!loaded && !error) return null;
+  if ((!loaded && !error) || !sessionLoaded) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>

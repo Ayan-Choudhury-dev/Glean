@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { enqueue, flushQueue } from '../lib/syncQueue';
 import { deleteItemImage } from '../lib/upload';
+import { saveProfile, loadProfile, clearProfile } from '../lib/profileCache';
+import { RECENT_ACTIVITY_FETCH_LIMIT } from '../constants/config';
 
 // ─── UUID helper ──────────────────────────────────────────────────────────────
 
@@ -139,6 +141,8 @@ interface GleanState {
   consumptionLogs: ConsumptionLog[];
   houseOptions: HouseOption[];
   loading: boolean;
+  /** True once the persisted session has been restored (or confirmed absent). */
+  sessionLoaded: boolean;
   syncError: string | null;
   lastPantryUpdate: {
     items: ShoppingItem[];
@@ -302,6 +306,14 @@ type RealtimeTable = 'inventory' | 'shopping_list' | 'consumption_logs';
 
 let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
 
+/** Keep only the newest RECENT_ACTIVITY_FETCH_LIMIT logs in memory. */
+function capLogs(logs: ConsumptionLog[]): ConsumptionLog[] {
+  if (logs.length <= RECENT_ACTIVITY_FETCH_LIMIT) return logs;
+  return [...logs]
+    .sort((a, b) => new Date(b.consumed_at).getTime() - new Date(a.consumed_at).getTime())
+    .slice(0, RECENT_ACTIVITY_FETCH_LIMIT);
+}
+
 function applyRealtimeChange(
   state: GleanState,
   table: RealtimeTable,
@@ -316,8 +328,9 @@ function applyRealtimeChange(
     return { [key]: list.filter(x => x.id !== row.id) } as Partial<GleanState>;
   }
   const exists = list.some(x => x.id === row.id);
+  const next = exists ? list.map(x => (x.id === row.id ? row : x)) : [...list, row];
   return {
-    [key]: exists ? list.map(x => (x.id === row.id ? row : x)) : [...list, row],
+    [key]: table === 'consumption_logs' ? capLogs(next as unknown as ConsumptionLog[]) : next,
   } as Partial<GleanState>;
 }
 
@@ -360,6 +373,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   consumptionLogs: [],
   houseOptions: [],
   loading: false,
+  sessionLoaded: false,
   syncError: null,
   lastPantryUpdate: null,
 
@@ -533,18 +547,28 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   },
 
   loadSession: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
 
-    if (profile) {
-      set({ profile });
-      if (profile.house_id) await get().loadHouseData(profile.house_id);
+      if (profile) {
+        set({ profile });
+        if (profile.house_id) await get().loadHouseData(profile.house_id);
+      } else if (error) {
+        // Offline / fetch failed: fall back to the last-known profile so a
+        // signed-in user still lands in the app instead of the login screen.
+        const cached = await loadProfile<Profile>();
+        if (cached) set({ profile: cached });
+      }
+    } finally {
+      // Mark boot done even on failure, so the app renders (logged-out).
+      set({ sessionLoaded: true });
     }
   },
 
@@ -724,7 +748,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     const [invRes, shopRes, logRes, houseRes, optionsRes, memberRes] = await Promise.all([
       supabase.from('inventory').select('*').eq('house_id', houseId),
       supabase.from('shopping_list').select('*').eq('house_id', houseId),
-      supabase.from('consumption_logs').select('*').eq('house_id', houseId),
+      supabase.from('consumption_logs').select('*').eq('house_id', houseId).order('consumed_at', { ascending: false }).limit(RECENT_ACTIVITY_FETCH_LIMIT),
       supabase.from('houses').select('*').eq('id', houseId).single(),
       supabase.from('house_options').select('*').eq('house_id', houseId).order('type').order('name'),
       supabase.from('profiles').select('id, name, avatar_url').eq('house_id', houseId),
@@ -800,7 +824,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       };
       return {
         inventory: state.inventory.map(current => current.id === id ? changedItem! : current),
-        consumptionLogs: [...state.consumptionLogs, log],
+        consumptionLogs: capLogs([...state.consumptionLogs, log]),
       };
     });
 
@@ -876,7 +900,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       action,
       user_id:      profile?.id ?? null,
     };
-    set(state => ({ consumptionLogs: [...state.consumptionLogs, log] }));
+    set(state => ({ consumptionLogs: capLogs([...state.consumptionLogs, log]) }));
     if (profile?.house_id) sbInsertConsumptionLog(log);
   },
 
@@ -1031,3 +1055,11 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     return { added, updated };
   },
 }));
+
+// Persist the profile so a cold start can land in the app even with no network
+// (loadSession falls back to this cache; clearSession wipes it).
+useGleanStore.subscribe((state, prev) => {
+  if (state.profile === prev.profile) return;
+  if (state.profile) void saveProfile(state.profile);
+  else void clearProfile();
+});

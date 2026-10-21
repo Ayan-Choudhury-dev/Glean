@@ -17,7 +17,14 @@
         "backgroundColor": "#F7F1E8"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "io.github.ayanchoudhury.glean"
+      "package": "io.github.ayanchoudhury.glean",
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -52,6 +59,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "afbc30dc-3cd1-4476-a608-8a0234493629"
+      }
+    },
+    "owner": "ayan_dev"
   }
 }

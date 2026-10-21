@@ -23,6 +23,7 @@ import { categoryImage } from '@/constants/categoryImages';
 import type { ImageSourcePropType } from 'react-native';
 import { Tappable } from '../../components/ui/tappable';
 import { Text } from '../../components/ui/text';
+import { AnimatedNumber } from '../../components/animated-number';
 import {
   CollapsibleHeaderBar,
   LargeTitle,
@@ -67,6 +68,7 @@ function Chip({
   return (
     <Tappable
       onPress={onPress}
+      haptic
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       accessibilityLabel={`Filter: ${label}`}
@@ -165,6 +167,7 @@ const InventoryRow = React.memo(function InventoryRow({
         <Tappable
           onPress={() => onAdjust(item.id, -1)}
           disabled={item.qty === 0}
+          haptic
           accessibilityRole="button"
           accessibilityLabel={`Decrease ${item.name}`}
           hitSlop={10}
@@ -172,11 +175,13 @@ const InventoryRow = React.memo(function InventoryRow({
         >
           <Ionicons name="remove" size={15} color={C.text} />
         </Tappable>
-        <Text style={{ fontSize: theme.type.body, fontWeight: '600', color: C.text, fontFamily: theme.fonts.monoMedium, minWidth: 22, textAlign: 'center' }}>
-          {item.qty}
-        </Text>
+        <AnimatedNumber
+          value={item.qty}
+          style={{ fontSize: theme.type.body, color: C.text, fontFamily: theme.fonts.monoMedium, minWidth: 22, textAlign: 'center' }}
+        />
         <Tappable
           onPress={() => onAdjust(item.id, 1)}
+          haptic
           accessibilityRole="button"
           accessibilityLabel={`Increase ${item.name}`}
           hitSlop={10}

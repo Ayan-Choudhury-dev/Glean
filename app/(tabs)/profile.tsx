@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, TextInput, ScrollView, Share, Linking, RefreshControl, Animated, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -18,6 +18,7 @@ import { VStack } from '@/components/ui/vstack';
 import { Button, ButtonText } from '@/components/ui/button';
 import { NativeSheet } from '../../components/NativeSheet';
 import { theme, accents, type AccentKey } from '@/constants/theme';
+import { FEATURES } from '@/constants/config';
 import { useAppearance, useColors } from '@/lib/appearance';
 import { showDialog, showToast } from '@/lib/overlay';
 import { HouseAvatar } from '@/components/HouseAvatar';
@@ -133,6 +134,19 @@ export default function ProfileScreen() {
   const memberCount = house?.members?.length ?? 1;
   const membersLabel = memberCount === 1 ? '1 member' : `${memberCount} members`;
   const isOwner = !!house && house.owner_id === profile?.id;
+
+  // Items per storage location, for the visualizer.
+  const locationStats = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const item of inventory) {
+      const key = item.location?.trim() || 'No location';
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return Object.entries(counts)
+      .map(([location, count]) => ({ location, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [inventory]);
+  const maxLocationCount = Math.max(1, ...locationStats.map(s => s.count));
 
   const handleImport = () => {
     if (!csvText.trim()) {
@@ -266,18 +280,22 @@ export default function ProfileScreen() {
           value={HOUSE_IMAGES.find(p => p.key === house?.image_key)?.label ?? 'Default'}
           onPress={() => setImageOpen(true)}
         />
-        <Divider />
-        <SettingRow icon="people-outline" label="Members" value={membersLabel} onPress={() => router.push('/members')} />
-        <Divider />
-        <Tappable onPress={() => setInviteSheetOpen(true)}>
-          <HStack className="items-center px-4 py-3">
-            <View className="w-8 h-8 rounded-lg bg-surfaceMuted dark:bg-[#2A2A2A] items-center justify-center mr-3">
-              <Ionicons name="person-add-outline" size={16} color={colors.textMuted} />
-            </View>
-            <Text className="flex-1 text-sm font-medium text-muted dark:text-[#B3B3B3]">Invite a member</Text>
-            <Text className="text-xs text-muted dark:text-[#B3B3B3]">Share invite code</Text>
-          </HStack>
-        </Tappable>
+        {FEATURES.household && (
+          <>
+            <Divider />
+            <SettingRow icon="people-outline" label="Members" value={membersLabel} onPress={() => router.push('/members')} />
+            <Divider />
+            <Tappable onPress={() => setInviteSheetOpen(true)}>
+              <HStack className="items-center px-4 py-3">
+                <View className="w-8 h-8 rounded-lg bg-surfaceMuted dark:bg-[#2A2A2A] items-center justify-center mr-3">
+                  <Ionicons name="person-add-outline" size={16} color={colors.textMuted} />
+                </View>
+                <Text className="flex-1 text-sm font-medium text-muted dark:text-[#B3B3B3]">Invite a member</Text>
+                <Text className="text-xs text-muted dark:text-[#B3B3B3]">Share invite code</Text>
+              </HStack>
+            </Tappable>
+          </>
+        )}
       </Card>
 
       {/* ── Data (import / export) ─────────────────────────────────────── */}
@@ -382,6 +400,28 @@ export default function ProfileScreen() {
           </HStack>
         </Tappable>
       </Card>
+
+      {/* ── Storage by location ─────────────────────────────────────────── */}
+      {locationStats.length > 0 && (
+        <>
+          <SectionHeader title="Storage" />
+          <Card>
+            <View style={{ padding: 16, gap: 14 }}>
+              {locationStats.map(({ location, count }) => (
+                <View key={location} style={{ gap: 6 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ flexShrink: 1, fontSize: theme.type.label, fontWeight: '600', color: colors.text }} numberOfLines={1}>{location}</Text>
+                    <Text style={{ fontSize: theme.type.caption, color: colors.textMuted, marginLeft: 8 }}>{count} {count === 1 ? 'item' : 'items'}</Text>
+                  </View>
+                  <View style={{ height: 8, borderRadius: theme.radii.pill, backgroundColor: colors.surfaceSunken, overflow: 'hidden' }}>
+                    <View style={{ width: `${Math.round((count / maxLocationCount) * 100)}%`, height: '100%', borderRadius: theme.radii.pill, backgroundColor: colors.accent }} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          </Card>
+        </>
+      )}
 
       {/* Rename household sheet */}
       <NativeSheet visible={renameOpen} onClose={() => setRenameOpen(false)}>

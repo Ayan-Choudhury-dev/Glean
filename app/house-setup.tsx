@@ -7,6 +7,7 @@ import { useGleanStore } from '../store/useGleanStore';
 import { Tappable } from '../components/ui/tappable';
 import { Text } from '../components/ui/text';
 import { theme } from '@/constants/theme';
+import { FEATURES } from '@/constants/config';
 import { useColors } from '@/lib/appearance';
 import { showDialog } from '@/lib/overlay';
 
@@ -83,7 +84,7 @@ export default function HouseSetupScreen() {
                 Set up your household
               </Text>
               <Text style={{ fontSize: theme.type.label, color: colors.textMuted, marginTop: 6, textAlign: 'center' }}>
-                Hi {profile?.name ?? 'there'} — create a new home or join one.
+                Hi {profile?.name ?? 'there'} — set up your home to get started.
               </Text>
             </View>
 
@@ -91,15 +92,17 @@ export default function HouseSetupScreen() {
               <OptionCard
                 icon="add-circle-outline"
                 title="Create a house"
-                subtitle="Start fresh and invite housemates"
+                subtitle="Start tracking your pantry"
                 onPress={() => setMode('create')}
               />
-              <OptionCard
-                icon="enter-outline"
-                title="Join a house"
-                subtitle="Enter an invite code from a housemate"
-                onPress={() => setMode('join')}
-              />
+              {FEATURES.household && (
+                <OptionCard
+                  icon="enter-outline"
+                  title="Join a house"
+                  subtitle="Enter an invite code from a housemate"
+                  onPress={() => setMode('join')}
+                />
+              )}
             </View>
 
             <Tappable
