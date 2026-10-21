@@ -799,15 +799,6 @@ export const useGleanStore = create<GleanState>((set, get) => ({
         houseOptions,
         loading: false,
       });
-      if (freshHouse) {
-        void localSaveHouse(houseId, {
-          house: freshHouse,
-          inventory:       invRes.data   ?? [],
-          shoppingList:    shopRes.data  ?? [],
-          consumptionLogs: logRes.data   ?? [],
-          houseOptions,
-        });
-      }
     } else {
       set({ loading: false });
       reportSyncError("Couldn't load fresh data — showing saved pantry.");
@@ -1097,4 +1088,37 @@ useGleanStore.subscribe((state, prev) => {
   if (state.profile === prev.profile) return;
   if (state.profile) void saveProfile(state.profile);
   else void clearProfile();
+});
+
+// ─── Local mirror (write-through) ─────────────────────────────────────────────
+// Persist house data to SQLite whenever it changes, debounced so rapid edits
+// (e.g. the qty stepper) collapse into one snapshot. Read latest state at flush
+// time so a sign-out/leave that already cleared the DB is never resurrected.
+let localSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleLocalSave() {
+  if (localSaveTimer) clearTimeout(localSaveTimer);
+  localSaveTimer = setTimeout(() => {
+    localSaveTimer = null;
+    const s = useGleanStore.getState();
+    if (!s.house) return;
+    void localSaveHouse(s.house.id, {
+      house: s.house,
+      inventory: s.inventory,
+      shoppingList: s.shoppingList,
+      consumptionLogs: s.consumptionLogs,
+      houseOptions: s.houseOptions,
+    });
+  }, 300);
+}
+
+useGleanStore.subscribe((state, prev) => {
+  const changed =
+    state.house !== prev.house ||
+    state.inventory !== prev.inventory ||
+    state.shoppingList !== prev.shoppingList ||
+    state.consumptionLogs !== prev.consumptionLogs ||
+    state.houseOptions !== prev.houseOptions;
+  if (!changed || !state.house) return;
+  scheduleLocalSave();
 });

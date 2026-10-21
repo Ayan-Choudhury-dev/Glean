@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS house (
   invite_code  TEXT,
   owner_id     TEXT,
   image_key    TEXT,
+  created_at   TEXT,
   members_json TEXT NOT NULL DEFAULT '[]'
 );
 
@@ -24,7 +25,8 @@ CREATE TABLE IF NOT EXISTS inventory (
   location       TEXT,
   image_url      TEXT,
   barcode        TEXT,
-  last_restocked TEXT
+  last_restocked TEXT,
+  created_at     TEXT
 );
 
 CREATE TABLE IF NOT EXISTS shopping_list (
@@ -33,7 +35,8 @@ CREATE TABLE IF NOT EXISTS shopping_list (
   inventory_id TEXT,
   name         TEXT NOT NULL,
   target_qty   INTEGER NOT NULL DEFAULT 1,
-  status       TEXT NOT NULL DEFAULT 'to_buy'
+  status       TEXT NOT NULL DEFAULT 'to_buy',
+  created_at   TEXT
 );
 
 CREATE TABLE IF NOT EXISTS consumption_logs (
@@ -53,7 +56,8 @@ CREATE TABLE IF NOT EXISTS house_options (
   type       TEXT NOT NULL,
   name       TEXT NOT NULL,
   icon       TEXT,
-  created_by TEXT
+  created_by TEXT,
+  created_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS meta (
