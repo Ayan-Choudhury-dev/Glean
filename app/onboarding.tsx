@@ -18,6 +18,7 @@ import { Text } from '../components/ui/text';
 import { theme, type AppColors } from '@/constants/theme';
 import { useColors } from '@/lib/appearance';
 import { showDialog, showToast } from '@/lib/overlay';
+import { useGoogleAuth, tokensFromResponse, googleAuthConfigured } from '../lib/googleAuth';
 
 type Mode = 'sign_up' | 'sign_in';
 
@@ -116,6 +117,7 @@ export default function OnboardingScreen() {
   const [focused, setFocused] = useState<keyof FieldErrors | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [googleRequest, , googlePrompt] = useGoogleAuth();
 
   // Already authenticated — skip onboarding
   useEffect(() => {
@@ -203,6 +205,40 @@ export default function OnboardingScreen() {
       return;
     }
     showToast('Reset link sent — check your email');
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!googleRequest) return;
+    setBusy(true);
+    try {
+      const result = await googlePrompt();
+      if (result?.type !== 'success' || !result.authentication) {
+        if (result?.type === 'error') {
+          showDialog({ title: 'Google sign-in failed', message: result.error?.message ?? 'Please try again.', cancelLabel: null });
+        }
+        return;
+      }
+      const { idToken, accessToken } = tokensFromResponse(result);
+
+      // Round-trip proof: use the Drive-capable access token to read identity.
+      let email: string | undefined;
+      try {
+        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (res.ok) email = (await res.json()).email;
+      } catch {
+        /* identity fetch is best-effort */
+      }
+
+      // TODO: hand idToken to auth (Supabase signInWithIdToken) / accessToken to Drive backup.
+      console.log('[google] tokens', { idToken: !!idToken, accessToken: !!accessToken, email });
+      showToast(email ? `Google connected — ${email}` : 'Google connected');
+    } catch (e) {
+      showDialog({ title: 'Google sign-in failed', message: String(e), cancelLabel: null });
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -374,6 +410,32 @@ export default function OnboardingScreen() {
                 <Text style={{ marginHorizontal: 16, fontSize: theme.type.caption, color: colors.textFaint }}>or</Text>
                 <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
               </View>
+
+              {googleAuthConfigured && (
+                <Tappable
+                  onPress={handleGoogleSignIn}
+                  disabled={busy}
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: busy }}
+                  accessibilityLabel="Continue with Google"
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: theme.radii.md,
+                    minHeight: 48,
+                    gap: 8,
+                  }}
+                >
+                  <Ionicons name="logo-google" size={18} color={colors.text} />
+                  <Text style={{ fontSize: theme.type.label, fontFamily: theme.fonts.medium, color: colors.text }}>
+                    Continue with Google
+                  </Text>
+                </Tappable>
+              )}
 
               {magicLinkSent ? (
                 <View style={{ alignItems: 'center', paddingVertical: 16 }}>
