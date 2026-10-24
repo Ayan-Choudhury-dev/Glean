@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "io.github.ayanchoudhury.glean"
+      "bundleIdentifier": "io.github.ayanchoudhurydev.glean"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +17,7 @@
         "backgroundColor": "#F7F1E8"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "io.github.ayanchoudhury.glean",
+      "package": "io.github.ayanchoudhurydev.glean",
       "permissions": [
         "android.permission.CAMERA"
       ],

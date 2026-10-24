@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'io.github.ayanchoudhury.glean'
+    namespace 'io.github.ayanchoudhurydev.glean'
     defaultConfig {
-        applicationId 'io.github.ayanchoudhury.glean'
+        applicationId 'io.github.ayanchoudhurydev.glean'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

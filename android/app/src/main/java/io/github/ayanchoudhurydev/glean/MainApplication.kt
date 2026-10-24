@@ -1,4 +1,4 @@
-package io.github.ayanchoudhury.glean
+package io.github.ayanchoudhurydev.glean
 
 import android.app.Application
 import android.content.res.Configuration
