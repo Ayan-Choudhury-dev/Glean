@@ -1,0 +1,35 @@
+Categories:
+  - Household
+  - Food
+License: Apache-2.0
+AuthorName: Ayan Choudhury
+SourceCode: https://github.com/Ayan-Choudhury-dev/Glean
+IssueTracker: https://github.com/Ayan-Choudhury-dev/Glean/issues
+
+AutoName: Glean
+Summary: Track your pantry and shopping list, entirely on your device.
+Description: |
+  Glean is a local-first pantry tracker. Keep track of what is in your
+  kitchen, know what is running low, and build a shopping list — all stored
+  on your device with no account and no server.
+
+  Features:
+  * Pantry inventory with categories, locations, quantities and barcodes
+  * Shopping list that updates your pantry when you restock
+  * Recent activity history
+  * Works fully offline
+
+RepoType: git
+Repo: https://github.com/Ayan-Choudhury-dev/Glean
+
+# TODO: add a Builds entry once a tagged release exists. Expo / React Native
+# apps need the JS bundle produced before Gradle runs; see
+# https://f-droid.org/en/docs/Build_Metadata_Reference/ and the Expo build docs.
+#
+# Builds:
+#   - versionName: 1.0.0
+#     versionCode: 1
+#     commit: <tag or commit>
+#     subdir: android/app
+#     gradle:
+#       - yes

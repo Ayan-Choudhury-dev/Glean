@@ -1,31 +1,31 @@
 # Glean
 
-A smart pantry and shopping list app built with Expo and React Native. Glean tracks your household inventory, predicts when items will run out based on consumption history, and automatically surfaces restock suggestions.
+A local-first pantry and shopping list app built with Expo and React Native.
+Track what's in your kitchen, know what's running low, and build a shopping
+list — all stored on your device. No account, no server, no tracking.
 
 ## Features
 
-- **Pantry Inventory** — Track items, quantities, categories and storage locations, with inline quantity steppers
-- **Smart Shopping List** — To Buy / Purchased segments, per-item quantities, and one-tap "Update Pantry"
-- **Suggested Restocks** — Items are surfaced automatically when stock is predicted to run low based on usage history (see `lib/predictions.ts`)
-- **Consumption Tracking** — Logs usage over time to improve predictions and powers per-item activity timelines
-- **Onboarding & House Setup** — Multi-user household setup flow with invite codes
-- **Import / Export** — Paste CSV to bulk-import; export your inventory as a shareable CSV file
+- **Pantry Inventory** — items, quantities, categories, storage locations, inline quantity steppers
+- **Shopping List** — To Buy / Purchased segments, per-item quantities, one-tap "Update Pantry"
+- **Consumption Tracking** — usage history per item
+- **Import / Export** — CSV import and export
+- **Works offline** — everything lives in a local SQLite database
 
 ## Tech Stack
 
-- [Expo](https://expo.dev) SDK 57 (Expo Router, native tabs)
+- [Expo](https://expo.dev) SDK 57 (Expo Router)
 - [React Native](https://reactnative.dev) 0.86
-- [Supabase](https://supabase.com) — database & auth
+- [expo-sqlite](https://docs.expo.dev/versions/latest/sdk/sqlite/) — local storage
 - [Zustand](https://zustand-demo.pmnd.rs) — state management
 - [NativeWind](https://www.nativewind.dev) + Tailwind CSS — styling
-- [Vitest](https://vitest.dev) — unit tests for pure logic
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 20+
-- A Supabase project with the schema from `supabase/schema.sql`
+- Node.js 20+ (LTS recommended)
+- Android Studio / Xcode for a native development build
 
 ### Installation
 
@@ -35,21 +35,11 @@ cd Glean
 npm install
 ```
 
-### Environment Variables
-
-Create a `.env` file in the root:
-
-```
-EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
 ### Running the App
 
-```bash
-# Start Expo dev server (development build required — native modules)
-npm start
+The app uses native modules, so it needs a development build (not Expo Go):
 
+```bash
 # Android
 npm run android
 
@@ -68,34 +58,29 @@ npm test            # vitest run
 
 ```
 app/
-  (tabs)/            # Tab screens: Inventory, Shopping list, Profile
-  onboarding.tsx     # Auth (sign up / sign in / magic link)
-  house-setup.tsx    # Household create / join
+  (tabs)/            # Pantry, Shopping list, Profile
+  onboarding.tsx     # First-run name setup
+  house-setup.tsx    # Create your pantry
   item-form.tsx      # Add / edit inventory item
 store/
-  useGleanStore.ts   # Zustand store (inventory, shopping list, logs, auth)
+  useGleanStore.ts   # Zustand store (profile, pantry, shopping list, logs)
 lib/
-  supabase.ts        # Supabase client
-  predictions.ts     # Restock prediction logic (+ predictions.test.ts)
+  db/                # SQLite schema + local client
+  predictions.ts     # Restock prediction logic
 components/
-  NativeSheet.tsx    # Native bottom-sheet wrapper (@expo/ui)
-  ui/                # Thin NativeWind primitives (text, button, stacks, tappable)
-supabase/
-  schema.sql         # Database schema
-  seed.sql           # Dev seed data
-Design/
-  glean_design.pen   # Source-of-truth design file
+  NativeSheet.tsx    # JS bottom sheet
+  ui/                # Thin NativeWind primitives
+metadata/
+  *.yml              # F-Droid listing metadata
 ```
 
-## Database Setup
+## Data & Privacy
 
-Run the SQL files in order against your Supabase project:
-
-```
-supabase/schema.sql
-supabase/seed.sql
-```
+All data is stored locally in a SQLite database on your device. Nothing is
+sent to a server, and there is no account or sign-in. Uninstalling the app
+removes the data.
 
 ## License
 
-MIT
+Licensed under the Apache License, Version 2.0 — see [LICENSE](LICENSE) and
+[NOTICE](NOTICE).
