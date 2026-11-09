@@ -1,11 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { View, TextInput, ScrollView, Share, Linking, RefreshControl, Animated, Image } from 'react-native';
+import { View, TextInput, ScrollView, Linking, RefreshControl, Animated, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import * as Clipboard from 'expo-clipboard';
 import { Tappable } from '../../components/ui/tappable';
 import { CollapsibleHeaderBar, LargeTitle, useCollapsibleHeader, useHeaderContentInset } from '../../components/CollapsibleHeader';
 import { uploadAvatar } from '@/lib/upload';
@@ -18,11 +17,9 @@ import { VStack } from '@/components/ui/vstack';
 import { Button, ButtonText } from '@/components/ui/button';
 import { NativeSheet } from '../../components/NativeSheet';
 import { theme, accents, type AccentKey } from '@/constants/theme';
-import { FEATURES } from '@/constants/config';
 import { useAppearance, useColors } from '@/lib/appearance';
 import { showDialog, showToast } from '@/lib/overlay';
 import { HouseAvatar } from '@/components/HouseAvatar';
-import { MemberStack } from '@/components/MemberStack';
 import { initialsFor } from '@/lib/initials';
 import { HOUSE_IMAGES } from '@/constants/houseImages';
 
@@ -33,7 +30,6 @@ export default function ProfileScreen() {
   const setAppearanceMode = useAppearance(s => s.setMode);
   const accentKey = useAppearance(s => s.accent);
   const setAccentKey = useAppearance(s => s.setAccent);
-  const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameText, setRenameText] = useState('');
   const [nameOpen, setNameOpen] = useState(false);
@@ -49,19 +45,6 @@ export default function ProfileScreen() {
     if (!house) return;
     setRefreshing(true);
     try { await loadHouseData(house.id); } finally { setRefreshing(false); }
-  };
-
-  const copyInvite = async () => {
-    if (!house?.invite_code) return;
-    await Clipboard.setStringAsync(house.invite_code);
-    showToast('Invite code copied');
-  };
-
-  const shareInvite = async () => {
-    if (!house?.invite_code) return;
-    await Share.share({
-      message: `Join my household "${house.name ?? 'Glean'}" on Glean with invite code ${house.invite_code}`,
-    });
   };
 
   const pickAvatar = async () => {
@@ -263,16 +246,6 @@ export default function ProfileScreen() {
                 </Tappable>
               )}
             </View>
-            {FEATURES.household && (
-              <Tappable
-                onPress={() => router.push('/members')}
-                accessibilityRole="button"
-                accessibilityLabel={`View ${membersLabel}`}
-                style={{ alignSelf: 'flex-start', marginTop: 8 }}
-              >
-                <MemberStack members={house?.members ?? []} />
-              </Tappable>
-            )}
           </View>
         </View>
         <Divider />
@@ -282,22 +255,6 @@ export default function ProfileScreen() {
           value={HOUSE_IMAGES.find(p => p.key === house?.image_key)?.label ?? 'Default'}
           onPress={() => setImageOpen(true)}
         />
-        {FEATURES.household && (
-          <>
-            <Divider />
-            <SettingRow icon="people-outline" label="Members" value={membersLabel} onPress={() => router.push('/members')} />
-            <Divider />
-            <Tappable onPress={() => setInviteSheetOpen(true)}>
-              <HStack className="items-center px-4 py-3">
-                <View className="w-8 h-8 rounded-lg bg-surfaceMuted dark:bg-[#2A2A2A] items-center justify-center mr-3">
-                  <Ionicons name="person-add-outline" size={16} color={colors.textMuted} />
-                </View>
-                <Text className="flex-1 text-sm font-medium text-muted dark:text-[#B3B3B3]">Invite a member</Text>
-                <Text className="text-xs text-muted dark:text-[#B3B3B3]">Share invite code</Text>
-              </HStack>
-            </Tappable>
-          </>
-        )}
       </Card>
 
       {/* ── Data (import / export) ─────────────────────────────────────── */}
@@ -501,34 +458,6 @@ export default function ProfileScreen() {
               );
             })}
           </View>
-        </VStack>
-      </NativeSheet>
-
-      {/* Invite sheet */}
-      <NativeSheet visible={inviteSheetOpen} onClose={() => setInviteSheetOpen(false)}>
-        <VStack className="px-6 pt-2 pb-10" space="lg">
-          <VStack space="xs">
-            <Heading size="md">Invite a member</Heading>
-            <Text className="text-sm text-muted dark:text-[#B3B3B3]">
-              Share this invite code with housemates so they can join{' '}
-              {house?.name ?? 'your household'}.
-            </Text>
-          </VStack>
-          <View className="bg-surfaceMuted dark:bg-[#2A2A2A] border border-line dark:border-[#333333] rounded-xl py-6 items-center">
-            <Text className="text-3xl font-bold text-ink dark:text-[#F2F2F2] tracking-[0.3em]">
-              {house?.invite_code ?? '—'}
-            </Text>
-          </View>
-          <VStack space="sm">
-            <Button size="lg" className="bg-brand rounded-xl" onPress={copyInvite}>
-              <Ionicons name="copy-outline" size={16} color={colors.onAccent} style={{ marginRight: 6 }} />
-              <ButtonText className="text-white">Copy code</ButtonText>
-            </Button>
-            <Button size="lg" variant="outline" action="secondary" className="rounded-xl border-line dark:border-[#333333]" onPress={shareInvite}>
-              <Ionicons name="share-outline" size={16} color={colors.text} style={{ marginRight: 6 }} />
-              <ButtonText className="text-ink dark:text-[#F2F2F2]">Share invite</ButtonText>
-            </Button>
-          </VStack>
         </VStack>
       </NativeSheet>
 

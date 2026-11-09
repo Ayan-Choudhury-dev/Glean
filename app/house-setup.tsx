@@ -11,15 +11,14 @@ import { FEATURES } from '@/constants/config';
 import { useColors } from '@/lib/appearance';
 import { showDialog } from '@/lib/overlay';
 
-type Mode = 'pick' | 'create' | 'join';
+type Mode = 'pick' | 'create';
 
 export default function HouseSetupScreen() {
-  const { profile, createHouse, joinHouse, signOut } = useGleanStore();
+  const { profile, createHouse, signOut } = useGleanStore();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<Mode>('pick');
   const [houseName, setHouseName] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
   const [busy, setBusy] = useState(false);
 
   const handleCreate = async () => {
@@ -34,16 +33,6 @@ export default function HouseSetupScreen() {
     }
 
     router.replace('/(tabs)');
-  };
-
-  const handleJoin = async () => {
-    if (busy || inviteCode.length < 6) return;
-    setBusy(true);
-    const success = await joinHouse(inviteCode.trim());
-    setBusy(false);
-
-    if (success) router.replace('/joined');
-    else showDialog({ title: 'Code not found', message: 'Double-check the invite code and try again.', cancelLabel: null });
   };
 
   const handleSignOut = () => {
@@ -89,14 +78,6 @@ export default function HouseSetupScreen() {
                 subtitle="Start tracking your pantry"
                 onPress={() => setMode('create')}
               />
-              {FEATURES.household && (
-                <OptionCard
-                  icon="enter-outline"
-                  title="Join a house"
-                  subtitle="Enter an invite code from a housemate"
-                  onPress={() => setMode('join')}
-                />
-              )}
             </View>
 
             <Tappable
@@ -134,34 +115,6 @@ export default function HouseSetupScreen() {
             />
 
             <PrimaryButton label={busy ? 'Creating…' : 'Create house'} onPress={handleCreate} disabled={busy || !houseName.trim()} />
-          </>
-        )}
-
-        {mode === 'join' && (
-          <>
-            <BackButton onPress={() => setMode('pick')} />
-            <Text style={{ fontSize: theme.type.heading, color: colors.text, fontFamily: theme.fonts.display, marginTop: 16, marginBottom: 6 }}>
-              Join a household
-            </Text>
-            <Text style={{ fontSize: theme.type.label, color: colors.textMuted, marginBottom: 24 }}>
-              Ask a housemate for their 6-character invite code.
-            </Text>
-
-            <Field
-              label="Invite code"
-              value={inviteCode}
-              onChangeText={v => setInviteCode(v.toUpperCase())}
-              placeholder="ABC123"
-              autoFocus
-              autoCapitalize="characters"
-              maxLength={6}
-              accessibilityLabel="Invite code"
-              returnKeyType="done"
-              onSubmitEditing={handleJoin}
-              inputStyle={{ fontFamily: theme.fonts.mono, letterSpacing: 6, textAlign: 'center', textTransform: 'uppercase' }}
-            />
-
-            <PrimaryButton label={busy ? 'Joining…' : 'Join house'} onPress={handleJoin} disabled={busy || inviteCode.length < 6} />
           </>
         )}
       </ScrollView>

@@ -102,33 +102,6 @@ export default function RootLayout() {
     hydrateAppearance();
   }, [hydrateAppearance]);
 
-  // Handle deep link redirects (magic link auth)
-  useEffect(() => {
-    const onUrl = async ({ url }: { url: string }) => {
-      if (url.includes('access_token')) {
-        await handleAuthRedirect(url);
-        // Password-recovery links land here too; send the user to set a new one.
-        if (url.includes('type=recovery')) {
-          router.replace('/reset-password');
-          return;
-        }
-        const { profile } = useGleanStore.getState();
-        if (profile) {
-          router.replace(profile.house_id ? '/(tabs)' : '/house-setup');
-        }
-      }
-    };
-
-    const sub = Linking.addEventListener('url', onUrl);
-
-    // Handle cold-start deep link
-    Linking.getInitialURL().then(url => {
-      if (url) onUrl({ url });
-    });
-
-    return () => sub.remove();
-  }, []);
-
   // Keep the splash up until the fonts are actually registered. Rendering the
   // tree first lays text out with fallback metrics; when the custom fonts swap in
   // the glyph widths change but RN does not always re-measure, which clipped the
@@ -145,9 +118,6 @@ export default function RootLayout() {
             <Stack.Screen name="house-setup" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)"      options={{ headerShown: false }} />
             <Stack.Screen name="item-form"   options={{ headerShown: false, presentation: 'modal', contentStyle: { backgroundColor: colors.surface } }} />
-            <Stack.Screen name="members"     options={{ title: 'Members', headerBackTitle: 'Settings', contentStyle: { backgroundColor: colors.background } }} />
-            <Stack.Screen name="reset-password" options={{ headerShown: false }} />
-            <Stack.Screen name="joined"     options={{ headerShown: false }} />
             <Stack.Screen name="scan"       options={{ headerShown: false, presentation: 'fullScreenModal' }} />
           </Stack>
           <SyncErrorBanner />
