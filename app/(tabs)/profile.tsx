@@ -120,9 +120,9 @@ export default function ProfileScreen() {
 
   const handleLeave = () => {
     showDialog({
-      title: 'Leave household',
-      message: `Leave "${house?.name ?? 'this household'}"? You can rejoin later with an invite code.`,
-      confirmLabel: 'Leave',
+      title: 'Reset pantry',
+      message: 'This clears your pantry on this device and starts fresh.',
+      confirmLabel: 'Reset',
       destructive: true,
       onConfirm: async () => {
         await leaveHouse();
@@ -263,14 +263,16 @@ export default function ProfileScreen() {
                 </Tappable>
               )}
             </View>
-            <Tappable
-              onPress={() => router.push('/members')}
-              accessibilityRole="button"
-              accessibilityLabel={`View ${membersLabel}`}
-              style={{ alignSelf: 'flex-start', marginTop: 8 }}
-            >
-              <MemberStack members={house?.members ?? []} />
-            </Tappable>
+            {FEATURES.household && (
+              <Tappable
+                onPress={() => router.push('/members')}
+                accessibilityRole="button"
+                accessibilityLabel={`View ${membersLabel}`}
+                style={{ alignSelf: 'flex-start', marginTop: 8 }}
+              >
+                <MemberStack members={house?.members ?? []} />
+              </Tappable>
+            )}
           </View>
         </View>
         <Divider />
@@ -387,7 +389,7 @@ export default function ProfileScreen() {
             <View className="w-8 h-8 rounded-lg bg-surfaceMuted dark:bg-[#2A2A2A] items-center justify-center mr-3">
               <Ionicons name="exit-outline" size={16} color={colors.textMuted} />
             </View>
-            <Text className="flex-1 text-sm font-medium text-muted dark:text-[#B3B3B3]">Leave household</Text>
+            <Text className="flex-1 text-sm font-medium text-muted dark:text-[#B3B3B3]">Reset pantry</Text>
           </HStack>
         </Tappable>
         <Divider />
