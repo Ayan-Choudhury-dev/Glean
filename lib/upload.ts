@@ -1,92 +1,58 @@
-import { File } from 'expo-file-system';
-import { supabase } from './supabase';
+import { Directory, File, Paths } from 'expo-file-system';
 
-const BUCKET = 'item-images';
-const AVATAR_BUCKET = 'avatars';
+// Local-only: images are copied into the app's document directory and referenced
+// by their local file URI. No server upload.
 
-function contentTypeFor(uri: string): string {
-  const ext = (uri.split('?')[0].split('.').pop() ?? 'jpg').toLowerCase();
-  if (ext === 'png') return 'image/png';
-  if (ext === 'webp') return 'image/webp';
-  if (ext === 'heic') return 'image/heic';
-  return 'image/jpeg';
+function imagesDir(): Directory {
+  const dir = new Directory(Paths.document, 'item-images');
+  try {
+    dir.create({ intermediates: true, idempotent: true });
+  } catch {
+    /* already exists */
+  }
+  return dir;
 }
 
-/**
- * Upload a locally-picked image to Supabase Storage and return its public URL.
- * Returns null on failure so callers can fall back to the local URI.
- */
-export async function uploadItemImage(
-  uri: string,
-  houseId: string,
-  itemId: string,
-): Promise<string | null> {
+function extOf(uri: string): string {
+  return (uri.split('?')[0].split('.').pop() ?? 'jpg').toLowerCase();
+}
+
+async function copyInto(uri: string, name: string): Promise<string> {
+  const dest = new File(imagesDir(), name);
+  new File(uri).copy(dest);
+  return dest.uri;
+}
+
+/** Copy a picked image into app storage and return its local URI. */
+export async function uploadItemImage(uri: string, _houseId: string, itemId: string): Promise<string | null> {
   try {
-    const ext = (uri.split('?')[0].split('.').pop() ?? 'jpg').toLowerCase();
-    const path = `${houseId}/${itemId}.${ext}`;
-    const bytes = await new File(uri).arrayBuffer();
-
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, bytes, { upsert: true, contentType: contentTypeFor(uri) });
-
-    if (error) {
-      console.error('[upload] item image:', error.message);
-      return null;
-    }
-
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-    return data.publicUrl;
+    return await copyInto(uri, `${itemId}.${extOf(uri)}`);
   } catch (e) {
-    console.error('[upload] item image failed:', e);
-    return null;
+    console.error('[image] copy failed:', e);
+    return uri;
   }
 }
 
-/** Upload a locally-picked avatar and return its public URL (null on failure). */
+/** Copy a picked avatar into app storage and return its local URI. */
 export async function uploadAvatar(uri: string, userId: string): Promise<string | null> {
   try {
-    const ext = (uri.split('?')[0].split('.').pop() ?? 'jpg').toLowerCase();
-    const path = `avatars/${userId}.${ext}`;
-    const bytes = await new File(uri).arrayBuffer();
-
-    const { error } = await supabase.storage
-      .from(AVATAR_BUCKET)
-      .upload(path, bytes, { upsert: true, contentType: contentTypeFor(uri) });
-
-    if (error) {
-      console.error('[upload] avatar:', error.message);
-      return null;
-    }
-
-    const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
-    return data.publicUrl;
+    return await copyInto(uri, `avatar-${userId}.${extOf(uri)}`);
   } catch (e) {
-    console.error('[upload] avatar failed:', e);
-    return null;
+    console.error('[image] avatar copy failed:', e);
+    return uri;
   }
 }
 
 /** Remove an item's stored image(s) when the item is deleted. */
-export async function deleteItemImage(houseId: string, itemId: string): Promise<void> {
+export async function deleteItemImage(_houseId: string, itemId: string): Promise<void> {
   try {
-    const { data, error } = await supabase.storage
-      .from(BUCKET)
-      .list(houseId, { search: itemId });
-
-    if (error) {
-      console.error('[upload] list for delete:', error.message);
-      return;
-    }
-
-    const paths = (data ?? [])
-      .filter(entry => entry.name.startsWith(`${itemId}.`))
-      .map(entry => `${houseId}/${entry.name}`);
-
-    if (paths.length > 0) {
-      await supabase.storage.from(BUCKET).remove(paths);
+    const dir = imagesDir();
+    for (const entry of dir.list()) {
+      if (entry instanceof File && entry.name.startsWith(`${itemId}.`)) {
+        entry.delete();
+      }
     }
   } catch (e) {
-    console.error('[upload] delete item image failed:', e);
+    console.error('[image] delete failed:', e);
   }
 }

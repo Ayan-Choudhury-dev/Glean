@@ -28,13 +28,11 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
-import { supabase } from '@/lib/supabase';
 import { useGleanStore } from '@/store/useGleanStore';
 import { Tappable } from '@/components/ui/tappable';
 import { Text } from '@/components/ui/text';
 import { OverlayHost } from '@/components/OverlayHost';
 import { theme } from '@/constants/theme';
-import { initSyncQueue } from '@/lib/db/syncQueue';
 import { useAppearance, useColors } from '@/lib/appearance';
 import '@/global.css';
 
@@ -98,33 +96,11 @@ export default function RootLayout() {
     return () => clearTimeout(t);
   }, []);
 
-  // Re-verify membership when the app returns to the foreground — catches being
-  // removed from a house by its owner while the app was backgrounded.
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', state => {
-      if (state === 'active') void refreshMembership();
-    });
-    return () => sub.remove();
-  }, [refreshMembership]);
-
-  // Flush any writes queued while offline.
-  useEffect(() => {
-    void initSyncQueue();
-  }, []);
-
   // Restore the saved appearance preference.
   const hydrateAppearance = useAppearance(s => s.hydrate);
   useEffect(() => {
     hydrateAppearance();
   }, [hydrateAppearance]);
-
-  // Listen for auth changes (token refresh, sign-out from another device, etc.)
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') clearSession();
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   // Handle deep link redirects (magic link auth)
   useEffect(() => {

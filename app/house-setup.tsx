@@ -33,13 +33,7 @@ export default function HouseSetupScreen() {
       return;
     }
 
-    showDialog({
-      title: 'House created',
-      message: `Share this invite code with housemates:\n\n${result.invite_code}`,
-      confirmLabel: "Let's go",
-      cancelLabel: null,
-      onConfirm: () => router.replace('/(tabs)'),
-    });
+    router.replace('/(tabs)');
   };
 
   const handleJoin = async () => {
@@ -125,7 +119,7 @@ export default function HouseSetupScreen() {
               Name your household
             </Text>
             <Text style={{ fontSize: theme.type.label, color: colors.textMuted, marginBottom: 24 }}>
-              You can invite housemates after setup.
+              You can change this later in settings.
             </Text>
 
             <Field

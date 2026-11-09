@@ -3,6 +3,7 @@ import type { SQLiteBindValue } from 'expo-sqlite';
 import { DDL } from './schema';
 import type {
   House,
+  Profile,
   InventoryItem,
   ShoppingItem,
   ConsumptionLog,
@@ -120,4 +121,23 @@ export async function localClearHouse(): Promise<void> {
     `);
     await db.runAsync('DELETE FROM meta WHERE key = ?', LAST_HOUSE_KEY);
   });
+}
+
+/** Load the single local profile, or null on first run. */
+export async function localGetProfile(): Promise<Profile | null> {
+  const db = await getDb();
+  return db.getFirstAsync<Profile>('SELECT * FROM profile LIMIT 1');
+}
+
+/** Persist the local profile. */
+export async function localSaveProfile(profile: Profile): Promise<void> {
+  const db = await getDb();
+  const { sql, args } = buildInsert('profile', profile as unknown as Record<string, unknown>);
+  await db.runAsync(sql, ...args);
+}
+
+/** Remove the local profile (sign-out / reset). */
+export async function localClearProfile(): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM profile');
 }

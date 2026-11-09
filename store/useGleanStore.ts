@@ -1,9 +1,13 @@
 import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
-import { enqueueSyncOp, drainSyncQueue } from '../lib/db/syncQueue';
 import { deleteItemImage } from '../lib/upload';
-import { saveProfile, loadProfile, clearProfile } from '../lib/profileCache';
-import { localSaveHouse, localLoadHouse, localClearHouse } from '../lib/db/client';
+import {
+  localSaveHouse,
+  localLoadHouse,
+  localClearHouse,
+  localGetProfile,
+  localSaveProfile,
+  localClearProfile,
+} from '../lib/db/client';
 import { RECENT_ACTIVITY_FETCH_LIMIT } from '../constants/config';
 
 // ─── UUID helper ──────────────────────────────────────────────────────────────
@@ -152,7 +156,7 @@ interface GleanState {
   } | null;
 
   // Auth
-  signUp:   (name: string, email: string, password: string) => Promise<string | null>;
+  signUp:   (name: string) => Promise<string | null>;
   signIn:           (email: string, password: string)               => Promise<string | null>;
   signInWithMagicLink: (email: string)                              => Promise<string | null>;
   sendPasswordReset:   (email: string)                              => Promise<string | null>;
@@ -204,7 +208,9 @@ interface GleanState {
   importCSV: (csvText: string) => { added: number; updated: number };
 }
 
-// ─── Supabase sync helpers (fire-and-forget) ──────────────────────────────────
+// ─── Persistence (local-only) ─────────────────────────────────────────────────
+// The store subscription at the bottom mirrors every change into SQLite, so the
+// old Supabase write helpers are no-ops kept for call-site stability.
 
 function reportSyncError(message: string) {
   try {
@@ -214,66 +220,14 @@ function reportSyncError(message: string) {
   }
 }
 
-function sbInsert(table: string, row: Record<string, unknown>) {
-  void enqueueSyncOp({ table, kind: 'insert', payload: row });
-}
+function sbInsert(_table: string, _row: Record<string, unknown>) {}
+function sbUpdate(_table: string, _id: string, _updates: Record<string, unknown>) {}
+function sbInsertConsumptionLog(_log: ConsumptionLog) {}
+function sbUpdateDelayed(_table: string, _id: string, _updates: Record<string, unknown>) {}
+function cancelDelayedUpdate(_table: string, _id: string) {}
+function sbDelete(_table: string, _id: string) {}
 
-function sbUpdate(table: string, id: string, updates: Record<string, unknown>) {
-  void enqueueSyncOp({ table, kind: 'update', id, payload: updates });
-}
-
-const delayedUpdates = new Map<string, {
-  timer: ReturnType<typeof setTimeout>;
-  updates: Record<string, unknown>;
-}>();
-
-let delayedLogs: ConsumptionLog[] = [];
-let delayedLogsTimer: ReturnType<typeof setTimeout> | null = null;
-
-function sbInsertConsumptionLog(log: ConsumptionLog) {
-  delayedLogs.push(log);
-  if (delayedLogsTimer) clearTimeout(delayedLogsTimer);
-  delayedLogsTimer = setTimeout(() => {
-    const logs = delayedLogs;
-    delayedLogs = [];
-    delayedLogsTimer = null;
-    if (logs.length > 0) {
-      void enqueueSyncOp({ table: 'consumption_logs', kind: 'insert', payload: logs });
-    }
-  }, 500);
-}
-
-function sbUpdateDelayed(table: string, id: string, updates: Record<string, unknown>) {
-  const key = `${table}:${id}`;
-  const pending = delayedUpdates.get(key);
-  if (pending) clearTimeout(pending.timer);
-  const mergedUpdates = { ...pending?.updates, ...updates };
-
-  const timer = setTimeout(() => {
-    delayedUpdates.delete(key);
-    sbUpdate(table, id, mergedUpdates);
-  }, 500);
-  delayedUpdates.set(key, { timer, updates: mergedUpdates });
-}
-
-function cancelDelayedUpdate(table: string, id: string) {
-  const key = `${table}:${id}`;
-  const pending = delayedUpdates.get(key);
-  if (pending) {
-    clearTimeout(pending.timer);
-    delayedUpdates.delete(key);
-  }
-}
-
-function sbDelete(table: string, id: string) {
-  void enqueueSyncOp({ table, kind: 'delete', id });
-}
-
-// ─── Realtime sync (multi-user) ────────────────────────────────────────────────
-
-type RealtimeTable = 'inventory' | 'shopping_list' | 'consumption_logs';
-
-let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+// ─── Realtime (removed: local-only) ───────────────────────────────────────────
 
 /** Keep only the newest RECENT_ACTIVITY_FETCH_LIMIT logs in memory. */
 function capLogs(logs: ConsumptionLog[]): ConsumptionLog[] {
@@ -283,54 +237,8 @@ function capLogs(logs: ConsumptionLog[]): ConsumptionLog[] {
     .slice(0, RECENT_ACTIVITY_FETCH_LIMIT);
 }
 
-function applyRealtimeChange(
-  state: GleanState,
-  table: RealtimeTable,
-  eventType: 'INSERT' | 'UPDATE' | 'DELETE',
-  row: { id: string },
-): Partial<GleanState> {
-  const key = table === 'inventory' ? 'inventory'
-    : table === 'shopping_list' ? 'shoppingList'
-      : 'consumptionLogs';
-  const list = state[key] as { id: string }[];
-  if (eventType === 'DELETE') {
-    return { [key]: list.filter(x => x.id !== row.id) } as Partial<GleanState>;
-  }
-  const exists = list.some(x => x.id === row.id);
-  const next = exists ? list.map(x => (x.id === row.id ? row : x)) : [...list, row];
-  return {
-    [key]: table === 'consumption_logs' ? capLogs(next as unknown as ConsumptionLog[]) : next,
-  } as Partial<GleanState>;
-}
-
-interface RealtimeChannelLike {
-  on: (
-    event: string,
-    filter: unknown,
-    cb: (p: { eventType: 'INSERT' | 'UPDATE' | 'DELETE'; new: { id: string }; old: { id: string } }) => void,
-  ) => RealtimeChannelLike;
-  subscribe: () => unknown;
-}
-
-function startRealtime(houseId: string) {
-  if (realtimeChannel) return;
-  const channel = supabase.channel(`house:${houseId}`) as unknown as RealtimeChannelLike;
-  const handle = (table: RealtimeTable) => (p: { eventType: 'INSERT' | 'UPDATE' | 'DELETE'; new: { id: string }; old: { id: string } }) =>
-    useGleanStore.setState(s => applyRealtimeChange(s, table, p.eventType, p.eventType === 'DELETE' ? p.old : p.new));
-
-  realtimeChannel = channel
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory', filter: `house_id=eq.${houseId}` }, handle('inventory'))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list', filter: `house_id=eq.${houseId}` }, handle('shopping_list'))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'consumption_logs', filter: `house_id=eq.${houseId}` }, handle('consumption_logs'))
-    .subscribe() as ReturnType<typeof supabase.channel>;
-}
-
-function stopRealtime() {
-  if (realtimeChannel) {
-    supabase.removeChannel(realtimeChannel);
-    realtimeChannel = null;
-  }
-}
+function startRealtime(_houseId: string) {}
+function stopRealtime() {}
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
@@ -348,137 +256,29 @@ export const useGleanStore = create<GleanState>((set, get) => ({
 
   // ── Auth ──────────────────────────────────────────────────────────────────
 
-  signUp: async (name, email, password) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { name } },
-      });
-      if (error) return error.message;
-      if (!data.user) return 'Sign-up failed. Please try again.';
-
-      // Email confirmation is enabled on the Supabase project — no active
-      // session yet, so the user must confirm before we can proceed.
-      if (!data.session) {
-        return 'Account created — check your email to confirm, then sign in.';
-      }
-
-      // Profile is normally auto-created by the DB trigger; upsert as a
-      // fallback so sign-up never fails if that trigger isn't installed.
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({ id: data.user.id, name, house_id: null }, { onConflict: 'id' });
-
-      set({ profile: { id: data.user.id, name, house_id: null } });
-
-      if (profileError) {
-        console.warn('[auth] profile upsert:', profileError.message);
-        return null;
-      }
-      return null; // null = success
-    } catch (e) {
-      console.error('[auth] signUp network error:', e);
-      return 'Cannot reach Glean servers. Check your connection and Supabase setup, then retry.';
-    }
-  },
-
-  signIn: async (email, password) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return error.message;
-
-      let { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
-
-      // Profile row missing (trigger not installed) — create it so sign-in works.
-      if (!profile) {
-        const name =
-          (data.user.user_metadata?.name as string) || data.user.email || 'New user';
-        await supabase.from('profiles').upsert(
-          { id: data.user.id, name, house_id: null },
-          { onConflict: 'id' }
-        );
-        profile = { id: data.user.id, name, house_id: null };
-      }
-
-      set({ profile });
-
-      if (profile.house_id) {
-        await get().loadHouseData(profile.house_id);
-      }
-
-      return null;
-    } catch (e) {
-      console.error('[auth] signIn network error:', e);
-      return 'Cannot reach Glean servers. Check your connection and Supabase setup, then retry.';
-    }
-  },
-
-  signInWithMagicLink: async (email) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: 'glean://' },
-    });
-    if (error) return error.message;
-    return null;
-  },
-
-  sendPasswordReset: async (email) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: 'glean://reset-password',
-    });
-    if (error) return error.message;
-    return null;
-  },
-
-  updatePassword: async (password) => {
-    if (password.length < 6) return 'Use at least 6 characters.';
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) return error.message;
-    return null;
-  },
-
-  handleAuthRedirect: async (url) => {
-    const parsed = new URL(url);
-    // Supabase puts tokens in the hash fragment: #access_token=...&refresh_token=...
-    const fragment = parsed.hash.substring(1);
-    if (!fragment) return;
-
-    const params = new URLSearchParams(fragment);
-    const access_token = params.get('access_token');
-    const refresh_token = params.get('refresh_token');
-    if (!access_token || !refresh_token) return;
-
-    const { data: sessionData, error } = await supabase.auth.setSession({
-      access_token,
-      refresh_token,
-    });
-    if (error || !sessionData.user) return;
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', sessionData.user.id)
-      .single();
-
-    if (!profile) return;
-
+  signUp: async (name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return 'Please enter your name.';
+    const profile: Profile = { id: uid(), name: trimmed, house_id: null, avatar_url: null };
+    await localSaveProfile(profile);
     set({ profile });
-    if (profile.house_id) {
-      await get().loadHouseData(profile.house_id);
-    }
+    return null;
   },
+
+  signIn: async () => {
+    const profile = await localGetProfile();
+    if (!profile) return 'No local account yet.';
+    set({ profile });
+    if (profile.house_id) await get().loadHouseData(profile.house_id);
+    return null;
+  },
+
+  signInWithMagicLink: async () => 'Not available in the local-only build.',
+  sendPasswordReset: async () => 'Not available in the local-only build.',
+  updatePassword: async () => 'Not available in the local-only build.',
+  handleAuthRedirect: async () => {},
 
   signOut: async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.error('[auth] signOut error:', e);
-    }
     get().clearSession();
   },
 
@@ -486,6 +286,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     stopRealtime();
     set({ profile: null, house: null, inventory: [], shoppingList: [], consumptionLogs: [], houseOptions: [], lastPantryUpdate: null });
     void localClearHouse();
+    void localClearProfile();
   },
 
   clearSyncError: () => set({ syncError: null }),
@@ -493,13 +294,9 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   setAvatar: (url) => {
     const { profile } = get();
     if (!profile) return;
-    set({ profile: { ...profile, avatar_url: url } });
-    supabase.from('profiles').update({ avatar_url: url }).eq('id', profile.id).then(({ error }) => {
-      if (error) {
-        console.error('[sb] update profiles.avatar_url:', error.message);
-        reportSyncError("Couldn't save your photo — check your connection.");
-      }
-    });
+    const next = { ...profile, avatar_url: url };
+    set({ profile: next });
+    void localSaveProfile(next);
   },
 
   setName: (name) => {
@@ -507,37 +304,19 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     if (!profile) return;
     const trimmed = name.trim();
     if (!trimmed || trimmed === profile.name) return;
-    set({ profile: { ...profile, name: trimmed } });
-    supabase.from('profiles').update({ name: trimmed }).eq('id', profile.id).then(({ error }) => {
-      if (error) {
-        console.error('[sb] update profiles.name:', error.message);
-        reportSyncError("Couldn't save your name — check your connection.");
-      }
-    });
+    const next = { ...profile, name: trimmed };
+    set({ profile: next });
+    void localSaveProfile(next);
   },
 
   loadSession: async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
+      const profile = await localGetProfile();
       if (profile) {
         set({ profile });
         if (profile.house_id) await get().loadHouseData(profile.house_id);
-      } else if (error) {
-        // Offline / fetch failed: fall back to the last-known profile so a
-        // signed-in user still lands in the app instead of the login screen.
-        const cached = await loadProfile<Profile>();
-        if (cached) set({ profile: cached });
       }
     } finally {
-      // Mark boot done even on failure, so the app renders (logged-out).
       set({ sessionLoaded: true });
     }
   },
@@ -546,114 +325,65 @@ export const useGleanStore = create<GleanState>((set, get) => ({
 
   createHouse: async (name) => {
     const { profile } = get();
-    if (!profile) return 'Not signed in.';
+    const trimmed = name.trim();
+    if (!profile) return 'No local profile.';
+    if (!trimmed) return 'Please name your pantry.';
 
-    // Atomic on the server: house row + profile link in one transaction, with a
-    // cryptographically-random invite code.
-    const { data, error } = await supabase.rpc('create_house', { p_name: name });
-
-    if (error) return error.message;
-
-    const row = (Array.isArray(data) ? data[0] : data) as
-      | { house_id: string; invite_code: string }
-      | undefined;
-    if (!row?.house_id) return 'Could not create the household.';
-
-    const houseId = row.house_id;
-
+    const houseId = uid();
     const seededOptions = DEFAULT_HOUSE_OPTIONS.map(option => ({
       ...option,
       id: uid(),
       house_id: houseId,
       created_by: profile.id,
     }));
-    await supabase.from('house_options').insert(seededOptions);
-
     const house: House = {
       id: houseId,
-      name: name.trim(),
-      invite_code: row.invite_code,
+      name: trimmed,
+      invite_code: '',
       owner_id: profile.id,
       image_key: null,
       members: [{ id: profile.id, name: profile.name, avatar_url: profile.avatar_url }],
     };
-    set({ house, profile: { ...profile, house_id: houseId }, houseOptions: seededOptions });
+    const nextProfile = { ...profile, house_id: houseId };
+
+    await localSaveProfile(nextProfile);
+    await localSaveHouse(houseId, {
+      house,
+      inventory: [],
+      shoppingList: [],
+      consumptionLogs: [],
+      houseOptions: seededOptions,
+    });
+    set({ house, profile: nextProfile, houseOptions: seededOptions });
     return house;
   },
 
-  joinHouse: async (inviteCode) => {
-    const { profile } = get();
-    if (!profile) return false;
-
-    const { data: houseId, error } = await supabase.rpc('join_house', {
-      invite: inviteCode.trim().toUpperCase(),
-    });
-
-    if (error) {
-      console.error('[sb] rpc join_house:', error.message);
-      reportSyncError("Couldn't join — check your connection.");
-      return false;
-    }
-    if (!houseId) {
-      console.warn('[sb] join_house: no house for code', inviteCode.trim().toUpperCase());
-      return false;
-    }
-
-    set({ profile: { ...profile, house_id: houseId } });
-    await get().loadHouseData(houseId);
-    return true;
-  },
+  joinHouse: async () => false,
 
   setHouseImage: async (imageKey) => {
-    const { house, profile } = get();
+    const { house } = get();
     if (!house) return false;
-    // Owner-only, matching rename/kick.
-    if (profile && house.owner_id && profile.id !== house.owner_id) return false;
-
     set(state => (state.house ? { house: { ...state.house, image_key: imageKey } } : {}));
-
-    const { error } = await supabase.from('houses').update({ image_key: imageKey }).eq('id', house.id);
-    if (error) {
-      console.error('[sb] update houses.image_key:', error.message);
-      reportSyncError("Couldn't save the house image.");
-      return false;
-    }
     return true;
   },
 
   renameHouse: async (name) => {
-    const { house, profile } = get();
+    const { house } = get();
     const trimmed = name.trim();
     if (!house || !trimmed) return false;
-    // ponytail: app-side owner gate; RLS lets any member update. Move to an RPC if abuse matters.
-    if (profile && house.owner_id && profile.id !== house.owner_id) return false;
-
     set(state => (state.house ? { house: { ...state.house, name: trimmed } } : {}));
-
-    const { error } = await supabase.from('houses').update({ name: trimmed }).eq('id', house.id);
-    if (error) {
-      console.error('[sb] update houses.name:', error.message);
-      reportSyncError("Couldn't rename the household.");
-      return false;
-    }
     return true;
   },
 
   leaveHouse: async () => {
     const { profile } = get();
     if (!profile) return;
-
-    const { error } = await supabase.rpc('leave_house');
-    if (error) {
-      console.error('[sb] rpc leave_house:', error.message);
-      reportSyncError("Couldn't leave the household.");
-      return;
-    }
-
     stopRealtime();
     void localClearHouse();
+    const nextProfile = { ...profile, house_id: null };
+    void localSaveProfile(nextProfile);
     set({
-      profile: { ...profile, house_id: null },
+      profile: nextProfile,
       house: null,
       inventory: [],
       shoppingList: [],
@@ -662,118 +392,26 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     });
   },
 
-  removeMember: async (memberId) => {
-    const { house } = get();
-    if (!house) return;
+  removeMember: async () => {},
 
-    const { error } = await supabase.rpc('remove_member', { target: memberId });
-    if (error) {
-      console.error('[sb] rpc remove_member:', error.message);
-      reportSyncError("Couldn't remove that member.");
-      return;
-    }
-
-    set(state => (state.house
-      ? { house: { ...state.house, members: state.house.members.filter(m => m.id !== memberId) } }
-      : {}));
-  },
-
-  refreshMembership: async () => {
-    const { profile } = get();
-    if (!profile) return;
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('house_id')
-      .eq('id', profile.id)
-      .single();
-    if (error || !data) return;
-
-    const remote = (data.house_id as string | null) ?? null;
-    if (remote === (profile.house_id ?? null)) return; // unchanged
-
-    if (remote) {
-      set({ profile: { ...profile, house_id: remote } });
-      await get().loadHouseData(remote);
-      return;
-    }
-
-    // No longer in a house (removed by the owner, or left elsewhere) — drop all
-    // local house state so the UI cannot show another house's data.
-    stopRealtime();
-    void localClearHouse();
-    set({
-      profile: { ...profile, house_id: null },
-      house: null,
-      inventory: [],
-      shoppingList: [],
-      consumptionLogs: [],
-      houseOptions: [],
-    });
-  },
+  refreshMembership: async () => {},
 
   // ── Data loading ──────────────────────────────────────────────────────────
 
   loadHouseData: async (houseId) => {
-    // 1. Paint instantly from the local cache when this house was last synced.
-    const cached = await localLoadHouse(houseId);
-    if (cached) {
+    const local = await localLoadHouse(houseId);
+    if (local) {
       set({
-        inventory: cached.inventory,
-        shoppingList: cached.shoppingList,
-        consumptionLogs: cached.consumptionLogs,
-        house: cached.house,
-        houseOptions: cached.houseOptions,
-        loading: false,
-      });
-    } else {
-      set({ loading: true });
-    }
-
-    // 2. Push any pending local writes first, then fetch fresh from Supabase.
-    await drainSyncQueue();
-    const [invRes, shopRes, logRes, houseRes, optionsRes, memberRes] = await Promise.all([
-      supabase.from('inventory').select('*').eq('house_id', houseId),
-      supabase.from('shopping_list').select('*').eq('house_id', houseId),
-      supabase.from('consumption_logs').select('*').eq('house_id', houseId).order('consumed_at', { ascending: false }).limit(RECENT_ACTIVITY_FETCH_LIMIT),
-      supabase.from('houses').select('*').eq('id', houseId).single(),
-      supabase.from('house_options').select('*').eq('house_id', houseId).order('type').order('name'),
-      supabase.from('profiles').select('id, name, avatar_url').eq('house_id', houseId),
-    ]);
-
-    const loadedOptions = optionsRes.data ?? [];
-    const houseOptions = loadedOptions.length > 0
-      ? loadedOptions as HouseOption[]
-      : DEFAULT_HOUSE_OPTIONS.map(option => ({ ...option, id: uid(), house_id: houseId }));
-
-    if (loadedOptions.length === 0 && !optionsRes.error) {
-      await supabase.from('house_options').insert(
-        houseOptions.map(option => ({ ...option, house_id: houseId }))
-      );
-    }
-
-    const freshHouse = houseRes.data
-      ? { ...(houseRes.data as House), members: ((memberRes.data ?? []) as Member[]) }
-      : null;
-
-    // Only overwrite cached data when the fetch succeeded; otherwise keep the
-    // cached pantry (offline resilience) instead of blanking it.
-    const freshOk = !invRes.error && !shopRes.error && !logRes.error && !houseRes.error && !optionsRes.error;
-    if (freshOk) {
-      set({
-        inventory:       invRes.data   ?? [],
-        shoppingList:    shopRes.data  ?? [],
-        consumptionLogs: logRes.data   ?? [],
-        house:           freshHouse,
-        houseOptions,
+        inventory: local.inventory,
+        shoppingList: local.shoppingList,
+        consumptionLogs: local.consumptionLogs,
+        house: local.house,
+        houseOptions: local.houseOptions,
         loading: false,
       });
     } else {
       set({ loading: false });
-      reportSyncError("Couldn't load fresh data — showing saved pantry.");
     }
-
-    startRealtime(houseId);
   },
 
   addHouseOption: (type, name, icon) => {
@@ -829,27 +467,30 @@ export const useGleanStore = create<GleanState>((set, get) => ({
 
   restockInventory: (id, qty) => {
     if (qty <= 0) return;
-
-    // Optimistic bump; the RPC returns the authoritative quantity and also
-    // writes the consumption log server-side.
-    set(state => ({
-      inventory: state.inventory.map(i =>
-        i.id === id ? { ...i, qty: i.qty + qty, last_restocked: new Date().toISOString() } : i
-      ),
-    }));
-
-    supabase.rpc('restock_inventory', { p_id: id, p_qty: qty }).then(({ data, error }) => {
-      if (error) {
-        console.error('[sb] rpc restock_inventory:', error.message);
-        reportSyncError("Couldn't update the pantry — check your connection.");
-        return;
-      }
-      if (typeof data === 'number') {
-        set(state => ({
-          inventory: state.inventory.map(i => (i.id === id ? { ...i, qty: data } : i)),
-        }));
-      }
+    const { profile, house } = get();
+    let itemName = '';
+    set(state => {
+      const item = state.inventory.find(i => i.id === id);
+      if (item) itemName = item.name;
+      return {
+        inventory: state.inventory.map(i =>
+          i.id === id ? { ...i, qty: i.qty + qty, last_restocked: new Date().toISOString() } : i
+        ),
+      };
     });
+    if (house) {
+      const log: ConsumptionLog = {
+        id: uid(),
+        inventory_id: id,
+        item_name: itemName,
+        house_id: house.id,
+        consumed_at: new Date().toISOString(),
+        qty,
+        action: 'restocked',
+        user_id: profile?.id ?? null,
+      };
+      set(state => ({ consumptionLogs: capLogs([...state.consumptionLogs, log]) }));
+    }
   },
 
   addInventoryItem: (item) => {
@@ -872,13 +513,9 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       inventory:    state.inventory.filter(i => i.id !== id),
       shoppingList: state.shoppingList.filter(s => s.inventory_id !== id),
     }));
-    sbDelete('inventory', id);
-    // Remove the stored image so it doesn't orphan in the bucket.
+    // Remove the stored local image so it doesn't orphan.
     const { house } = get();
     if (house) void deleteItemImage(house.id, id);
-    // shopping_list rows cascade via inventory_id FK SET NULL — clean up nulled rows
-    supabase.from('shopping_list').delete().eq('inventory_id', id)
-      .then(({ error }) => { if (error) console.error('[sb] cleanup shopping_list:', error.message); });
   },
 
   // ── Consumption log ───────────────────────────────────────────────────────
@@ -1050,14 +687,6 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     return { added, updated };
   },
 }));
-
-// Persist the profile so a cold start can land in the app even with no network
-// (loadSession falls back to this cache; clearSession wipes it).
-useGleanStore.subscribe((state, prev) => {
-  if (state.profile === prev.profile) return;
-  if (state.profile) void saveProfile(state.profile);
-  else void clearProfile();
-});
 
 // ─── Local mirror (write-through) ─────────────────────────────────────────────
 // Persist house data to SQLite whenever it changes, debounced so rapid edits
