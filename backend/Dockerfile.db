@@ -1,0 +1,3 @@
+FROM postgres:16-alpine
+# Applied automatically on first boot of an empty data volume.
+COPY init/01-schema.sql /docker-entrypoint-initdb.d/01-schema.sql

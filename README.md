@@ -56,11 +56,13 @@ This builds the APK, installs it on the connected device, and starts Metro.
 ```bash
 cd backend
 cp .env.example .env        # set POSTGRES_PASSWORD
+docker compose pull         # prebuilt images from GHCR (or: up -d --build)
 docker compose up -d        # or: make backend-up
 ```
 
-The API is at `http://<host>:8000`; the schema applies automatically on first
-boot. See [`backend/README.md`](backend/README.md).
+The dashboard + API are at `http://<host>:8000`; the schema applies automatically
+on first boot. See [`backend/README.md`](backend/README.md) and
+[`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md) (HTTPS, Tunnel, Tailscale).
 
 Then in the app: **Profile → Self-hosted backend → URL + anon key**.
 

@@ -12,8 +12,12 @@ and only needs the REST API for sync. No GoTrue, Storage, Realtime, or Studio.
 cd backend
 cp .env.example .env
 # edit .env — at minimum change POSTGRES_PASSWORD
+docker compose pull      # prebuilt images from GHCR (or: up -d --build)
 docker compose up -d
 ```
+
+See [`docs/SELF_HOSTING.md`](../docs/SELF_HOSTING.md) for HTTPS, Cloudflare
+Tunnel, Tailscale and backup notes.
 
 The API is then at:
 
