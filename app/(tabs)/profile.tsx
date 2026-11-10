@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, TextInput, ScrollView, Linking, RefreshControl, Animated, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -18,6 +18,7 @@ import { Button, ButtonText } from '@/components/ui/button';
 import { NativeSheet } from '../../components/NativeSheet';
 import { theme, accents, type AccentKey } from '@/constants/theme';
 import { useAppearance, useColors } from '@/lib/appearance';
+import { getServerConfig } from '@/lib/serverConfig';
 import { showDialog, showToast } from '@/lib/overlay';
 import { HouseAvatar } from '@/components/HouseAvatar';
 import { initialsFor } from '@/lib/initials';
@@ -30,7 +31,12 @@ export default function ProfileScreen() {
   const setAppearanceMode = useAppearance(s => s.setMode);
   const accentKey = useAppearance(s => s.accent);
   const setAccentKey = useAppearance(s => s.setAccent);
+  const [serverConnected, setServerConnected] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
+
+  useEffect(() => {
+    getServerConfig().then(cfg => setServerConnected(!!cfg));
+  }, []);
   const [renameText, setRenameText] = useState('');
   const [nameOpen, setNameOpen] = useState(false);
   const [nameText, setNameText] = useState('');
@@ -336,6 +342,17 @@ export default function ProfileScreen() {
         <SettingRow icon="information-circle-outline" label="App version" value="1.0.0" chevron={false} />
         <Divider />
         <SettingRow icon="help-circle-outline" label="Send feedback" onPress={() => Linking.openURL('mailto:hello@glean.app?subject=Glean%20feedback')} />
+      </Card>
+
+      {/* ── Server ─────────────────────────────────────────────────────── */}
+      <SectionHeader title="Server" />
+      <Card>
+        <SettingRow
+          icon="cloud-outline"
+          label="Self-hosted backend"
+          value={serverConnected ? 'Connected' : 'Not connected'}
+          onPress={() => router.push('/server')}
+        />
       </Card>
 
       {/* ── Account ────────────────────────────────────────────────────── */}

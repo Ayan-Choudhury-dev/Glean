@@ -118,6 +118,7 @@ export default function RootLayout() {
             <Stack.Screen name="house-setup" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)"      options={{ headerShown: false }} />
             <Stack.Screen name="item-form"   options={{ headerShown: false, presentation: 'modal', contentStyle: { backgroundColor: colors.surface } }} />
+            <Stack.Screen name="server"      options={{ title: 'Server', contentStyle: { backgroundColor: colors.background } }} />
             <Stack.Screen name="scan"       options={{ headerShown: false, presentation: 'fullScreenModal' }} />
           </Stack>
           <SyncErrorBanner />
