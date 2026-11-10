@@ -81,7 +81,7 @@ export function PickerSheet({
               {selected === item.name && <Ionicons name="checkmark" size={18} color={colors.accent} />}
             </Tappable>
           )}
-          ListEmptyComponent={normalizedQuery && exactMatch ? null : <Text style={{ padding: 24, textAlign: 'center', color: colors.textFaint }}>No {type}s found</Text>}
+          ListEmptyComponent={normalizedQuery && exactMatch ? undefined : <Text style={{ padding: 24, textAlign: 'center', color: colors.textFaint }}>No {type}s found</Text>}
         />
         {normalizedQuery && !exactMatch && (
           <Tappable
