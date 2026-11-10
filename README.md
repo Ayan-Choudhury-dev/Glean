@@ -14,20 +14,26 @@ list — all stored on your device. No account, no server, no tracking.
 
 ## Tech Stack
 
-- [Expo](https://expo.dev) SDK 57 (Expo Router)
-- [React Native](https://reactnative.dev) 0.86
+- [Expo](https://expo.dev) SDK 58 (Expo Router)
+- [React Native](https://reactnative.dev) 0.88
 - [expo-sqlite](https://docs.expo.dev/versions/latest/sdk/sqlite/) — local storage
 - [Zustand](https://zustand-demo.pmnd.rs) — state management
 - [NativeWind](https://www.nativewind.dev) + Tailwind CSS — styling
+- Optional self-hosted backend: Postgres + PostgREST in Docker
 
-## Getting Started
+## Install
 
 ### Prerequisites
 
-- Node.js 20+ (LTS recommended)
-- Android Studio / Xcode for a native development build
+**Client (Android):**
+- Node.js **22 or 24 LTS** (SDK 58 does not support Node 23)
+- JDK 17
+- Android SDK (Android Studio) and a connected device/emulator
 
-### Installation
+**Backend (optional):**
+- Docker + Docker Compose
+
+### 1. Clone + install
 
 ```bash
 git clone https://github.com/Ayan-Choudhury-dev/Glean.git
@@ -35,23 +41,34 @@ cd Glean
 npm install
 ```
 
-### Running the App
+### 2. Build the client
 
 The app uses native modules, so it needs a development build (not Expo Go):
 
 ```bash
-# Android
-npm run android
-
-# iOS
-npm run ios
+npx expo run:android        # or: make android
 ```
+
+This builds the APK, installs it on the connected device, and starts Metro.
+
+### 3. Run the backend (optional)
+
+```bash
+cd backend
+cp .env.example .env        # set POSTGRES_PASSWORD
+docker compose up -d        # or: make backend-up
+```
+
+The API is at `http://<host>:8000`; the schema applies automatically on first
+boot. See [`backend/README.md`](backend/README.md).
+
+Then in the app: **Profile → Self-hosted backend → URL + anon key**.
 
 ### Checks
 
 ```bash
-npm run typecheck   # tsc --noEmit
-npm test            # vitest run
+npm run typecheck   # or: make typecheck
+npm test            # or: make test
 ```
 
 ## Project Structure
@@ -66,27 +83,22 @@ store/
   useGleanStore.ts   # Zustand store (profile, pantry, shopping list, logs)
 lib/
   db/                # SQLite schema + local client
+  sync.ts            # push/pull to the self-hosted backend
   predictions.ts     # Restock prediction logic
 components/
   NativeSheet.tsx    # JS bottom sheet
   ui/                # Thin NativeWind primitives
+backend/             # Self-contained Docker backend (optional)
 metadata/
   *.yml              # F-Droid listing metadata
+Makefile             # Developer shortcuts (make install / android / backend-up)
 ```
 
 ## Self-hosting (optional)
 
 Glean is local-first and needs no server. To sync across devices, run the
-bundled backend on any Docker host:
-
-```bash
-cd backend
-cp .env.example .env   # set POSTGRES_PASSWORD
-docker compose up -d
-```
-
-Then in the app: **Profile → Self-hosted backend → URL + anon key**. See
-[`backend/README.md`](backend/README.md) for details and the security caveat.
+bundled backend on any Docker host — see [Install → step 3](#3-run-the-backend-optional)
+and [`backend/README.md`](backend/README.md).
 
 ## Data & Privacy
 
