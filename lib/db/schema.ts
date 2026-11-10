@@ -6,6 +6,13 @@ export const SCHEMA_VERSION = 1;
 export const DDL = `
 PRAGMA journal_mode = WAL;
 
+CREATE TABLE IF NOT EXISTS profile (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  house_id   TEXT,
+  avatar_url TEXT
+);
+
 CREATE TABLE IF NOT EXISTS house (
   id           TEXT PRIMARY KEY,
   name         TEXT NOT NULL,

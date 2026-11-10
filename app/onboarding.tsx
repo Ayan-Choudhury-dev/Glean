@@ -72,7 +72,7 @@ function GroceryHero() {
 }
 
 export default function OnboardingScreen() {
-  const { profile, signUp } = useGleanStore();
+  const { profile, signUp, createHouse } = useGleanStore();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const inputStyle = makeInputStyle(colors);
@@ -89,18 +89,33 @@ export default function OnboardingScreen() {
   if (profile) return null;
 
   const handleStart = async () => {
-    if (!name.trim()) {
+    const trimmed = name.trim();
+    if (!trimmed) {
       showDialog({ title: 'Your name', message: 'Please enter your name to get started.', cancelLabel: null });
       return;
     }
     setBusy(true);
-    const error = await signUp(name.trim());
-    setBusy(false);
-    if (error) {
-      showDialog({ title: 'Unable to continue', message: error, cancelLabel: null });
-      return;
+    try {
+      const error = await signUp(trimmed);
+      if (error) {
+        showDialog({ title: 'Unable to continue', message: error, cancelLabel: null });
+        return;
+      }
+      // One-step setup: create a default pantry so the user lands in the app.
+      const { profile: p } = useGleanStore.getState();
+      if (p && !p.house_id) {
+        const created = await createHouse('My Pantry');
+        if (typeof created === 'string') {
+          showDialog({ title: 'Could not create pantry', message: created, cancelLabel: null });
+          return;
+        }
+      }
+      router.replace('/(tabs)');
+    } catch (e) {
+      showDialog({ title: 'Something went wrong', message: e instanceof Error ? e.message : String(e), cancelLabel: null });
+    } finally {
+      setBusy(false);
     }
-    router.replace('/house-setup');
   };
 
   return (
@@ -148,7 +163,7 @@ export default function OnboardingScreen() {
             disabled={busy}
             accessibilityRole="button"
             accessibilityState={{ disabled: busy }}
-            accessibilityLabel="Get started"
+            accessibilityLabel="Create profile"
             style={{
               backgroundColor: colors.accent,
               borderRadius: theme.radii.md,
@@ -163,7 +178,7 @@ export default function OnboardingScreen() {
           >
             {busy && <ActivityIndicator color={colors.onAccent} />}
             <Text style={{ color: colors.onAccent, fontSize: theme.type.md, fontFamily: theme.fonts.medium }}>
-              Get started
+              Create profile
             </Text>
           </Tappable>
 
