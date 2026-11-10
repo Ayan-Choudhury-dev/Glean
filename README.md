@@ -21,6 +21,18 @@ list — all stored on your device. No account, no server, no tracking.
 - [NativeWind](https://www.nativewind.dev) + Tailwind CSS — styling
 - Optional self-hosted backend: Postgres + PostgREST in Docker
 
+## Download
+
+Grab the APK from the [latest release](https://github.com/Ayan-Choudhury-dev/Glean/releases/latest).
+
+| Your phone | File |
+|---|---|
+| Most phones from ~2017 onward | `glean-<version>-arm64-v8a.apk` — smallest download |
+| Older 32-bit phones | `glean-<version>-armeabi-v7a.apk` — widest compatibility |
+
+If you're not sure, try the `arm64-v8a` build first. If Android says
+"App not installed", use the `armeabi-v7a` one.
+
 ## Install
 
 ### Prerequisites

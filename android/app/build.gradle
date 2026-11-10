@@ -92,10 +92,19 @@ android {
         applicationId 'io.github.ayanchoudhurydev.glean'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.0.1"
+        versionCode 3
+        versionName "1.0.2"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
+    }
+    splits {
+        abi {
+            enable true
+            reset()
+            // Real phones only — drop the x86/x86_64 emulator ABIs.
+            include 'armeabi-v7a', 'arm64-v8a'
+            universalApk false
+        }
     }
     signingConfigs {
         debug {

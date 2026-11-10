@@ -4,14 +4,10 @@ Deferred work, roughly in priority order. Nothing here is started.
 
 ## Release packaging
 
-- **Smaller APK** — the v1.0.0 release is ~128 MB because it bundles four ABIs
-  (`arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64`) plus Reanimated's native code.
-  Options, cheapest first:
-  - Build for real devices only:
-    `./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a`
-  - Per-ABI split APKs via `splits { abi { ... } }` in `android/app/build.gradle`.
-  - Enable R8 / resource shrinking for the release build (currently off).
-  - Drop the emulator ABIs (`x86`, `x86_64`) from shipped builds.
+- **Smaller APK** — ✅ per-ABI split APKs (`arm64-v8a`, `armeabi-v7a`) are built
+  and published, and the emulator ABIs are dropped. Remaining ideas:
+  - Enable R8 / resource shrinking for release builds (currently off).
+  - Look for unused native code to trim.
 - **Release keystore** — the current APK is signed with the development keystore.
   Generate a proper release keystore before publishing to Play.
 - **F-Droid `Builds` entry** — `metadata/io.github.ayanchoudhurydev.glean.yml` has
