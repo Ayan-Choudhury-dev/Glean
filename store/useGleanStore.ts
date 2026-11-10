@@ -8,6 +8,7 @@ import {
   localSaveProfile,
   localClearProfile,
 } from '../lib/db/client';
+import { pushHouse, pullHouse } from '../lib/sync';
 import { RECENT_ACTIVITY_FETCH_LIMIT } from '../constants/config';
 
 // ─── UUID helper ──────────────────────────────────────────────────────────────
@@ -181,6 +182,8 @@ interface GleanState {
 
   // Data sync: load everything from Supabase for the current house
   loadHouseData: (houseId: string) => Promise<void>;
+  /** Adopt a house pulled from the self-hosted server (restore). */
+  adoptServerHouse: (houseId: string) => Promise<boolean>;
   addHouseOption: (type: HouseOptionType, name: string, icon: string) => HouseOption | null;
 
   // Inventory
@@ -412,6 +415,18 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     } else {
       set({ loading: false });
     }
+  },
+
+  adoptServerHouse: async (houseId) => {
+    const { profile } = get();
+    if (!profile) return false;
+    const ok = await pullHouse(houseId);
+    if (!ok) return false;
+    const nextProfile = { ...profile, house_id: houseId };
+    await localSaveProfile(nextProfile);
+    set({ profile: nextProfile });
+    await get().loadHouseData(houseId);
+    return true;
   },
 
   addHouseOption: (type, name, icon) => {
@@ -700,12 +715,15 @@ function scheduleLocalSave() {
     localSaveTimer = null;
     const s = useGleanStore.getState();
     if (!s.house) return;
-    void localSaveHouse(s.house.id, {
+    const houseId = s.house.id;
+    void localSaveHouse(houseId, {
       house: s.house,
       inventory: s.inventory,
       shoppingList: s.shoppingList,
       consumptionLogs: s.consumptionLogs,
       houseOptions: s.houseOptions,
+    }).then(() => {
+      void pushHouse(houseId);
     });
   }, 300);
 }

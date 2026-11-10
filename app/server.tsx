@@ -8,6 +8,8 @@ import { Tappable } from '@/components/ui/tappable';
 import { showToast } from '@/lib/overlay';
 import { getServerConfig, saveServerConfig, clearServerConfig } from '@/lib/serverConfig';
 import { initSupabase, clearSupabase, testConnection } from '@/lib/supabase';
+import { pushHouse, firstServerHouseId } from '@/lib/sync';
+import { useGleanStore } from '@/store/useGleanStore';
 
 export default function ServerScreen() {
   const colors = useColors();
@@ -74,9 +76,11 @@ export default function ServerScreen() {
     }
     await saveServerConfig(cfg);
     initSupabase(cfg);
+    const house = useGleanStore.getState().house;
+    if (house) void pushHouse(house.id);
     setBusy(false);
     setConnected(true);
-    showToast('Connected to your server');
+    showToast('Connected — backing up to your server');
   };
 
   const handleDisconnect = async () => {
@@ -84,6 +88,26 @@ export default function ServerScreen() {
     await clearServerConfig();
     setConnected(false);
     showToast('Disconnected — running local-only');
+  };
+
+  const handleRestore = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      const houseId = await firstServerHouseId();
+      if (!houseId) {
+        setBusy(false);
+        setError('No pantry found on the server yet.');
+        return;
+      }
+      const ok = await useGleanStore.getState().adoptServerHouse(houseId);
+      setBusy(false);
+      if (ok) showToast('Restored from server');
+      else setError('Could not restore from the server.');
+    } catch (e) {
+      setBusy(false);
+      setError(e instanceof Error ? e.message : String(e));
+    }
   };
 
   return (
@@ -165,6 +189,20 @@ export default function ServerScreen() {
             Test connection
           </Text>
         </Tappable>
+
+        {connected && (
+          <Tappable
+            onPress={handleRestore}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel="Restore from server"
+            style={{ borderWidth: 1, borderColor: colors.border, borderRadius: theme.radii.md, minHeight: 52, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Text style={{ color: colors.text, fontSize: theme.type.body, fontFamily: theme.fonts.medium }}>
+              Restore from server
+            </Text>
+          </Tappable>
+        )}
 
         {connected && (
           <Tappable

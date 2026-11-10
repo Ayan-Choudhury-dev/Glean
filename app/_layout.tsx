@@ -34,6 +34,8 @@ import { Text } from '@/components/ui/text';
 import { OverlayHost } from '@/components/OverlayHost';
 import { theme } from '@/constants/theme';
 import { useAppearance, useColors } from '@/lib/appearance';
+import { getServerConfig } from '@/lib/serverConfig';
+import { initSupabase } from '@/lib/supabase';
 import '@/global.css';
 
 export { ErrorBoundary } from 'expo-router';
@@ -86,6 +88,11 @@ export default function RootLayout() {
   // Restore session on cold start
   useEffect(() => {
     loadSession();
+  }, []);
+
+  // Restore the self-hosted server connection (if configured).
+  useEffect(() => {
+    getServerConfig().then(cfg => { if (cfg) initSupabase(cfg); });
   }, []);
 
   // Safety: never let a slow/hung session request trap the app on the splash.
