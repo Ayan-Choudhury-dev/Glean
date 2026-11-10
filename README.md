@@ -108,6 +108,10 @@ All data is stored locally in a SQLite database on your device. Nothing is
 sent to a server, and there is no account or sign-in. Uninstalling the app
 removes the data.
 
+## Roadmap
+
+Planned and deferred work lives in [`ROADMAP.md`](ROADMAP.md).
+
 ## License
 
 Licensed under the Apache License, Version 2.0 — see [LICENSE](LICENSE) and
