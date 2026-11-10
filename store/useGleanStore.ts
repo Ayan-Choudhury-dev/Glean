@@ -184,6 +184,8 @@ interface GleanState {
   loadHouseData: (houseId: string) => Promise<void>;
   /** Adopt a house pulled from the self-hosted server (restore). */
   adoptServerHouse: (houseId: string) => Promise<boolean>;
+  /** Persist the local snapshot and push it to the connected server. */
+  syncNow: () => Promise<void>;
   addHouseOption: (type: HouseOptionType, name: string, icon: string) => HouseOption | null;
 
   // Inventory
@@ -427,6 +429,19 @@ export const useGleanStore = create<GleanState>((set, get) => ({
     set({ profile: nextProfile });
     await get().loadHouseData(houseId);
     return true;
+  },
+
+  syncNow: async () => {
+    const s = get();
+    if (!s.house) return;
+    await localSaveHouse(s.house.id, {
+      house: s.house,
+      inventory: s.inventory,
+      shoppingList: s.shoppingList,
+      consumptionLogs: s.consumptionLogs,
+      houseOptions: s.houseOptions,
+    });
+    await pushHouse(s.house.id);
   },
 
   addHouseOption: (type, name, icon) => {

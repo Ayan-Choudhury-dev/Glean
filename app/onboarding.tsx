@@ -18,11 +18,11 @@ import { Text } from '../components/ui/text';
 import { theme } from '@/constants/theme';
 import { useColors } from '@/lib/appearance';
 import { showDialog } from '@/lib/overlay';
+import { saveServerConfig } from '@/lib/serverConfig';
+import { initSupabase, testConnection } from '@/lib/supabase';
 
-type Step = 'welcome' | 'name' | 'staples';
+type Step = 'welcome' | 'name' | 'staples' | 'where';
 
-// A few common staples so a new pantry has something real in it on day one.
-// Categories/locations match the app's default options.
 const STAPLES: { name: string; category: string; location: string }[] = [
   { name: 'Milk',      category: 'Dairy',      location: 'Fridge' },
   { name: 'Eggs',      category: 'Dairy',      location: 'Fridge' },
@@ -93,9 +93,11 @@ export default function OnboardingScreen() {
   const [step, setStep] = useState<Step>('welcome');
   const [name, setName] = useState('');
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [serverMode, setServerMode] = useState(false);
+  const [serverUrl, setServerUrl] = useState('');
+  const [serverKey, setServerKey] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // One authored entrance per step: a short rise + fade, ease-out.
   const enter = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     enter.setValue(0);
@@ -107,7 +109,6 @@ export default function OnboardingScreen() {
     }).start();
   }, [step, enter]);
 
-  // Already set up — skip onboarding.
   useEffect(() => {
     if (profile) router.replace(profile.house_id ? '/(tabs)' : '/house-setup');
   }, [profile]);
@@ -127,24 +128,50 @@ export default function OnboardingScreen() {
     if (busy) return;
     setBusy(true);
     try {
+      const server = serverMode
+        ? { url: serverUrl.trim(), anonKey: serverKey.trim() }
+        : null;
+      if (server) {
+        if (!server.url || !server.anonKey) {
+          showDialog({ title: 'Server details', message: 'Enter your server URL and anon key.', cancelLabel: null });
+          return;
+        }
+        const err = await testConnection(server);
+        if (err) {
+          showDialog({ title: 'Could not reach the server', message: err, cancelLabel: null });
+          return;
+        }
+      }
+
       const error = await signUp(name.trim());
       if (error) {
         showDialog({ title: 'Unable to continue', message: error, cancelLabel: null });
         return;
       }
+
       const { profile: p } = useGleanStore.getState();
-      if (p && !p.house_id) {
+      let houseId = p?.house_id ?? null;
+      if (p && !houseId) {
         const created = await createHouse('My Pantry');
         if (typeof created === 'string') {
           showDialog({ title: 'Could not create pantry', message: created, cancelLabel: null });
           return;
         }
+        houseId = created.id;
       }
+
       STAPLES.forEach(staple => {
         if (picked.has(staple.name)) {
           addInventoryItem({ name: staple.name, qty: 1, category: staple.category, location: staple.location });
         }
       });
+
+      if (server) {
+        await saveServerConfig(server);
+        initSupabase(server);
+        await useGleanStore.getState().syncNow();
+      }
+
       router.replace('/(tabs)');
     } catch (e) {
       showDialog({ title: 'Something went wrong', message: e instanceof Error ? e.message : String(e), cancelLabel: null });
@@ -153,8 +180,8 @@ export default function OnboardingScreen() {
     }
   };
 
-  const stepIndex = step === 'welcome' ? 0 : step === 'name' ? 1 : 2;
-  const canContinue = step === 'welcome' || (step === 'name' ? name.trim().length > 0 : true);
+  const order: Step[] = ['welcome', 'name', 'staples', 'where'];
+  const stepIndex = order.indexOf(step);
 
   return (
     <KeyboardAvoidingView
@@ -171,9 +198,8 @@ export default function OnboardingScreen() {
           paddingBottom: insets.bottom + 24,
         }}
       >
-        {/* Progress dots */}
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 28 }}>
-          {[0, 1, 2].map(i => (
+          {order.map((_, i) => (
             <View
               key={i}
               style={{
@@ -299,9 +325,83 @@ export default function OnboardingScreen() {
               </View>
             </View>
           )}
+
+          {step === 'where' && (
+            <View>
+              <Text style={{ fontSize: 30, color: colors.text, fontFamily: theme.fonts.displayBold, letterSpacing: -0.4 }}>
+                Where should your pantry live?
+              </Text>
+              <Text style={{ color: colors.textMuted, fontSize: theme.type.md, marginTop: 8, marginBottom: 20, lineHeight: 22 }}>
+                Glean works on this device. You can also sync through a server you host yourself.
+              </Text>
+
+              <View style={{ gap: 12 }}>
+                <OptionCard
+                  selected={!serverMode}
+                  icon="phone-portrait-outline"
+                  title="On this device"
+                  subtitle="Private, works offline, nothing to set up"
+                  onPress={() => setServerMode(false)}
+                />
+                <OptionCard
+                  selected={serverMode}
+                  icon="server-outline"
+                  title="My own server"
+                  subtitle="Sync across devices through a server you run"
+                  onPress={() => setServerMode(true)}
+                />
+              </View>
+
+              {serverMode && (
+                <View style={{ gap: 12, marginTop: 16 }}>
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.surfaceMuted,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: theme.radii.md,
+                      paddingHorizontal: 16,
+                      height: 52,
+                      fontSize: theme.type.body,
+                      color: colors.text,
+                      fontFamily: theme.fonts.regular,
+                    }}
+                    placeholder="http://my-server:8000"
+                    placeholderTextColor={colors.textFaint}
+                    value={serverUrl}
+                    onChangeText={setServerUrl}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="url"
+                  />
+                  <TextInput
+                    style={{
+                      backgroundColor: colors.surfaceMuted,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: theme.radii.md,
+                      paddingHorizontal: 16,
+                      height: 52,
+                      fontSize: theme.type.body,
+                      color: colors.text,
+                      fontFamily: theme.fonts.regular,
+                    }}
+                    placeholder="Anon key (any non-empty value)"
+                    placeholderTextColor={colors.textFaint}
+                    value={serverKey}
+                    onChangeText={setServerKey}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <Text style={{ color: colors.textFaint, fontSize: theme.type.caption, lineHeight: 18 }}>
+                    Run the bundled backend first — see backend/README.md.
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
         </Animated.View>
 
-        {/* Actions */}
         <View style={{ gap: 10, marginTop: 32 }}>
           {step === 'welcome' && (
             <PrimaryButton label="Get started" onPress={() => setStep('name')} />
@@ -309,11 +409,7 @@ export default function OnboardingScreen() {
 
           {step === 'name' && (
             <>
-              <PrimaryButton
-                label="Continue"
-                onPress={() => setStep('staples')}
-                disabled={!canContinue}
-              />
+              <PrimaryButton label="Continue" onPress={() => setStep('staples')} disabled={!name.trim()} />
               <SecondaryButton label="Back" onPress={() => setStep('welcome')} />
             </>
           )}
@@ -322,11 +418,22 @@ export default function OnboardingScreen() {
             <>
               <PrimaryButton
                 label={picked.size > 0 ? `Add ${picked.size} ${picked.size === 1 ? 'item' : 'items'}` : 'Add items'}
+                onPress={() => setStep('where')}
+                disabled={picked.size === 0}
+              />
+              <SecondaryButton label="Skip for now" onPress={() => setStep('where')} />
+            </>
+          )}
+
+          {step === 'where' && (
+            <>
+              <PrimaryButton
+                label={serverMode ? 'Connect & finish' : 'Finish setup'}
                 onPress={finish}
-                disabled={busy || picked.size === 0}
+                disabled={busy || (serverMode && (!serverUrl.trim() || !serverKey.trim()))}
                 busy={busy}
               />
-              <SecondaryButton label="Skip for now" onPress={finish} disabled={busy} />
+              <SecondaryButton label="Back" onPress={() => setStep('staples')} disabled={busy} />
             </>
           )}
         </View>
@@ -336,6 +443,49 @@ export default function OnboardingScreen() {
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+function OptionCard({
+  selected,
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
+  selected: boolean;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Tappable
+      onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      accessibilityLabel={`${title}. ${subtitle}`}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        padding: 16,
+        borderRadius: theme.radii.lg,
+        borderWidth: 1.5,
+        borderColor: selected ? colors.accent : colors.border,
+        backgroundColor: selected ? colors.accentSoft : colors.surface,
+      }}
+    >
+      <View style={{ width: 44, height: 44, borderRadius: theme.radii.md, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={icon} size={22} color={selected ? colors.accent : colors.textMuted} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: theme.type.body, color: colors.text, fontFamily: theme.fonts.medium }}>{title}</Text>
+        <Text style={{ fontSize: theme.type.caption, color: colors.textMuted, marginTop: 2 }}>{subtitle}</Text>
+      </View>
+      <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={selected ? colors.accent : colors.border} />
+    </Tappable>
   );
 }
 

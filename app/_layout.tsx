@@ -36,6 +36,8 @@ import { theme } from '@/constants/theme';
 import { useAppearance, useColors } from '@/lib/appearance';
 import { getServerConfig } from '@/lib/serverConfig';
 import { initSupabase } from '@/lib/supabase';
+import { checkForUpdate } from '@/lib/updates';
+import { showDialog } from '@/lib/overlay';
 import '@/global.css';
 
 export { ErrorBoundary } from 'expo-router';
@@ -93,6 +95,20 @@ export default function RootLayout() {
   // Restore the self-hosted server connection (if configured).
   useEffect(() => {
     getServerConfig().then(cfg => { if (cfg) initSupabase(cfg); });
+  }, []);
+
+  // Self-update check: the app ships as an APK from GitHub releases.
+  useEffect(() => {
+    checkForUpdate().then(update => {
+      if (!update) return;
+      showDialog({
+        title: 'Update available',
+        message: `Glean ${update.version} is ready to download.`,
+        confirmLabel: 'Download',
+        cancelLabel: 'Later',
+        onConfirm: () => { void Linking.openURL(update.url); },
+      });
+    });
   }, []);
 
   // Safety: never let a slow/hung session request trap the app on the splash.
