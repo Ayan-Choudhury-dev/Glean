@@ -1,21 +1,21 @@
 -- Glean — self-hosted (single-tenant) schema.
 --
--- No Supabase Auth: rows are keyed by the app's local UUIDs and RLS is disabled,
--- so the app can sync with only the anon key. This is the "simple self-hosted"
--- model (like running Jellyfin on your own box).
+-- Applied automatically on the backend's first boot. No Supabase Auth: rows are
+-- keyed by the app's local UUIDs and RLS is disabled, so the app syncs with only
+-- the anon key (the "simple self-hosted" model).
 --
--- SECURITY: anyone who has the anon key can read/write this database. Only run
--- this on an instance you control (LAN, VPN, or behind your own reverse proxy).
+-- SECURITY: anyone who can reach the API has full read/write. Keep it on a
+-- trusted network (LAN/VPN) or put real auth in front before exposing it.
 
 create extension if not exists "pgcrypto";
 
 create table if not exists houses (
-  id         text primary key,
-  name       text not null,
+  id          text primary key,
+  name        text not null,
   invite_code text,
-  owner_id   text,
-  image_key  text,
-  created_at timestamptz default now()
+  owner_id    text,
+  image_key   text,
+  created_at  timestamptz default now()
 );
 
 create table if not exists profiles (
@@ -74,7 +74,7 @@ create index if not exists shopping_list_house_id_idx    on shopping_list (house
 create index if not exists consumption_logs_house_id_idx on consumption_logs (house_id);
 create index if not exists house_options_house_id_idx    on house_options (house_id);
 
--- Single-tenant: anon key has full access.
+-- Single-tenant: the anon role has full access.
 alter table houses           disable row level security;
 alter table profiles         disable row level security;
 alter table inventory        disable row level security;

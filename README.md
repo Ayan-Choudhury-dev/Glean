@@ -74,6 +74,20 @@ metadata/
   *.yml              # F-Droid listing metadata
 ```
 
+## Self-hosting (optional)
+
+Glean is local-first and needs no server. To sync across devices, run the
+bundled backend on any Docker host:
+
+```bash
+cd backend
+cp .env.example .env   # set POSTGRES_PASSWORD
+docker compose up -d
+```
+
+Then in the app: **Profile → Self-hosted backend → URL + anon key**. See
+[`backend/README.md`](backend/README.md) for details and the security caveat.
+
 ## Data & Privacy
 
 All data is stored locally in a SQLite database on your device. Nothing is

@@ -219,7 +219,7 @@ export default function ServerScreen() {
       </View>
 
       <Text style={{ color: colors.textFaint, fontSize: theme.type.caption, marginTop: 24, lineHeight: 18 }}>
-        Run the schema from the project's supabase/schema.sql on your instance before connecting.
+        Run the bundled backend (see backend/README.md) or apply backend/init/01-schema.sql first.
       </Text>
     </ScrollView>
   );
