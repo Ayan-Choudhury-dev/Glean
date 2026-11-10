@@ -52,3 +52,6 @@ yarn-error.*
 
 # MCP config (contains local paths/secrets)
 .mcp.json
+
+# Kotlin compiler session cache
+android/.kotlin/

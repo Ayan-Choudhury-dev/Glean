@@ -21,6 +21,9 @@ The API is then at:
 http://<this-host>:8000
 ```
 
+Open that URL in a browser for a **read-only dashboard** (pantry + shopping list),
+served by the same nginx container. The API stays under `/rest/v1/*`.
+
 The database schema (`init/01-schema.sql`) is applied automatically on the
 **first** boot (empty volume).
 

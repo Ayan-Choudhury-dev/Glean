@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Glean</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    margin: 0; background: #f7f1e8; color: #1f1f1f;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #141414; color: #f2f2f2; }
+    th, td { border-color: #ffffff1a; }
+    .empty { border-color: #ffffff26; }
+    .badge { background: #ffffff14; }
+  }
+  header {
+    padding: 20px 24px; border-bottom: 1px solid #0001;
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  h1 { font-size: 20px; margin: 0; letter-spacing: -0.02em; }
+  main { padding: 24px; max-width: 900px; margin: 0 auto; }
+  section { margin-bottom: 28px; }
+  h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: .08em;
+    opacity: .6; margin: 0 0 10px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #0001; }
+  th { font-weight: 600; opacity: .7; }
+  .muted { opacity: .6; font-size: 14px; }
+  .empty { padding: 16px; border: 1px dashed #0003; border-radius: 10px; opacity: .7; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #0001; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Glean</h1>
+  <span class="muted" id="status">loading…</span>
+</header>
+<main>
+  <section>
+    <h2>Pantry</h2>
+    <div id="pantry"></div>
+  </section>
+  <section>
+    <h2>Shopping list</h2>
+    <div id="shopping"></div>
+  </section>
+</main>
+<script>
+  const api = (path) =>
+    fetch(`/rest/v1/${path}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status)));
+
+  function table(rows, cols) {
+    if (!rows.length) return '<div class="empty">Nothing here yet.</div>';
+    const head = cols.map((c) => `<th>${c.label}</th>`).join('');
+    const body = rows
+      .map((r) => `<tr>${cols.map((c) => `<td>${c.fmt ? c.fmt(r[c.key], r) : (r[c.key] ?? '')}</td>`).join('')}</tr>`)
+      .join('');
+    return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  }
+
+  async function load() {
+    try {
+      const [houses, inventory, shopping] = await Promise.all([
+        api('houses?select=*'),
+        api('inventory?select=*&order=name'),
+        api('shopping_list?select=*&order=name'),
+      ]);
+      document.getElementById('status').textContent = houses.length
+        ? (houses[0].name || 'Your pantry')
+        : 'No pantry yet';
+      document.getElementById('pantry').innerHTML = table(inventory, [
+        { key: 'name', label: 'Item' },
+        { key: 'qty', label: 'Qty' },
+        { key: 'category', label: 'Category' },
+        { key: 'location', label: 'Location' },
+      ]);
+      document.getElementById('shopping').innerHTML = table(shopping, [
+        { key: 'name', label: 'Item' },
+        { key: 'target_qty', label: 'Qty' },
+        { key: 'status', label: 'Status', fmt: (v) => `<span class="badge">${v}</span>` },
+      ]);
+    } catch (e) {
+      document.getElementById('status').textContent = 'Could not load data (' + e + ')';
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>
