@@ -3,7 +3,7 @@ import { RotateCcw, Server, Download, Upload } from 'lucide-react'
 import { useStore } from '../store'
 
 export default function Settings() {
-  const { profile, server, items, setName, setServer, addItem, reset } = useStore()
+  const { profile, server, items, setName, setServer, addItem, restoreFromServer, reset } = useStore()
   const [name, setNameDraft] = useState(profile?.name ?? '')
   const [url, setUrl] = useState(server?.url ?? '')
   const [key, setKey] = useState(server?.key ?? '')
@@ -93,8 +93,17 @@ export default function Settings() {
             placeholder="Anon key"
             className="h-12 w-full rounded-md border border-line bg-surface-muted px-4 text-[15px] text-ink outline-none placeholder:text-faint focus:border-accent"
           />
-          <button onClick={saveServer} className="h-11 w-full rounded-md bg-accent text-[14px] font-medium text-white hover:opacity-90">
+          <button onClick={saveServer} className="h-11 w-full rounded-md bg-accent text-[14px] font-medium text-white active:opacity-80 hover:opacity-90">
             Save server
+          </button>
+          <button
+            onClick={async () => {
+              const ok = await restoreFromServer()
+              setSaved(ok ? 'Restored from server' : 'Nothing to restore')
+            }}
+            className="h-11 w-full rounded-md border border-line text-[14px] font-medium text-ink active:bg-surface-muted"
+          >
+            Restore from server
           </button>
         </div>
         {server && (

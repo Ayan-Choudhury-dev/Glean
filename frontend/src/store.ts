@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { storageAdapter } from './lib/storage'
+import { pushToServer, pullFromServer } from './lib/sync'
 
 export interface Profile {
   id: string
@@ -35,6 +36,7 @@ interface State {
   createPantry: (name: string) => void
   setName: (name: string) => void
   setServer: (server: { url: string; key: string } | null) => void
+  restoreFromServer: () => Promise<boolean>
 
   addItem: (item: Omit<InventoryItem, 'id'>) => void
   editItem: (id: string, updates: Partial<Omit<InventoryItem, 'id'>>) => void
@@ -76,6 +78,27 @@ export const useStore = create<State>()(
       },
 
       setServer: (server) => set({ server }),
+
+      restoreFromServer: async () => {
+        const server = get().server
+        if (!server) return false
+        try {
+          const data = await pullFromServer(server)
+          if (!data) return false
+          const profile = get().profile
+          set({
+            profile: profile
+              ? { ...profile, houseId: data.houseId }
+              : { id: uid(), name: 'You', houseId: data.houseId },
+            houseName: data.houseName,
+            items: data.items,
+            shopping: data.shopping,
+          })
+          return true
+        } catch {
+          return false
+        }
+      },
 
       addItem: (item) => set({ items: [...get().items, { ...item, id: uid() }] }),
 
@@ -133,3 +156,20 @@ export const useStore = create<State>()(
     { name: 'glean-state', storage: createJSONStorage(() => storageAdapter) },
   ),
 )
+
+// Push local changes to the self-hosted backend, debounced.
+let pushTimer: ReturnType<typeof setTimeout> | null = null
+useStore.subscribe((state) => {
+  if (!state.server) return
+  if (pushTimer) clearTimeout(pushTimer)
+  pushTimer = setTimeout(() => {
+    const s = useStore.getState()
+    if (!s.server) return
+    void pushToServer(s.server, {
+      profile: s.profile,
+      houseName: s.houseName,
+      items: s.items,
+      shopping: s.shopping,
+    })
+  }, 500)
+})
