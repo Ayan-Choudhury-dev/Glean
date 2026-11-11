@@ -3,7 +3,7 @@ import { RotateCcw, Server, Download, Upload } from 'lucide-react'
 import { useStore } from '../store'
 
 export default function Settings() {
-  const { profile, server, items, setName, setServer, addItem, restoreFromServer, reset } = useStore()
+  const { profile, server, items, theme, setName, setServer, setTheme, addItem, restoreFromServer, reset } = useStore()
   const [name, setNameDraft] = useState(profile?.name ?? '')
   const [url, setUrl] = useState(server?.url ?? '')
   const [key, setKey] = useState(server?.key ?? '')
@@ -111,6 +111,26 @@ export default function Settings() {
             <Server size={13} /> Connected to {server.url}
           </p>
         )}
+      </Section>
+
+      <Section title="Appearance">
+        <div className="flex items-center justify-between">
+          <span className="text-[15px] text-ink">Dark mode</span>
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            aria-pressed={theme === 'dark'}
+            aria-label="Toggle dark mode"
+            className={`flex h-7 w-12 items-center rounded-full p-0.5 transition-colors ${
+              theme === 'dark' ? 'bg-accent' : 'bg-line'
+            }`}
+          >
+            <span
+              className={`size-6 rounded-full bg-white transition-transform ${
+                theme === 'dark' ? 'translate-x-5' : ''
+              }`}
+            />
+          </button>
+        </div>
       </Section>
 
       <Section title="Data">

@@ -26,6 +26,21 @@
   --radius-xxl: 28px;
 }
 
+.dark {
+  color-scheme: dark;
+  --color-surface: #121212;
+  --color-ink: #f2f2f2;
+  --color-muted: #b3b3b3;
+  --color-faint: #6b6b6b;
+  --color-line: #333333;
+  --color-line-light: #2a2a2a;
+  --color-surface-muted: #2a2a2a;
+  --color-accent: #ff385c;
+  --color-accent-soft: #3a1f27;
+  --color-accent-border: #7a2e3c;
+  --color-danger: #ff6b6b;
+}
+
 html,
 body,
 #root {

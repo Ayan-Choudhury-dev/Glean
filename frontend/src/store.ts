@@ -31,11 +31,13 @@ interface State {
   items: InventoryItem[]
   shopping: ShoppingItem[]
   server: { url: string; key: string } | null
+  theme: 'light' | 'dark'
 
   createProfile: (name: string) => void
   createPantry: (name: string) => void
   setName: (name: string) => void
   setServer: (server: { url: string; key: string } | null) => void
+  setTheme: (theme: 'light' | 'dark') => void
   restoreFromServer: () => Promise<boolean>
 
   addItem: (item: Omit<InventoryItem, 'id'>) => void
@@ -65,6 +67,7 @@ export const useStore = create<State>()(
       items: [],
       shopping: [],
       server: null,
+      theme: 'light',
 
       createProfile: (name) =>
         set({ profile: { id: uid(), name: name.trim(), houseId: uid() } }),
@@ -78,6 +81,8 @@ export const useStore = create<State>()(
       },
 
       setServer: (server) => set({ server }),
+
+      setTheme: (theme) => set({ theme }),
 
       restoreFromServer: async () => {
         const server = get().server

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { LayoutGrid, ShoppingCart, Settings as SettingsIcon } from 'lucide-react'
 import { useStore } from './store'
 import Onboarding from './screens/Onboarding'
@@ -10,7 +10,12 @@ type Tab = 'pantry' | 'shopping' | 'settings'
 
 export default function App() {
   const profile = useStore((s) => s.profile)
+  const theme = useStore((s) => s.theme)
   const [tab, setTab] = useState<Tab>('pantry')
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+  }, [theme])
 
   if (!profile) {
     return (
