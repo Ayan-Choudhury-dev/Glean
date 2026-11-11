@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Plus, Minus, Search, LayoutGrid, AlertCircle, XCircle, X } from 'lucide-react'
+import { Plus, Minus, Search, LayoutGrid, AlertCircle, XCircle, X, ScanLine } from 'lucide-react'
 import { useStore, type InventoryItem } from '../store'
+import ScanModal from '../components/ScanModal'
+import { lookupProduct } from '../lib/productLookup'
 
 const CATEGORIES = [
   'Dairy', 'Grains', 'Spices', 'Vegetables', 'Fruits', 'Meat & Fish',
@@ -155,7 +157,7 @@ export default function Pantry() {
       )}
 
       {/* floating search */}
-      <div className="fixed inset-x-0 bottom-4 z-10 px-6">
+      <div className="fixed inset-x-0 bottom-20 z-10 px-6">
         <div className="mx-auto flex h-12 max-w-2xl items-center gap-2 rounded-full border border-line-light bg-surface px-4 shadow-[0_6px_16px_rgba(0,0,0,0.12)]">
           <Search size={19} className="text-muted" />
           <input
@@ -209,61 +211,92 @@ function AddSheet({ onClose, onAdd }: {
   const [qty, setQty] = useState('1')
   const [category, setCategory] = useState('Other')
   const [location, setLocation] = useState('Pantry')
+  const [barcode, setBarcode] = useState<string | null>(null)
+  const [scanning, setScanning] = useState(false)
+  const [looking, setLooking] = useState(false)
+
+  const onScanned = async (code: string) => {
+    setScanning(false)
+    setBarcode(code)
+    setLooking(true)
+    const product = await lookupProduct(code)
+    setLooking(false)
+    if (product?.name) setName(product.name)
+  }
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     const trimmed = name.trim()
     if (!trimmed) return
-    onAdd({ name: trimmed, qty: Math.max(0, parseInt(qty, 10) || 0), category, location })
+    onAdd({ name: trimmed, qty: Math.max(0, parseInt(qty, 10) || 0), category, location, barcode: barcode ?? undefined })
   }
 
   return (
-    <div className="fixed inset-0 z-20 flex items-end justify-center bg-black/25" onClick={onClose}>
-      <div
-        className="w-full max-w-xl rounded-t-2xl bg-surface p-6 pb-10 animate-[rise_.2s_ease-out_both]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-[22px] font-bold text-ink">Add an item</h2>
-          <button onClick={onClose} aria-label="Close" className="text-muted hover:text-ink">
-            <X size={22} />
-          </button>
-        </div>
-        <form onSubmit={submit} className="space-y-3">
-          <input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Item name"
-            className="h-14 w-full rounded-md border border-line bg-surface-muted px-4 text-[16px] text-ink outline-none placeholder:text-faint focus:border-accent"
-          />
-          <div className="flex gap-3">
-            <input
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
-              inputMode="numeric"
-              className="h-14 w-20 rounded-md border border-line bg-surface-muted px-4 text-center text-[16px] text-ink outline-none focus:border-accent"
-            />
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="h-14 flex-1 rounded-md border border-line bg-surface-muted px-3 text-[15px] text-ink outline-none focus:border-accent"
-            >
-              {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-            </select>
-            <select
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="h-14 flex-1 rounded-md border border-line bg-surface-muted px-3 text-[15px] text-ink outline-none focus:border-accent"
-            >
-              {LOCATIONS.map((l) => <option key={l}>{l}</option>)}
-            </select>
+    <>
+      {scanning && <ScanModal onClose={() => setScanning(false)} onScan={onScanned} />}
+      <div className="fixed inset-0 z-20 flex items-end justify-center bg-black/25" onClick={onClose}>
+        <div
+          className="w-full max-w-xl rounded-t-2xl bg-surface p-6 pb-10 animate-[rise_.2s_ease-out_both]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-display text-[22px] font-bold text-ink">Add an item</h2>
+            <button onClick={onClose} aria-label="Close" className="text-muted hover:text-ink">
+              <X size={22} />
+            </button>
           </div>
-          <button className="h-[54px] w-full rounded-md bg-accent text-[15px] font-medium text-white hover:opacity-90">
-            Add to pantry
+
+          <button
+            type="button"
+            onClick={() => setScanning(true)}
+            className="mb-3 flex h-12 w-full items-center justify-center gap-2 rounded-md border-[1.5px] border-line bg-surface text-[15px] font-medium text-ink hover:bg-surface-muted"
+          >
+            <ScanLine size={18} className="text-accent" />
+            Scan a barcode
           </button>
-        </form>
+
+          {barcode && (
+            <p className="mb-3 text-center text-[12px] text-muted">
+              {looking ? 'Looking up product…' : `Barcode ${barcode}`}
+            </p>
+          )}
+
+          <form onSubmit={submit} className="space-y-3">
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Item name"
+              className="h-14 w-full rounded-md border border-line bg-surface-muted px-4 text-[16px] text-ink outline-none placeholder:text-faint focus:border-accent"
+            />
+            <div className="flex gap-3">
+              <input
+                value={qty}
+                onChange={(e) => setQty(e.target.value)}
+                inputMode="numeric"
+                className="h-14 w-20 rounded-md border border-line bg-surface-muted px-4 text-center text-[16px] text-ink outline-none focus:border-accent"
+              />
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="h-14 flex-1 rounded-md border border-line bg-surface-muted px-3 text-[15px] text-ink outline-none focus:border-accent"
+              >
+                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+              </select>
+              <select
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="h-14 flex-1 rounded-md border border-line bg-surface-muted px-3 text-[15px] text-ink outline-none focus:border-accent"
+              >
+                {LOCATIONS.map((l) => <option key={l}>{l}</option>)}
+              </select>
+            </div>
+            <button className="h-[54px] w-full rounded-md bg-accent text-[15px] font-medium text-white hover:opacity-90">
+              Add to pantry
+            </button>
+          </form>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
