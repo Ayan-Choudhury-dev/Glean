@@ -1,0 +1,10 @@
+node_modules
+.git
+.expo
+dist
+android/app/build
+android/.gradle
+android/.kotlin
+*.apk
+*.aab
+.env

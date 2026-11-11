@@ -1,0 +1,9 @@
+# Runs the bundled self-hosted backend from ./backend.
+# Requires Docker Compose 2.20+ for `include`.
+#
+#   cp backend/.env.example backend/.env
+#   docker compose up -d
+#
+# The dashboard + API are then at http://<host>:8000
+include:
+  - backend/docker-compose.yml
