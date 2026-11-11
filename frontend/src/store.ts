@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { storageAdapter } from './lib/storage'
 
 export interface Profile {
   id: string
@@ -129,6 +130,6 @@ export const useStore = create<State>()(
 
       reset: () => set({ profile: null, houseName: null, items: [], shopping: [], server: null }),
     }),
-    { name: 'glean-state' },
+    { name: 'glean-state', storage: createJSONStorage(() => storageAdapter) },
   ),
 )
