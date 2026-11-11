@@ -36,6 +36,8 @@ interface State {
   setServer: (server: { url: string; key: string } | null) => void
 
   addItem: (item: Omit<InventoryItem, 'id'>) => void
+  editItem: (id: string, updates: Partial<Omit<InventoryItem, 'id'>>) => void
+  deleteItem: (id: string) => void
   adjust: (id: string, delta: number) => void
 
   addToShopping: (name: string) => void
@@ -75,6 +77,11 @@ export const useStore = create<State>()(
       setServer: (server) => set({ server }),
 
       addItem: (item) => set({ items: [...get().items, { ...item, id: uid() }] }),
+
+      editItem: (id, updates) =>
+        set({ items: get().items.map((i) => (i.id === id ? { ...i, ...updates } : i)) }),
+
+      deleteItem: (id) => set({ items: get().items.filter((i) => i.id !== id) }),
 
       adjust: (id, delta) =>
         set({

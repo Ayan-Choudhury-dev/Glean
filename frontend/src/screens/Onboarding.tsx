@@ -71,7 +71,7 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-xl flex-col justify-center px-7 py-8">
+    <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col justify-center px-7 py-8 pb-[calc(32px+env(safe-area-inset-bottom))]">
       <div className="mb-7 flex justify-center gap-2">
         {ORDER.map((_, i) => (
           <span
@@ -312,7 +312,7 @@ function Primary({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="flex h-[54px] w-full items-center justify-center rounded-md bg-accent text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+      className="flex h-[54px] w-full items-center justify-center rounded-md bg-accent text-[15px] font-medium text-white transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-50"
     >
       {children}
     </button>
@@ -321,7 +321,7 @@ function Primary({
 
 function Secondary({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="flex min-h-[46px] w-full items-center justify-center text-[14px] font-medium text-muted hover:text-ink">
+    <button onClick={onClick} className="flex min-h-[46px] w-full items-center justify-center text-[14px] font-medium text-muted active:opacity-60 hover:text-ink">
       {children}
     </button>
   )

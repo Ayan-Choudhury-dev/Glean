@@ -14,14 +14,14 @@ export default function App() {
 
   if (!profile) {
     return (
-      <div className="min-h-full">
+      <div className="min-h-dvh">
         <Onboarding />
       </div>
     )
   }
 
   return (
-    <div className="min-h-full pb-16">
+    <div className="min-h-dvh pb-[calc(64px+env(safe-area-inset-bottom))]">
       {tab === 'pantry' && <Pantry />}
       {tab === 'shopping' && <Shopping />}
       {tab === 'settings' && <Settings />}
@@ -52,7 +52,7 @@ function TabButton({
     <button
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
-      className="flex flex-1 flex-col items-center gap-1 py-2.5"
+      className="flex flex-1 flex-col items-center gap-1 py-2 transition-transform active:scale-95"
     >
       <span
         className={`flex h-8 w-14 items-center justify-center rounded-full transition-colors ${

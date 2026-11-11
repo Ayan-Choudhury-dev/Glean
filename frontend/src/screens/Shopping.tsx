@@ -18,7 +18,7 @@ export default function Shopping() {
   }
 
   return (
-    <div className="mx-auto min-h-full w-full max-w-2xl px-6 pb-6 pt-6">
+    <div className="mx-auto min-h-dvh w-full max-w-2xl px-6 pb-6 pt-6">
       <h1 className="font-display text-[32px] font-bold leading-none tracking-[-0.5px] text-ink">Shopping list</h1>
       <p className="mt-1.5 text-[14px] text-muted">
         {toBuy} to buy · {purchasedCount} purchased
@@ -31,7 +31,7 @@ export default function Shopping() {
           placeholder="Add to the list…"
           className="h-12 flex-1 rounded-md border border-line bg-surface-muted px-4 text-[15px] text-ink outline-none placeholder:text-faint focus:border-accent"
         />
-        <button aria-label="Add to list" className="flex size-12 items-center justify-center rounded-md bg-accent text-white hover:opacity-90">
+        <button aria-label="Add to list" className="flex size-12 items-center justify-center rounded-md bg-accent text-white active:scale-95 hover:opacity-90">
           <Plus size={20} />
         </button>
       </form>
@@ -93,7 +93,7 @@ export default function Shopping() {
       {purchasedCount > 0 && (
         <button
           onClick={updatePantry}
-          className="mt-5 h-[52px] w-full rounded-md bg-accent text-[15px] font-medium text-white hover:opacity-90"
+          className="mt-5 h-[52px] w-full rounded-md bg-accent text-[15px] font-medium text-white active:opacity-80 hover:opacity-90"
         >
           Update pantry ({purchasedCount})
         </button>

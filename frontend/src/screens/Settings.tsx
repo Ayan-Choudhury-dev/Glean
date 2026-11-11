@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { RotateCcw, Server } from 'lucide-react'
+import { RotateCcw, Server, Download, Upload } from 'lucide-react'
 import { useStore } from '../store'
 
 export default function Settings() {
-  const { profile, server, setName, setServer, reset } = useStore()
+  const { profile, server, items, setName, setServer, addItem, reset } = useStore()
   const [name, setNameDraft] = useState(profile?.name ?? '')
   const [url, setUrl] = useState(server?.url ?? '')
   const [key, setKey] = useState(server?.key ?? '')
@@ -17,6 +17,46 @@ export default function Settings() {
   const saveServer = () => {
     setServer(url.trim() && key.trim() ? { url: url.trim(), key: key.trim() } : null)
     setSaved(url.trim() && key.trim() ? 'Server saved' : 'Server cleared')
+  }
+
+  const exportCsv = () => {
+    const rows = [
+      'name,quantity,category,location',
+      ...items.map((i) => `${i.name},${i.qty},${i.category},${i.location ?? ''}`),
+    ]
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'glean-pantry.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+    setSaved('Exported pantry.csv')
+  }
+
+  const importCsv = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const lines = String(reader.result ?? '').split('\n').map((l) => l.trim()).filter(Boolean)
+      if (lines.length < 2) return
+      const headers = lines[0].split(',').map((h) => h.trim().toLowerCase())
+      let added = 0
+      for (const line of lines.slice(1)) {
+        const vals = line.split(',').map((v) => v.trim())
+        const row: Record<string, string> = {}
+        headers.forEach((h, i) => { row[h] = vals[i] ?? '' })
+        if (!row.name) continue
+        addItem({
+          name: row.name,
+          qty: Math.max(0, parseInt(row.quantity ?? row.qty ?? '0', 10) || 0),
+          category: row.category || 'Other',
+          location: row.location || 'Pantry',
+        })
+        added++
+      }
+      setSaved(`Imported ${added} ${added === 1 ? 'item' : 'items'}`)
+    }
+    reader.readAsText(file)
   }
 
   return (
@@ -65,11 +105,32 @@ export default function Settings() {
       </Section>
 
       <Section title="Data">
+        <div className="flex gap-2">
+          <button
+            onClick={exportCsv}
+            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-md border border-line text-[14px] font-medium text-ink active:bg-surface-muted"
+          >
+            <Download size={16} /> Export CSV
+          </button>
+          <label className="flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border border-line text-[14px] font-medium text-ink active:bg-surface-muted">
+            <Upload size={16} /> Import CSV
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) importCsv(file)
+                e.target.value = ''
+              }}
+            />
+          </label>
+        </div>
         <button
           onClick={() => {
             if (window.confirm('Reset everything on this device? This cannot be undone.')) reset()
           }}
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-md border border-line text-[14px] font-medium text-danger hover:bg-surface-muted"
+          className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-md border border-line text-[14px] font-medium text-danger active:bg-surface-muted"
         >
           <RotateCcw size={16} /> Reset app
         </button>

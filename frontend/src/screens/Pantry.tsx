@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Plus, Minus, Search, LayoutGrid, AlertCircle, XCircle, X, ScanLine } from 'lucide-react'
 import { useStore, type InventoryItem } from '../store'
+import ItemDetail from './ItemDetail'
 import ScanModal from '../components/ScanModal'
 import { lookupProduct } from '../lib/productLookup'
 
@@ -22,6 +23,7 @@ export default function Pantry() {
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [adding, setAdding] = useState(false)
+  const [detail, setDetail] = useState<InventoryItem | null>(null)
 
   const categories = useMemo(() => [...new Set(items.map((i) => i.category))].sort(), [items])
 
@@ -114,28 +116,33 @@ export default function Pantry() {
                     key={item.id}
                     className={`flex min-h-[84px] items-center gap-3.5 px-6 py-2.5 ${index > 0 ? 'border-t border-line-light' : ''}`}
                   >
-                    {item.category ? (
-                      <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-muted">
-                        <img src={categoryImage(item.category)} alt="" className="size-[54px] object-contain" />
+                    <button
+                      onClick={() => setDetail(item)}
+                      className="flex min-w-0 flex-1 items-center gap-3.5 text-left active:opacity-70"
+                    >
+                      {item.category ? (
+                        <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-muted">
+                          <img src={categoryImage(item.category)} alt="" className="size-[54px] object-contain" />
+                        </div>
+                      ) : null}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[16px] font-semibold text-ink">{item.name}</div>
+                        <div className="mt-0.5 flex items-center gap-2">
+                          {item.location && <span className="truncate text-[14px] text-muted">{item.location}</span>}
+                          {item.qty === 0 ? (
+                            <span className="text-[13px] font-semibold text-danger">Out of stock</span>
+                          ) : item.qty === 1 ? (
+                            <span className="text-[13px] font-semibold text-[#B45309]">Low stock</span>
+                          ) : null}
+                        </div>
                       </div>
-                    ) : null}
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[16px] font-semibold text-ink">{item.name}</div>
-                      <div className="mt-0.5 flex items-center gap-2">
-                        {item.location && <span className="truncate text-[14px] text-muted">{item.location}</span>}
-                        {item.qty === 0 ? (
-                          <span className="text-[13px] font-semibold text-danger">Out of stock</span>
-                        ) : item.qty === 1 ? (
-                          <span className="text-[13px] font-semibold text-[#B45309]">Low stock</span>
-                        ) : null}
-                      </div>
-                    </div>
+                    </button>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => adjust(item.id, -1)}
                         disabled={item.qty === 0}
                         aria-label={`Decrease ${item.name}`}
-                        className="flex size-8 items-center justify-center rounded-full bg-surface-muted text-ink hover:bg-line-light disabled:opacity-50"
+                        className="flex size-8 items-center justify-center rounded-full bg-surface-muted text-ink active:scale-95 hover:bg-line-light disabled:opacity-50"
                       >
                         <Minus size={15} />
                       </button>
@@ -143,7 +150,7 @@ export default function Pantry() {
                       <button
                         onClick={() => adjust(item.id, 1)}
                         aria-label={`Increase ${item.name}`}
-                        className="flex size-8 items-center justify-center rounded-full bg-accent text-white hover:opacity-90"
+                        className="flex size-8 items-center justify-center rounded-full bg-accent text-white active:scale-95 hover:opacity-90"
                       >
                         <Plus size={15} />
                       </button>
@@ -157,7 +164,7 @@ export default function Pantry() {
       )}
 
       {/* floating search */}
-      <div className="fixed inset-x-0 bottom-20 z-10 px-6">
+      <div className="fixed inset-x-0 bottom-[calc(76px+env(safe-area-inset-bottom))] z-10 px-6">
         <div className="mx-auto flex h-12 max-w-2xl items-center gap-2 rounded-full border border-line-light bg-surface px-4 shadow-[0_6px_16px_rgba(0,0,0,0.12)]">
           <Search size={19} className="text-muted" />
           <input
@@ -175,6 +182,7 @@ export default function Pantry() {
       </div>
 
       {adding && <AddSheet onClose={() => setAdding(false)} onAdd={(item) => { addItem(item); setAdding(false) }} />}
+      {detail && <ItemDetail item={detail} onClose={() => setDetail(null)} />}
 
       <p className="mt-8 text-center text-[12px] text-faint">
         Signed in as {profile?.name}. Everything stays on this device.
@@ -193,7 +201,7 @@ function Chip({ label, active, onPress, children }: {
     <button
       onClick={onPress}
       aria-pressed={active}
-      className={`flex h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 text-[14px] font-medium transition-colors ${
+      className={`flex h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 text-[14px] font-medium transition active:scale-95 ${
         active ? 'border-ink bg-surface-muted text-ink' : 'border-line bg-surface text-ink hover:bg-surface-muted'
       }`}
     >
