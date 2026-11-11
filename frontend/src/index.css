@@ -1,23 +1,40 @@
 @import "tailwindcss";
 
+/* Tokens mirrored from constants/theme.ts so the web app matches the Expo app. */
 @theme {
-  --color-paper: #f7f1e8;
-  --color-ink: #1f1f1f;
-  --color-muted: #6b6375;
-  --color-line: #e5e0d6;
-  --color-accent: #b4532a;
-  --color-accent-soft: #f3e3d8;
+  --color-surface: #ffffff;
+  --color-ink: #222222;
+  --color-muted: #717171;
+  --color-faint: #b0b0b0;
+  --color-line: #dddddd;
+  --color-line-light: #ebebeb;
+  --color-surface-muted: #f7f7f7;
+  --color-accent: #ff385c;
+  --color-accent-soft: #fff1f3;
+  --color-accent-border: #ffb3c1;
+  --color-danger: #c13515;
+
   --font-display: "Fraunces", ui-serif, Georgia, serif;
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-xxl: 28px;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
 }
 
 body {
   margin: 0;
-  background: var(--color-paper);
+  background: var(--color-surface);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -31,5 +48,12 @@ body {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

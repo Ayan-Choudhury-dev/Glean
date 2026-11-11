@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ShoppingBasket, Clock, ShoppingCart, Check, Plus, Smartphone, Server } from 'lucide-react'
 import { useStore } from '../store'
 
 type Step = 'welcome' | 'name' | 'staples' | 'where'
@@ -18,12 +19,18 @@ const STAPLES = [
   { name: 'Apples', category: 'Fruits', location: 'Fridge' },
 ]
 
-const HERO = ['vegetables', 'dairy', 'fruits', 'grains', 'spices']
+const HERO = [
+  { src: 'vegetables', size: 62, offset: 0 },
+  { src: 'dairy', size: 54, offset: 18 },
+  { src: 'fruits', size: 58, offset: 4 },
+  { src: 'grains', size: 54, offset: 18 },
+  { src: 'spices', size: 62, offset: 0 },
+]
 
 const VALUE_POINTS = [
-  { icon: '🧺', text: 'Know what you already have' },
-  { icon: '⏳', text: 'See what is running low' },
-  { icon: '🛒', text: 'Build a shopping list in seconds' },
+  { icon: ShoppingBasket, text: 'Know what you already have' },
+  { icon: Clock, text: 'See what is running low' },
+  { icon: ShoppingCart, text: 'Build a shopping list in seconds' },
 ]
 
 const ORDER: Step[] = ['welcome', 'name', 'staples', 'where']
@@ -57,7 +64,6 @@ export default function Onboarding() {
     STAPLES.forEach((s) => {
       if (picked.has(s.name)) addItem({ name: s.name, qty: 1, category: s.category, location: s.location })
     })
-    // Server wiring lands with the backend sync layer; the choice is captured now.
     if (serverMode && serverUrl.trim() && serverKey.trim()) {
       localStorage.setItem('glean-server', JSON.stringify({ url: serverUrl.trim(), key: serverKey.trim() }))
     }
@@ -65,49 +71,53 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-xl flex-col justify-center px-7 py-10">
-      {/* progress */}
-      <div className="mb-8 flex justify-center gap-2">
+    <div className="mx-auto flex min-h-full w-full max-w-xl flex-col justify-center px-7 py-8">
+      <div className="mb-7 flex justify-center gap-2">
         {ORDER.map((_, i) => (
           <span
             key={i}
-            className={`h-[7px] rounded-full transition-all ${
+            className={`h-[7px] rounded-full transition-all duration-200 ${
               i <= stepIndex ? 'bg-accent' : 'bg-line'
             } ${i === stepIndex ? 'w-[22px]' : 'w-[7px]'}`}
           />
         ))}
       </div>
 
-      <div key={step} className="animate-[rise_.4s_cubic-bezier(.2,.8,.2,1)_both]">
+      <div key={step} className="animate-[rise_.34s_cubic-bezier(.2,.8,.2,1)_both]">
         {step === 'welcome' && (
           <div>
             <div className="text-center">
-              <h1 className="font-display text-[2.6rem] leading-[1.05] tracking-[-0.03em] text-ink">
+              <h1 className="font-display text-[40px] font-bold leading-[1.05] tracking-[-0.5px] text-ink">
                 Your kitchen, remembered.
               </h1>
-              <p className="mx-auto mt-3 max-w-md text-muted">
+              <p className="mt-2.5 text-[15px] leading-[22px] text-muted">
                 Glean keeps track of what you have, so you shop once and stop running out.
               </p>
-              <div className="mt-6 flex items-end justify-center gap-2">
+              <div className="mt-5 flex items-start justify-center gap-1.5">
                 {HERO.map((c, i) => (
                   <img
-                    key={c}
-                    src={`/categories/${c}.png`}
+                    key={c.src}
+                    src={`/categories/${c.src}.png`}
                     alt=""
-                    className="h-14 w-14 object-contain"
-                    style={{ animation: 'rise .6s cubic-bezier(.2,.8,.2,1) both', animationDelay: `${i * 80}ms` }}
+                    style={{
+                      width: c.size,
+                      height: c.size,
+                      marginTop: c.offset,
+                      animation: 'rise .6s cubic-bezier(.2,.8,.2,1) both',
+                      animationDelay: `${i * 80}ms`,
+                    }}
                   />
                 ))}
               </div>
             </div>
 
-            <ul className="mt-8 space-y-4">
-              {VALUE_POINTS.map((p) => (
-                <li key={p.text} className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft text-lg">
-                    {p.icon}
+            <ul className="mt-7 space-y-3.5">
+              {VALUE_POINTS.map(({ icon: Icon, text }) => (
+                <li key={text} className="flex items-center gap-3.5">
+                  <span className="flex size-10 items-center justify-center rounded-md bg-accent-soft">
+                    <Icon size={20} className="text-accent" strokeWidth={2} />
                   </span>
-                  <span className="text-ink">{p.text}</span>
+                  <span className="text-[16px] leading-[22px] text-ink">{text}</span>
                 </li>
               ))}
             </ul>
@@ -116,28 +126,32 @@ export default function Onboarding() {
 
         {step === 'name' && (
           <div>
-            <h2 className="font-display text-[1.9rem] leading-tight tracking-[-0.02em] text-ink">
+            <h2 className="font-display text-[30px] font-bold leading-tight tracking-[-0.4px] text-ink">
               What should we call you?
             </h2>
-            <p className="mt-2 text-muted">Just a first name is fine. It stays on this device.</p>
+            <p className="mb-6 mt-2 text-[15px] leading-[22px] text-muted">
+              Just a first name is fine. It stays on this device.
+            </p>
             <input
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && name.trim() && setStep('staples')}
               placeholder="Your name"
-              className="mt-6 h-14 w-full rounded-xl border border-line bg-white px-4 text-ink outline-none focus:border-accent"
+              className="h-14 w-full rounded-md border border-line bg-surface-muted px-4 text-[16px] text-ink outline-none placeholder:text-faint focus:border-accent"
             />
           </div>
         )}
 
         {step === 'staples' && (
           <div>
-            <h2 className="font-display text-[1.9rem] leading-tight tracking-[-0.02em] text-ink">
+            <h2 className="font-display text-[30px] font-bold leading-tight tracking-[-0.4px] text-ink">
               What is usually in your kitchen?
             </h2>
-            <p className="mt-2 text-muted">Tap a few staples to start your pantry. You can add anything else later.</p>
-            <div className="mt-6 flex flex-wrap gap-2.5">
+            <p className="mb-6 mt-2 text-[15px] leading-[22px] text-muted">
+              Tap a few staples to start your pantry. You can add anything else later.
+            </p>
+            <div className="flex flex-wrap gap-2.5">
               {STAPLES.map((s) => {
                 const on = picked.has(s.name)
                 return (
@@ -145,13 +159,13 @@ export default function Onboarding() {
                     key={s.name}
                     onClick={() => toggle(s.name)}
                     aria-pressed={on}
-                    className={`flex min-h-[46px] items-center gap-2 rounded-full border-[1.5px] px-4 text-sm font-medium transition-colors ${
+                    className={`flex min-h-[46px] items-center gap-[7px] rounded-full border-[1.5px] px-[15px] text-[14px] font-medium transition-colors ${
                       on
                         ? 'border-accent bg-accent-soft text-accent'
-                        : 'border-line bg-white text-ink hover:border-muted'
+                        : 'border-line bg-surface text-ink hover:bg-surface-muted'
                     }`}
                   >
-                    <span aria-hidden>{on ? '✓' : '+'}</span>
+                    {on ? <Check size={18} /> : <Plus size={18} className="text-muted" />}
                     {s.name}
                   </button>
                 )
@@ -162,22 +176,24 @@ export default function Onboarding() {
 
         {step === 'where' && (
           <div>
-            <h2 className="font-display text-[1.9rem] leading-tight tracking-[-0.02em] text-ink">
+            <h2 className="font-display text-[30px] font-bold leading-tight tracking-[-0.4px] text-ink">
               Where should your pantry live?
             </h2>
-            <p className="mt-2 text-muted">
+            <p className="mb-5 mt-2 text-[15px] leading-[22px] text-muted">
               Glean works on this device. You can also sync through a server you host yourself.
             </p>
 
-            <div className="mt-5 space-y-3">
+            <div className="space-y-3">
               <Choice
                 selected={!serverMode}
+                icon={Smartphone}
                 title="On this device"
                 subtitle="Private, works offline, nothing to set up"
                 onSelect={() => setServerMode(false)}
               />
               <Choice
                 selected={serverMode}
+                icon={Server}
                 title="My own server"
                 subtitle="Sync across devices through a server you run"
                 onSelect={() => setServerMode(true)}
@@ -190,22 +206,21 @@ export default function Onboarding() {
                   value={serverUrl}
                   onChange={(e) => setServerUrl(e.target.value)}
                   placeholder="http://my-server:8000"
-                  className="h-13 w-full rounded-xl border border-line bg-white px-4 text-ink outline-none focus:border-accent"
+                  className="h-13 w-full rounded-md border border-line bg-surface-muted px-4 text-[16px] text-ink outline-none placeholder:text-faint focus:border-accent"
                 />
                 <input
                   value={serverKey}
                   onChange={(e) => setServerKey(e.target.value)}
                   placeholder="Anon key (any non-empty value)"
-                  className="h-13 w-full rounded-xl border border-line bg-white px-4 text-ink outline-none focus:border-accent"
+                  className="h-13 w-full rounded-md border border-line bg-surface-muted px-4 text-[16px] text-ink outline-none placeholder:text-faint focus:border-accent"
                 />
-                <p className="text-xs text-muted">Run the bundled backend first — see backend/README.md.</p>
+                <p className="text-[12px] text-faint">Run the bundled backend first — see backend/README.md.</p>
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* actions */}
       <div className="mt-8 space-y-2.5">
         {step === 'welcome' && <Primary onClick={() => setStep('name')}>Get started</Primary>}
 
@@ -240,7 +255,7 @@ export default function Onboarding() {
         )}
       </div>
 
-      <p className="mt-5 text-center text-xs text-muted">
+      <p className="mt-5 text-center text-[12px] text-faint">
         Your pantry lives on this device. No account needed.
       </p>
     </div>
@@ -249,11 +264,13 @@ export default function Onboarding() {
 
 function Choice({
   selected,
+  icon: Icon,
   title,
   subtitle,
   onSelect,
 }: {
   selected: boolean
+  icon: typeof Smartphone
   title: string
   subtitle: string
   onSelect: () => void
@@ -262,15 +279,22 @@ function Choice({
     <button
       onClick={onSelect}
       aria-pressed={selected}
-      className={`flex w-full items-center gap-3.5 rounded-2xl border-[1.5px] p-4 text-left transition-colors ${
-        selected ? 'border-accent bg-accent-soft' : 'border-line bg-white hover:border-muted'
+      className={`flex w-full items-center gap-3.5 rounded-lg border-[1.5px] p-4 text-left transition-colors ${
+        selected ? 'border-accent bg-accent-soft' : 'border-line bg-surface hover:bg-surface-muted'
       }`}
     >
-      <div className="flex-1">
-        <div className="font-medium text-ink">{title}</div>
-        <div className="mt-0.5 text-xs text-muted">{subtitle}</div>
-      </div>
-      <span className={selected ? 'text-accent' : 'text-line'}>{selected ? '✓' : '○'}</span>
+      <span className="flex size-11 items-center justify-center rounded-md bg-surface-muted">
+        <Icon size={22} className={selected ? 'text-accent' : 'text-muted'} />
+      </span>
+      <span className="flex-1">
+        <span className="block text-[16px] font-medium text-ink">{title}</span>
+        <span className="mt-0.5 block text-[12px] text-muted">{subtitle}</span>
+      </span>
+      {selected ? (
+        <Check size={20} className="text-accent" />
+      ) : (
+        <span className="size-5 rounded-full border-[1.5px] border-line" />
+      )}
     </button>
   )
 }
@@ -288,7 +312,7 @@ function Primary({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="flex min-h-[54px] w-full items-center justify-center rounded-xl bg-accent font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+      className="flex h-[54px] w-full items-center justify-center rounded-md bg-accent text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
     >
       {children}
     </button>
@@ -297,7 +321,7 @@ function Primary({
 
 function Secondary({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="min-h-[46px] w-full text-sm font-medium text-muted hover:text-ink">
+    <button onClick={onClick} className="flex min-h-[46px] w-full items-center justify-center text-[14px] font-medium text-muted hover:text-ink">
       {children}
     </button>
   )
