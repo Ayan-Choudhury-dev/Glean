@@ -19,7 +19,8 @@
       "predictiveBackGestureEnabled": false,
       "package": "io.github.ayanchoudhurydev.glean",
       "permissions": [
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.REQUEST_INSTALL_PACKAGES"
       ],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
