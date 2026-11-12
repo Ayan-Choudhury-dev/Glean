@@ -20,7 +20,8 @@
       "package": "io.github.ayanchoudhurydev.glean",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.REQUEST_INSTALL_PACKAGES"
+        "android.permission.REQUEST_INSTALL_PACKAGES",
+        "android.permission.POST_NOTIFICATIONS"
       ],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
@@ -58,7 +59,8 @@
       "expo-status-bar",
       "expo-sharing",
       "expo-sqlite",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

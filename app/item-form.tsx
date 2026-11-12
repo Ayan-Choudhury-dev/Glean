@@ -259,8 +259,9 @@ export default function ItemFormScreen() {
             )}
           </Tappable>
 
-          {isEdit && !suggestionDismissed && (parseInt(qty, 10) || 0) <= 1 && (
+          {isEdit && (
             <StockSuggestion
+              visible={!suggestionDismissed && (parseInt(qty, 10) || 0) <= 1}
               out={!parseInt(qty, 10)}
               itemName={existing!.name}
               isInList={isInShoppingList}
@@ -553,12 +554,14 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
  * it is deliberately shorter than the image so the photo stays readable.
  */
 function StockSuggestion({
+  visible,
   out,
   itemName,
   isInList,
   onAdd,
   onDismiss,
 }: {
+  visible: boolean;
   out: boolean;
   itemName: string;
   isInList: boolean;
@@ -566,16 +569,54 @@ function StockSuggestion({
   onDismiss: () => void;
 }) {
   const colors = useColors();
-  const enter = useRef(new Animated.Value(0)).current;
+  /** Drives mount, dismiss and the cross-fade between low and out. */
+  const enter = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const [mounted, setMounted] = useState(visible);
+  const mountedRef = useRef(visible);
+  const previousOut = useRef(out);
 
   useEffect(() => {
+    mountedRef.current = mounted;
+  }, [mounted]);
+
+  useEffect(() => {
+    if (visible) {
+      setMounted(true);
+      Animated.timing(enter, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
+    if (!mountedRef.current) return;
+    // Keep it on screen through the exit, then unmount.
+    Animated.timing(enter, {
+      toValue: 0,
+      duration: 150,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) setMounted(false);
+    });
+  }, [visible, enter]);
+
+  // Crossing between low and out is a change of state, not a new alert: dip and
+  // come back rather than swapping the copy in place.
+  useEffect(() => {
+    if (previousOut.current === out) return;
+    previousOut.current = out;
+    enter.setValue(0.55);
     Animated.timing(enter, {
       toValue: 1,
-      duration: 200,
+      duration: 180,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [enter]);
+  }, [out, enter]);
+
+  if (!mounted) return null;
 
   const tone = out ? colors.danger : colors.warning;
   const toneBg = out ? colors.dangerBg : colors.warningBg;

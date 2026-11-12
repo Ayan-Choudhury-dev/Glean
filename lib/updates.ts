@@ -2,6 +2,11 @@ import Constants from 'expo-constants';
 import { File, Paths } from 'expo-file-system';
 import { getContentUriAsync } from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
+import {
+  clearDownloadNotification,
+  showDownloadProgress,
+  showInstallReady,
+} from './updateNotifications';
 import { create } from 'zustand';
 
 // Lightweight self-update check against GitHub releases (no store, no account).
@@ -157,10 +162,16 @@ export const useUpdateFlow = create<UpdateFlow>((set, get) => ({
     if (!info) return;
     set({ phase: 'downloading', progress: 0, error: null, open: true });
     try {
-      await downloadAndInstall(info, fraction => set({ progress: fraction }));
+      await downloadAndInstall(info, fraction => {
+        set({ progress: fraction });
+        // Mirror the bar into the shade so progress survives leaving the app.
+        void showDownloadProgress(fraction, info.version);
+      });
       set({ phase: 'opening' });
+      void showInstallReady(info.version);
     } catch (e) {
       set({ phase: 'error', error: e instanceof Error ? e.message : String(e) });
+      void clearDownloadNotification();
     }
   },
 
