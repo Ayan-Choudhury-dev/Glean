@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tappable } from './ui/tappable';
 import { Text } from './ui/text';
 import { NativeSheet } from './NativeSheet';
+import { UpdateSheet } from './UpdateSheet';
 import { useOverlay, type DialogConfig } from '@/lib/overlay';
 import { theme } from '@/constants/theme';
 import { useColors } from '@/lib/appearance';
@@ -25,6 +26,7 @@ export function OverlayHost() {
   return (
     <>
       <DialogLayer dialog={dialog} onClose={closeDialog} colors={colors} />
+      <UpdateSheet />
 
       <NativeSheet visible={!!menu} onClose={closeMenu}>
         <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 28 }}>

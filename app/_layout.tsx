@@ -18,11 +18,10 @@ import {
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { useFonts } from 'expo-font';
 import { Stack, router } from 'expo-router';
-import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { AppState, Platform, View, useColorScheme } from 'react-native';
+import { AppState, View, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -36,8 +35,7 @@ import { theme } from '@/constants/theme';
 import { useAppearance, useColors } from '@/lib/appearance';
 import { getServerConfig } from '@/lib/serverConfig';
 import { initSupabase } from '@/lib/supabase';
-import { checkForUpdate, downloadAndInstall } from '@/lib/updates';
-import { showDialog } from '@/lib/overlay';
+import { useUpdateFlow } from '@/lib/updates';
 import '@/global.css';
 
 export { ErrorBoundary } from 'expo-router';
@@ -97,40 +95,10 @@ export default function RootLayout() {
     getServerConfig().then(cfg => { if (cfg) initSupabase(cfg); });
   }, []);
 
-  // Self-update check: the app ships as an APK from GitHub releases. On Android
-  // we download and hand it to the system installer, so updating does not mean
-  // hunting for the release page.
+  // Self-update check. Silent: the result lands in the Settings row and a toast,
+  // never a modal on launch. Installing lives in the update sheet.
   useEffect(() => {
-    checkForUpdate().then(update => {
-      if (!update) return;
-      if (Platform.OS !== 'android' || !update.apkUrl) {
-        showDialog({
-          title: 'Update available',
-          message: `Glean ${update.version} is ready to download.`,
-          confirmLabel: 'Download',
-          cancelLabel: 'Later',
-          onConfirm: () => { void Linking.openURL(update.url); },
-        });
-        return;
-      }
-      showDialog({
-        title: 'Update available',
-        message: `Glean ${update.version} is ready. Your pantry is kept.`,
-        confirmLabel: 'Install',
-        cancelLabel: 'Later',
-        onConfirm: () => {
-          void downloadAndInstall(update).catch(err => {
-            showDialog({
-              title: 'Could not install the update',
-              message: `${err instanceof Error ? err.message : String(err)}\n\nYou can download it from the release page instead.`,
-              confirmLabel: 'Open page',
-              cancelLabel: 'Close',
-              onConfirm: () => { void Linking.openURL(update.url); },
-            });
-          });
-        },
-      });
-    });
+    void useUpdateFlow.getState().check();
   }, []);
 
   // Flush the debounced local mirror when the app leaves the foreground: the

@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { File, Paths } from 'expo-file-system';
 import { getContentUriAsync } from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
+import { create } from 'zustand';
 
 // Lightweight self-update check against GitHub releases (no store, no account).
 // The app is distributed as an APK from GitHub, so the latest release tag is the
@@ -16,6 +17,8 @@ export interface UpdateInfo {
   url: string;
   /** Direct APK for this device, when the release has one. */
   apkUrl: string | null;
+  /** Bytes, for the "12 of 46 MB" line. Null when the release omits it. */
+  apkSize: number | null;
 }
 
 function compareVersions(a: string, b: string): number {
@@ -39,10 +42,11 @@ export function currentVersion(): string {
  * one fails at install, which we surface as "open the release page" instead.
  * ponytail: no ABI probe, add one if 32-bit installs become common.
  */
-function pickApk(assets: { name?: string; browser_download_url?: string }[]): string | null {
+function pickApk(assets: { name?: string; browser_download_url?: string; size?: number }[]) {
   const apk = assets.find(a => (a.name ?? '').includes('arm64-v8a'))
     ?? assets.find(a => (a.name ?? '').endsWith('.apk'));
-  return apk?.browser_download_url ?? null;
+  if (!apk?.browser_download_url) return { apkUrl: null, apkSize: null };
+  return { apkUrl: apk.browser_download_url, apkSize: apk.size ?? null };
 }
 
 /** Returns the newer release when one exists, else null. Never throws. */
@@ -55,15 +59,17 @@ export async function checkForUpdate(): Promise<UpdateInfo | null> {
     const data = (await res.json()) as {
       tag_name?: string;
       html_url?: string;
-      assets?: { name?: string; browser_download_url?: string }[];
+      assets?: { name?: string; browser_download_url?: string; size?: number }[];
     };
     const latest = String(data.tag_name ?? '').replace(/^v/, '');
     if (!latest) return null;
     if (compareVersions(latest, currentVersion()) <= 0) return null;
+    const { apkUrl, apkSize } = pickApk(data.assets ?? []);
     return {
       version: latest,
       url: data.html_url ?? `https://github.com/${REPO}/releases/latest`,
-      apkUrl: pickApk(data.assets ?? []),
+      apkUrl,
+      apkSize,
     };
   } catch {
     return null;
@@ -102,3 +108,62 @@ export async function downloadAndInstall(
     type: 'application/vnd.android.package-archive',
   });
 }
+
+// ─── Shared state ────────────────────────────────────────────────────────────
+// Both the launch check and the Settings row drive the same flow, so the sheet
+// has one source of truth and cannot show two different states.
+
+export type UpdatePhase = 'idle' | 'checking' | 'current' | 'available' | 'downloading' | 'opening' | 'error';
+
+interface UpdateFlow {
+  phase: UpdatePhase;
+  info: UpdateInfo | null;
+  progress: number;
+  error: string | null;
+  lastChecked: number | null;
+  open: boolean;
+  check: (options?: { openWhenAvailable?: boolean }) => Promise<void>;
+  install: () => Promise<void>;
+  openSheet: () => void;
+  closeSheet: () => void;
+}
+
+export const useUpdateFlow = create<UpdateFlow>((set, get) => ({
+  phase: 'idle',
+  info: null,
+  progress: 0,
+  error: null,
+  lastChecked: null,
+  open: false,
+
+  check: async (options) => {
+    if (get().phase === 'checking' || get().phase === 'downloading') return;
+    set({ phase: 'checking', error: null });
+    const info = await checkForUpdate();
+    if (!info) {
+      set({ phase: 'current', info: null, lastChecked: Date.now() });
+      return;
+    }
+    set({
+      phase: 'available',
+      info,
+      lastChecked: Date.now(),
+      open: options?.openWhenAvailable ? true : get().open,
+    });
+  },
+
+  install: async () => {
+    const { info } = get();
+    if (!info) return;
+    set({ phase: 'downloading', progress: 0, error: null, open: true });
+    try {
+      await downloadAndInstall(info, fraction => set({ progress: fraction }));
+      set({ phase: 'opening' });
+    } catch (e) {
+      set({ phase: 'error', error: e instanceof Error ? e.message : String(e) });
+    }
+  },
+
+  openSheet: () => set({ open: true }),
+  closeSheet: () => set({ open: false }),
+}));

@@ -19,8 +19,7 @@ import { NativeSheet } from '../../components/NativeSheet';
 import { theme, accents, type AccentKey } from '@/constants/theme';
 import { useAppearance, useColors } from '@/lib/appearance';
 import { getServerConfig } from '@/lib/serverConfig';
-import { currentVersion } from '@/lib/updates';
-import { checkForUpdate, downloadAndInstall } from '@/lib/updates';
+import { currentVersion, useUpdateFlow } from '@/lib/updates';
 import { showDialog, showToast } from '@/lib/overlay';
 import { HouseAvatar } from '@/components/HouseAvatar';
 import { initialsFor } from '@/lib/initials';
@@ -37,46 +36,19 @@ function timeAgo(iso: string): string {
 }
 
 export default function ProfileScreen() {
-  const { profile, house, inventory, importCSV, signOut, loadHouseData, setAvatar, setName, renameHouse, leaveHouse, setHouseImage, lastSyncedAt } = useGleanStore();
+  const { profile, house, inventory, importCSV, loadHouseData, setAvatar, setName, renameHouse, leaveHouse, setHouseImage, lastSyncedAt } = useGleanStore();
   const colors = useColors();
   const appearanceMode = useAppearance(s => s.mode);
   const setAppearanceMode = useAppearance(s => s.setMode);
   const accentKey = useAppearance(s => s.accent);
   const setAccentKey = useAppearance(s => s.setAccent);
   const [serverConnected, setServerConnected] = useState(false);
-  const [updateBusy, setUpdateBusy] = useState(false);
+  const updatePhase = useUpdateFlow(s => s.phase);
+  const updateInfo = useUpdateFlow(s => s.info);
+  const updateProgress = useUpdateFlow(s => s.progress);
+  const checkForUpdates = useUpdateFlow(s => s.check);
+  const openUpdateSheet = useUpdateFlow(s => s.openSheet);
 
-  /** Manual update check — the same path the launch check uses. */
-  const handleCheckUpdates = async () => {
-    if (updateBusy) return;
-    setUpdateBusy(true);
-    try {
-      const update = await checkForUpdate();
-      if (!update) {
-        showToast(`Glean ${currentVersion()} is the latest version`);
-        return;
-      }
-      showDialog({
-        title: `Glean ${update.version} is available`,
-        message: 'Install it now? Your pantry is kept.',
-        confirmLabel: 'Install',
-        cancelLabel: 'Later',
-        onConfirm: () => {
-          void downloadAndInstall(update).catch(err => {
-            showDialog({
-              title: 'Could not install',
-              message: `${err instanceof Error ? err.message : String(err)}\n\nYou can download it from the release page instead.`,
-              confirmLabel: 'Open page',
-              cancelLabel: 'Close',
-              onConfirm: () => { void Linking.openURL(update.url); },
-            });
-          });
-        },
-      });
-    } finally {
-      setUpdateBusy(false);
-    }
-  };
   const [renameOpen, setRenameOpen] = useState(false);
 
   useEffect(() => {
@@ -116,18 +88,6 @@ export default function ProfileScreen() {
     setAvatar(url ?? uri);
   };
 
-  const handleSignOut = () => {
-    showDialog({
-      title: 'Sign out',
-      message: 'Are you sure?',
-      confirmLabel: 'Sign out',
-      destructive: true,
-      onConfirm: async () => {
-        await signOut();
-        router.replace('/onboarding');
-      },
-    });
-  };
   const [csvText, setCsvText] = useState('');
   const [importing, setImporting] = useState(false);
 
@@ -260,7 +220,7 @@ export default function ProfileScreen() {
           )}
         </Tappable>
         <View style={{ flex: 1, marginLeft: 14 }}>
-          <Text style={{ fontSize: theme.type.caption, color: colors.textFaint, marginBottom: 4 }}>Signed in as</Text>
+          <Text style={{ fontSize: theme.type.caption, color: colors.textFaint, marginBottom: 4 }}>Your name</Text>
           <Text style={{ fontSize: theme.type.xl, fontWeight: '600', color: colors.primary }} numberOfLines={1}>{profile?.name ?? 'User'}</Text>
         </View>
         <Tappable
@@ -306,6 +266,19 @@ export default function ProfileScreen() {
           value={HOUSE_IMAGES.find(p => p.key === house?.image_key)?.label ?? 'Default'}
           onPress={() => setImageOpen(true)}
         />
+        <Divider />
+        <SettingRow
+          icon="people-outline"
+          label="Share with your household"
+          value={
+            !serverConnected
+              ? 'This phone only'
+              : lastSyncedAt
+                ? `Synced ${timeAgo(lastSyncedAt)}`
+                : 'Connected'
+          }
+          onPress={() => router.push('/server')}
+        />
       </Card>
 
       {/* ── Data (import / export) ─────────────────────────────────────── */}
@@ -347,11 +320,8 @@ export default function ProfileScreen() {
             );
           })}
         </View>
-      </Card>
 
-      {/* ── Accent ─────────────────────────────────────────────────────── */}
-      <SectionHeader title="Accent" />
-      <Card>
+        <Divider />
         <View style={{ flexDirection: 'row', gap: 12, padding: 16, justifyContent: 'space-between' }}>
           {(Object.keys(accents) as AccentKey[]).map(key => {
             const swatch = accents[key];
@@ -388,52 +358,42 @@ export default function ProfileScreen() {
         <Divider />
         <SettingRow
           icon="cloud-download-outline"
-          label="Check for updates"
-          value={updateBusy ? 'Checking…' : undefined}
-          onPress={handleCheckUpdates}
+          label="Updates"
+          value={
+            updatePhase === 'checking'
+              ? 'Checking…'
+              : updatePhase === 'downloading'
+                ? `Downloading ${Math.round(updateProgress * 100)}%`
+                : updatePhase === 'available'
+                  ? `${updateInfo?.version ?? ''} available`
+                  : updatePhase === 'current'
+                    ? 'Up to date'
+                    : undefined
+          }
+          onPress={() => {
+            if (updatePhase === 'available' || updatePhase === 'downloading') {
+              openUpdateSheet();
+            } else {
+              void checkForUpdates({ openWhenAvailable: true });
+            }
+          }}
         />
         <Divider />
         <SettingRow icon="help-circle-outline" label="Send feedback" onPress={() => Linking.openURL('mailto:hello@glean.app?subject=Glean%20feedback')} />
       </Card>
 
-      {/* ── Household ──────────────────────────────────────────────────── */}
-      <SectionHeader title="Household" />
+      {/* ── Account ────────────────────────────────────────────────────── */}
+      {/* ── This device ───────────────────────────────────────────────────────────── */}
+      <SectionHeader title="This device" />
       <Card>
         <SettingRow
-          icon="people-outline"
-          label="Share with your household"
-          value={
-            !serverConnected
-              ? 'This phone only'
-              : lastSyncedAt
-                ? `Synced ${timeAgo(lastSyncedAt)}`
-                : 'Connected'
-          }
-          onPress={() => router.push('/server')}
+          icon="trash-outline"
+          label="Reset pantry"
+          value={`${inventory.length} ${inventory.length === 1 ? 'item' : 'items'}`}
+          onPress={handleLeave}
         />
       </Card>
 
-      {/* ── Account ────────────────────────────────────────────────────── */}
-      <SectionHeader title="Account" />
-      <Card>
-        <Tappable onPress={handleLeave}>
-          <HStack className="items-center px-4 py-3">
-            <View className="w-8 h-8 rounded-lg bg-surfaceMuted dark:bg-[#2A2A2A] items-center justify-center mr-3">
-              <Ionicons name="exit-outline" size={16} color={colors.textMuted} />
-            </View>
-            <Text className="flex-1 text-sm font-medium text-muted dark:text-[#B3B3B3]">Reset pantry</Text>
-          </HStack>
-        </Tappable>
-        <Divider />
-        <Tappable onPress={handleSignOut}>
-          <HStack className="items-center px-4 py-3">
-            <View className="w-8 h-8 rounded-lg bg-red-50 dark:bg-[#3A1E1E] items-center justify-center mr-3">
-              <Ionicons name="log-out-outline" size={16} color={colors.danger} />
-            </View>
-            <Text className="flex-1 text-sm font-medium text-red-500 dark:text-[#FF6B6B]">Sign out</Text>
-          </HStack>
-        </Tappable>
-      </Card>
 
       {/* ── Storage by location ─────────────────────────────────────────── */}
       {locationStats.length > 0 && (
