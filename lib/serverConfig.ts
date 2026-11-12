@@ -8,6 +8,16 @@ export interface ServerConfig {
   anonKey: string;
 }
 
+/** The bundled server accepts any key; this is the value we fill in for people. */
+export const DEFAULT_SERVER_KEY = 'glean';
+
+/** Accept "box.local:8000", "http://box.local:8000/", "https://x.dev". */
+export function normalizeAddress(raw: string): string {
+  const trimmed = raw.trim().replace(/\/+$/, '');
+  if (!trimmed) return '';
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+}
+
 const URL_KEY = 'server_url';
 const KEY_KEY = 'server_anon_key';
 

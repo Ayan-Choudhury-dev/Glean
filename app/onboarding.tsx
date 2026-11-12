@@ -18,7 +18,7 @@ import { Text } from '../components/ui/text';
 import { theme } from '@/constants/theme';
 import { useColors } from '@/lib/appearance';
 import { showDialog } from '@/lib/overlay';
-import { saveServerConfig } from '@/lib/serverConfig';
+import { saveServerConfig, normalizeAddress, DEFAULT_SERVER_KEY } from '@/lib/serverConfig';
 import { initSupabase, testConnection } from '@/lib/supabase';
 
 type Step = 'welcome' | 'name' | 'household' | 'staples' | 'where';
@@ -97,7 +97,6 @@ export default function OnboardingScreen() {
   const [household, setHousehold] = useState<'solo' | 'shared' | null>(null);
   const [serverMode, setServerMode] = useState(false);
   const [serverUrl, setServerUrl] = useState('');
-  const [serverKey, setServerKey] = useState('');
   const [busy, setBusy] = useState(false);
 
   const enter = useRef(new Animated.Value(1)).current;
@@ -130,17 +129,17 @@ export default function OnboardingScreen() {
     if (busy) return;
     setBusy(true);
     try {
-      const server = serverMode
-        ? { url: serverUrl.trim(), anonKey: serverKey.trim() }
+      const server = serverMode && serverUrl.trim()
+        ? { url: normalizeAddress(serverUrl), anonKey: DEFAULT_SERVER_KEY }
         : null;
       if (server) {
-        if (!server.url || !server.anonKey) {
-          showDialog({ title: 'Server details', message: 'Enter your server URL and anon key.', cancelLabel: null });
-          return;
-        }
         const err = await testConnection(server);
         if (err) {
-          showDialog({ title: 'Could not reach the server', message: err, cancelLabel: null });
+          showDialog({
+            title: 'Could not reach that server',
+            message: `${err}\n\nCheck the address and that the server is running, or skip this and set it up later in Settings.`,
+            cancelLabel: null,
+          });
           return;
         }
       }
@@ -401,7 +400,7 @@ export default function OnboardingScreen() {
               </View>
 
               {serverMode && (
-                <View style={{ gap: 12, marginTop: 16 }}>
+                <View style={{ gap: 10, marginTop: 16 }}>
                   <TextInput
                     style={{
                       backgroundColor: colors.surfaceMuted,
@@ -412,9 +411,9 @@ export default function OnboardingScreen() {
                       height: 52,
                       fontSize: theme.type.body,
                       color: colors.text,
-                      fontFamily: theme.fonts.regular,
+                      fontFamily: theme.fonts.mono,
                     }}
-                    placeholder="http://my-server:8000"
+                    placeholder="192.168.1.20:8000"
                     placeholderTextColor={colors.textFaint}
                     value={serverUrl}
                     onChangeText={setServerUrl}
@@ -422,27 +421,8 @@ export default function OnboardingScreen() {
                     autoCorrect={false}
                     keyboardType="url"
                   />
-                  <TextInput
-                    style={{
-                      backgroundColor: colors.surfaceMuted,
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      borderRadius: theme.radii.md,
-                      paddingHorizontal: 16,
-                      height: 52,
-                      fontSize: theme.type.body,
-                      color: colors.text,
-                      fontFamily: theme.fonts.regular,
-                    }}
-                    placeholder="Anon key (any non-empty value)"
-                    placeholderTextColor={colors.textFaint}
-                    value={serverKey}
-                    onChangeText={setServerKey}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
                   <Text style={{ color: colors.textFaint, fontSize: theme.type.caption, lineHeight: 18 }}>
-                    Run the bundled backend first — see backend/README.md.
+                    The address you open your Glean server on. Not running one yet? Skip this and set it up later in Settings.
                   </Text>
                 </View>
               )}
@@ -489,7 +469,7 @@ export default function OnboardingScreen() {
               <PrimaryButton
                 label={serverMode ? 'Connect & finish' : 'Finish setup'}
                 onPress={finish}
-                disabled={busy || (serverMode && (!serverUrl.trim() || !serverKey.trim()))}
+                disabled={busy || (serverMode && !serverUrl.trim())}
                 busy={busy}
               />
               <SecondaryButton label="Back" onPress={() => setStep('staples')} disabled={busy} />
