@@ -286,17 +286,39 @@ export default function ProfileScreen() {
       <Card>
         <Tappable onPress={() => setDataSheetOpen(true)}>
           <HStack className="items-center px-4 py-3">
-            <View className="w-8 h-8 rounded-lg bg-surfaceMuted dark:bg-[#2A2A2A] items-center justify-center mr-3">
+            <View style={{ width: 32, height: 32, borderRadius: theme.radii.sm, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
               <Ionicons name="swap-horizontal-outline" size={16} color={colors.textMuted} />
             </View>
-            <VStack className="flex-1">
-              <Text className="text-sm font-medium text-muted dark:text-[#B3B3B3]">Import / export data</Text>
-              <Text className="text-xs text-muted dark:text-[#B3B3B3]">{inventory.length} items · CSV format</Text>
-            </VStack>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: theme.type.label, fontFamily: theme.fonts.medium, color: colors.text }}>Import / export</Text>
+              <Text style={{ fontSize: theme.type.caption, color: colors.textMuted }}>{inventory.length} {inventory.length === 1 ? 'item' : 'items'} · CSV</Text>
+            </View>
             <Ionicons name="chevron-forward" size={16} color={colors.borderStrong} />
           </HStack>
         </Tappable>
       </Card>
+
+      {/* ── Storage by location ─────────────────────────────────────────── */}
+      {locationStats.length > 0 && (
+        <>
+          <SectionHeader title="Storage" />
+          <Card>
+            <View style={{ padding: 16, gap: 14 }}>
+              {locationStats.map(({ location, count }) => (
+                <View key={location} style={{ gap: 6 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ flexShrink: 1, fontSize: theme.type.label, fontWeight: '600', color: colors.text }} numberOfLines={1}>{location}</Text>
+                    <Text style={{ fontSize: theme.type.caption, color: colors.textMuted, marginLeft: 8 }}>{count} {count === 1 ? 'item' : 'items'}</Text>
+                  </View>
+                  <View style={{ height: 8, borderRadius: theme.radii.pill, backgroundColor: colors.surfaceSunken, overflow: 'hidden' }}>
+                    <View style={{ width: `${Math.round((count / maxLocationCount) * 100)}%`, height: '100%', borderRadius: theme.radii.pill, backgroundColor: colors.accent }} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          </Card>
+        </>
+      )}
 
       {/* ── Appearance ─────────────────────────────────────────────────── */}
       <SectionHeader title="Appearance" />
@@ -394,28 +416,6 @@ export default function ProfileScreen() {
         />
       </Card>
 
-
-      {/* ── Storage by location ─────────────────────────────────────────── */}
-      {locationStats.length > 0 && (
-        <>
-          <SectionHeader title="Storage" />
-          <Card>
-            <View style={{ padding: 16, gap: 14 }}>
-              {locationStats.map(({ location, count }) => (
-                <View key={location} style={{ gap: 6 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={{ flexShrink: 1, fontSize: theme.type.label, fontWeight: '600', color: colors.text }} numberOfLines={1}>{location}</Text>
-                    <Text style={{ fontSize: theme.type.caption, color: colors.textMuted, marginLeft: 8 }}>{count} {count === 1 ? 'item' : 'items'}</Text>
-                  </View>
-                  <View style={{ height: 8, borderRadius: theme.radii.pill, backgroundColor: colors.surfaceSunken, overflow: 'hidden' }}>
-                    <View style={{ width: `${Math.round((count / maxLocationCount) * 100)}%`, height: '100%', borderRadius: theme.radii.pill, backgroundColor: colors.accent }} />
-                  </View>
-                </View>
-              ))}
-            </View>
-          </Card>
-        </>
-      )}
 
       {/* Rename household sheet */}
       <NativeSheet visible={renameOpen} onClose={() => setRenameOpen(false)}>
