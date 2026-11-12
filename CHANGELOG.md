@@ -11,6 +11,11 @@
 - Cleanup: removed the unused `expo-clipboard` dependency and the legacy
   auth-based `supabase/` schema.
 
+## 1.0.4
+
+- Settings shows when the pantry last synced, instead of a bare "Connected".
+- The About row reports the real app version.
+
 ## 1.0.3
 
 - New first-run welcome: what Glean does, your name, and a quick pick of common
