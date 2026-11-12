@@ -28,8 +28,10 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
  * real style — every inline style on the element disappears. Pressed state is
  * therefore tracked here and folded into a plain style array instead.
  *
- * Haptics use `Medium`: expo-haptics' `Light` is amplitude 30/255, which most
- * devices render imperceptibly.
+ * Haptics use `selectionAsync`, not `impactAsync`. On Android that maps to
+ * HapticFeedbackConstants.CLOCK_TICK — one crisp tick, the same primitive the
+ * system keyboard and Samsung's own controls use. `impactAsync` drives the
+ * vibrator for a duration instead, which reads as a buzz rather than a tap.
  */
 
 export const Tappable = React.forwardRef<
@@ -67,7 +69,7 @@ export const Tappable = React.forwardRef<
       }
       style={merged}
       onPressIn={event => {
-        if (haptic) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        if (haptic) void Haptics.selectionAsync();
         setPressed(true);
         Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 40, bounciness: 0 }).start();
         onPressIn?.(event);
