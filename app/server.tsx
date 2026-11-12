@@ -116,15 +116,21 @@ export default function ServerScreen() {
       contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: connected ? colors.accent : colors.borderStrong }} />
         <Text style={{ color: colors.textMuted, fontSize: theme.type.label, fontFamily: theme.fonts.medium }}>
-          {connected ? 'Connected' : 'Local-only'}
+          {connected ? 'Shared with your household' : 'This phone only'}
         </Text>
       </View>
 
-      <Text style={{ color: colors.textMuted, fontSize: theme.type.label, marginBottom: 20, lineHeight: 20 }}>
-        Point Glean at your own Supabase instance to sync across devices. Leave empty to keep everything on this device.
+      <Text style={{ color: colors.text, fontSize: theme.type.heading, fontFamily: theme.fonts.display, marginBottom: 8 }}>
+        One pantry, everyone at home
+      </Text>
+      <Text style={{ color: colors.textMuted, fontSize: theme.type.label, marginBottom: 8, lineHeight: 21 }}>
+        Right now this pantry lives on this phone. Connect a server you run and the people you live with see the same stock and the same shopping list — add something on one phone, it shows up on the others.
+      </Text>
+      <Text style={{ color: colors.textMuted, fontSize: theme.type.label, marginBottom: 20, lineHeight: 21 }}>
+        You keep the server. No account here, nothing sent anywhere else.
       </Text>
 
       <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, fontFamily: theme.fonts.medium, marginBottom: 6, marginLeft: 4 }}>

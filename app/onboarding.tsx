@@ -21,7 +21,7 @@ import { showDialog } from '@/lib/overlay';
 import { saveServerConfig } from '@/lib/serverConfig';
 import { initSupabase, testConnection } from '@/lib/supabase';
 
-type Step = 'welcome' | 'name' | 'staples' | 'where';
+type Step = 'welcome' | 'name' | 'household' | 'staples' | 'where';
 
 const STAPLES: { name: string; category: string; location: string }[] = [
   { name: 'Milk',      category: 'Dairy',      location: 'Fridge' },
@@ -93,6 +93,8 @@ export default function OnboardingScreen() {
   const [step, setStep] = useState<Step>('welcome');
   const [name, setName] = useState('');
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  /** Asked up front: a shared kitchen is the only reason to offer a server. */
+  const [household, setHousehold] = useState<'solo' | 'shared' | null>(null);
   const [serverMode, setServerMode] = useState(false);
   const [serverUrl, setServerUrl] = useState('');
   const [serverKey, setServerKey] = useState('');
@@ -180,8 +182,16 @@ export default function OnboardingScreen() {
     }
   };
 
-  const order: Step[] = ['welcome', 'name', 'staples', 'where'];
+  const order: Step[] = household === 'solo'
+    ? ['welcome', 'name', 'household', 'staples']
+    : ['welcome', 'name', 'household', 'staples', 'where'];
   const stepIndex = order.indexOf(step);
+
+  /** Solo kitchens never see the server step; shared ones get it after staples. */
+  const afterStaples = () => {
+    if (household === 'shared') setStep('where');
+    else void finish();
+  };
 
   return (
     <KeyboardAvoidingView
@@ -275,8 +285,42 @@ export default function OnboardingScreen() {
                 autoComplete="name"
                 textContentType="name"
                 returnKeyType="next"
-                onSubmitEditing={() => { if (name.trim()) setStep('staples'); }}
+                onSubmitEditing={() => { if (name.trim()) setStep('household'); }}
               />
+            </View>
+          )}
+
+          {step === 'household' && (
+            <View>
+              <Text style={{ fontSize: 30, color: colors.text, fontFamily: theme.fonts.displayBold, letterSpacing: -0.4 }}>
+                Who eats from this kitchen?
+              </Text>
+              <Text style={{ color: colors.textMuted, fontSize: theme.type.md, marginTop: 8, marginBottom: 20, lineHeight: 22 }}>
+                This decides whether we offer to share the pantry across phones.
+              </Text>
+
+              <View style={{ gap: 12 }}>
+                <OptionCard
+                  selected={household === 'solo'}
+                  icon="person-outline"
+                  title="Just me"
+                  subtitle="Everything stays on this phone"
+                  onPress={() => setHousehold('solo')}
+                />
+                <OptionCard
+                  selected={household === 'shared'}
+                  icon="people-outline"
+                  title="Me and my household"
+                  subtitle="Share the pantry and the list with the people you live with"
+                  onPress={() => setHousehold('shared')}
+                />
+              </View>
+
+              {household === 'shared' && (
+                <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, marginTop: 14, lineHeight: 19 }}>
+                  Next step asks where it should live. You can skip it and set this up later in Settings.
+                </Text>
+              )}
             </View>
           )}
 
@@ -329,25 +373,25 @@ export default function OnboardingScreen() {
           {step === 'where' && (
             <View>
               <Text style={{ fontSize: 30, color: colors.text, fontFamily: theme.fonts.displayBold, letterSpacing: -0.4 }}>
-                Where should your pantry live?
+                Where should the shared pantry live?
               </Text>
               <Text style={{ color: colors.textMuted, fontSize: theme.type.md, marginTop: 8, marginBottom: 20, lineHeight: 22 }}>
-                Glean works on this device. You can also sync through a server you host yourself.
+                Sharing needs somewhere every phone can reach. Start on this device if you would rather set that up later.
               </Text>
 
               <View style={{ gap: 12 }}>
                 <OptionCard
                   selected={!serverMode}
                   icon="phone-portrait-outline"
-                  title="On this device"
-                  subtitle="Private, works offline, nothing to set up"
+                  title="On this device for now"
+                  subtitle="Works offline. You can connect a server later in Settings"
                   onPress={() => setServerMode(false)}
                 />
                 <OptionCard
                   selected={serverMode}
                   icon="server-outline"
                   title="My own server"
-                  subtitle="Sync across devices through a server you run"
+                  subtitle="Everyone's phone sees the same stock and shopping list"
                   onPress={() => setServerMode(true)}
                 />
               </View>
@@ -409,8 +453,19 @@ export default function OnboardingScreen() {
 
           {step === 'name' && (
             <>
-              <PrimaryButton label="Continue" onPress={() => setStep('staples')} disabled={!name.trim()} />
+              <PrimaryButton label="Continue" onPress={() => setStep('household')} disabled={!name.trim()} />
               <SecondaryButton label="Back" onPress={() => setStep('welcome')} />
+            </>
+          )}
+
+          {step === 'household' && (
+            <>
+              <PrimaryButton
+                label="Continue"
+                onPress={() => setStep('staples')}
+                disabled={!household}
+              />
+              <SecondaryButton label="Back" onPress={() => setStep('name')} />
             </>
           )}
 
@@ -418,10 +473,10 @@ export default function OnboardingScreen() {
             <>
               <PrimaryButton
                 label={picked.size > 0 ? `Add ${picked.size} ${picked.size === 1 ? 'item' : 'items'}` : 'Add items'}
-                onPress={() => setStep('where')}
+                onPress={afterStaples}
                 disabled={picked.size === 0}
               />
-              <SecondaryButton label="Skip for now" onPress={() => setStep('where')} />
+              <SecondaryButton label="Skip for now" onPress={afterStaples} />
             </>
           )}
 

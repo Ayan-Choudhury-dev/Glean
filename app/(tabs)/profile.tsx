@@ -355,15 +355,15 @@ export default function ProfileScreen() {
         <SettingRow icon="help-circle-outline" label="Send feedback" onPress={() => Linking.openURL('mailto:hello@glean.app?subject=Glean%20feedback')} />
       </Card>
 
-      {/* ── Server ─────────────────────────────────────────────────────── */}
-      <SectionHeader title="Server" />
+      {/* ── Household ──────────────────────────────────────────────────── */}
+      <SectionHeader title="Household" />
       <Card>
         <SettingRow
-          icon="cloud-outline"
-          label="Self-hosted backend"
+          icon="people-outline"
+          label="Share with your household"
           value={
             !serverConnected
-              ? 'Not connected'
+              ? 'This phone only'
               : lastSyncedAt
                 ? `Synced ${timeAgo(lastSyncedAt)}`
                 : 'Connected'

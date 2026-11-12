@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   Animated,
+  Easing,
   View,
   TextInput,
   ScrollView,
@@ -72,6 +73,8 @@ export default function ItemFormScreen() {
 
   const [categorySheet, setCategorySheet] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
+  /** Dismissed the stock suggestion for this visit — it must not keep popping back. */
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
   const [locationSheet, setLocationSheet] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [zeroQtySheet, setZeroQtySheet] = useState(false);
@@ -230,78 +233,42 @@ export default function ItemFormScreen() {
       </View>
 
       <ScrollView style={{ flex: 1, paddingHorizontal: 24 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 16 }}>
-        {/* Photo — tap to expand and change */}
-        <Tappable
-          onPress={() => setPhotoOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Item photo — tap to view or change"
-          style={{ marginTop: 8, marginBottom: 20 }}
-        >
-          {imageUri ? (
-            <Image
-              source={{ uri: imageUri }}
-              resizeMode="cover"
-              style={{ width: '100%', aspectRatio: 1, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken }}
+        {/* Photo — tap to expand and change. The stock suggestion floats over it
+            so changing the quantity never reflows the form. */}
+        <View style={{ marginTop: 8, marginBottom: 20 }}>
+          <Tappable
+            onPress={() => setPhotoOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Item photo — tap to view or change"
+          >
+            {imageUri ? (
+              <Image
+                source={{ uri: imageUri }}
+                resizeMode="cover"
+                style={{ width: '100%', aspectRatio: 1, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken }}
+              />
+            ) : categoryArt ? (
+              <View style={{ width: '100%', aspectRatio: 1, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken, alignItems: 'center', justifyContent: 'center' }}>
+                <Image source={categoryArt} resizeMode="contain" style={{ width: '68%', height: '68%' }} />
+              </View>
+            ) : (
+              <View style={{ width: '100%', aspectRatio: 1, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <Ionicons name="image-outline" size={28} color={colors.textMuted} />
+                <Text style={{ fontSize: theme.type.sm, color: colors.textMuted }}>Add photo</Text>
+              </View>
+            )}
+          </Tappable>
+
+          {isEdit && !suggestionDismissed && (parseInt(qty, 10) || 0) <= 1 && (
+            <StockSuggestion
+              out={!parseInt(qty, 10)}
+              itemName={existing!.name}
+              isInList={isInShoppingList}
+              onAdd={() => { addToShoppingList(existing!.name, existing!.id); router.dismiss(); }}
+              onDismiss={() => setSuggestionDismissed(true)}
             />
-          ) : categoryArt ? (
-            <View style={{ width: '100%', aspectRatio: 1, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken, alignItems: 'center', justifyContent: 'center' }}>
-              <Image source={categoryArt} resizeMode="contain" style={{ width: '68%', height: '68%' }} />
-            </View>
-          ) : (
-            <View style={{ width: '100%', aspectRatio: 1, borderRadius: theme.radii.lg, backgroundColor: colors.surfaceSunken, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Ionicons name="image-outline" size={28} color={colors.textMuted} />
-              <Text style={{ fontSize: theme.type.sm, color: colors.textMuted }}>Add photo</Text>
-            </View>
           )}
-        </Tappable>
-
-        {/* Low-stock suggestion */}
-        {isEdit && (parseInt(qty, 10) || 0) === 1 && (
-          <View style={{ marginTop: 8, marginBottom: 16, flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: colors.warningBg, borderWidth: 1, borderColor: colors.warningBorder, borderRadius: theme.radii.lg, padding: 16 }}>
-            <Ionicons name="alert-circle-outline" size={20} color={colors.warning} style={{ marginTop: 1 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: colors.warningText }}>Running low</Text>
-              <Text style={{ fontSize: theme.type.caption, color: colors.warningText, lineHeight: 20 }}>Only 1 left — consider restocking soon.</Text>
-              {isInShoppingList ? (
-                <View style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.success, borderRadius: theme.radii.sm, paddingHorizontal: 12, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Ionicons name="checkmark" size={12} color={colors.surface} />
-                  <Text style={{ fontSize: theme.type.caption, fontWeight: '600', color: colors.surface }}>Added to shopping list</Text>
-                </View>
-              ) : (
-                <Tappable
-                  onPress={() => { addToShoppingList(existing!.name, existing!.id); router.dismiss(); }}
-                  style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.warning, borderRadius: theme.radii.sm, paddingHorizontal: 12, paddingVertical: 6 }}
-                >
-                  <Text style={{ fontSize: theme.type.caption, fontWeight: '600', color: colors.surface }}>Add to shopping list</Text>
-                </Tappable>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* Out-of-stock suggestion */}
-        {isEdit && (parseInt(qty, 10) || 0) === 0 && (
-          <View style={{ marginTop: 8, marginBottom: 16, flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: colors.dangerBg, borderWidth: 1, borderColor: colors.dangerBorder, borderRadius: theme.radii.lg, padding: 16 }}>
-            <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={{ marginTop: 1 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: colors.dangerText }}>Out of stock</Text>
-              <Text style={{ fontSize: theme.type.caption, color: colors.dangerText, lineHeight: 20 }}>You've used all of {existing!.name}.</Text>
-              {isInShoppingList ? (
-                <View style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.success, borderRadius: theme.radii.sm, paddingHorizontal: 12, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Ionicons name="checkmark" size={12} color={colors.surface} />
-                  <Text style={{ fontSize: theme.type.caption, fontWeight: '600', color: colors.surface }}>Added to shopping list</Text>
-                </View>
-              ) : (
-                <Tappable
-                  onPress={() => { addToShoppingList(existing!.name, existing!.id); router.dismiss(); }}
-                  style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.danger, borderRadius: theme.radii.sm, paddingHorizontal: 12, paddingVertical: 6 }}
-                >
-                  <Text style={{ fontSize: theme.type.caption, fontWeight: '600', color: colors.surface }}>Add to shopping list</Text>
-                </Tappable>
-              )}
-            </View>
-          </View>
-        )}
+        </View>
 
         {/* Item name */}
         <Field label="Item name">
@@ -577,5 +544,101 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <Text style={{ fontSize: theme.type.label, fontWeight: '600', color: colors.text, marginBottom: 8 }}>{label}</Text>
       {children}
     </View>
+  );
+}
+
+/**
+ * Restock nudge that floats over the bottom of the photo. It is an overlay, not
+ * a row in the form: appearing and disappearing must never move the fields, and
+ * it is deliberately shorter than the image so the photo stays readable.
+ */
+function StockSuggestion({
+  out,
+  itemName,
+  isInList,
+  onAdd,
+  onDismiss,
+}: {
+  out: boolean;
+  itemName: string;
+  isInList: boolean;
+  onAdd: () => void;
+  onDismiss: () => void;
+}) {
+  const colors = useColors();
+  const enter = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(enter, {
+      toValue: 1,
+      duration: 200,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [enter]);
+
+  const tone = out ? colors.danger : colors.warning;
+  const toneBg = out ? colors.dangerBg : colors.warningBg;
+  const toneBorder = out ? colors.dangerBorder : colors.warningBorder;
+  const toneText = out ? colors.dangerText : colors.warningText;
+
+  return (
+    <Animated.View
+      style={{
+        position: 'absolute',
+        left: 12,
+        right: 12,
+        bottom: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingLeft: 12,
+        paddingRight: 4,
+        paddingVertical: 9,
+        borderRadius: theme.radii.md,
+        backgroundColor: toneBg,
+        borderWidth: 1,
+        borderColor: toneBorder,
+        opacity: enter,
+        transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+      }}
+    >
+      <Ionicons name="alert-circle" size={18} color={tone} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: theme.type.sm, fontWeight: '600', color: toneText }}>
+          {out ? 'Out of stock' : 'Running low'}
+        </Text>
+        <Text numberOfLines={1} style={{ fontSize: theme.type.caption, color: toneText }}>
+          {out ? `All ${itemName} used` : 'Only 1 left'}
+        </Text>
+      </View>
+
+      {isInList ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8 }}>
+          <Ionicons name="checkmark-circle" size={15} color={colors.success} />
+          <Text style={{ fontSize: theme.type.caption, fontWeight: '600', color: colors.success }}>On list</Text>
+        </View>
+      ) : (
+        <Tappable
+          onPress={onAdd}
+          haptic
+          accessibilityRole="button"
+          accessibilityLabel={`Add ${itemName} to shopping list`}
+          style={{ height: 32, paddingHorizontal: 12, borderRadius: theme.radii.sm, backgroundColor: tone, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Text style={{ fontSize: theme.type.caption, fontWeight: '600', color: colors.onAccent }}>Add to list</Text>
+        </Tappable>
+      )}
+
+      <Tappable
+        onPress={onDismiss}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss suggestion"
+        style={{ width: 30, height: 32, alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Ionicons name="close" size={15} color={toneText} />
+      </Tappable>
+    </Animated.View>
   );
 }
