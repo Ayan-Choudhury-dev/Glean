@@ -11,10 +11,18 @@
 - Cleanup: removed the unused `expo-clipboard` dependency and the legacy
   auth-based `supabase/` schema.
 
-## 1.0.4
+## 1.0.5
 
-- Settings shows when the pantry last synced, instead of a bare "Connected".
-- The About row reports the real app version.
+- Settings shows when the pantry last synced, instead of a bare "Connected", and
+  the About row reports the real app version.
+- Fixes the 1.0.4 crash on 64-bit phones: the `arm64-v8a` build was missing its
+  native libraries (`libworklets.so` and friends), so it died at launch.
+- The release script now builds both ABIs in one Gradle run and refuses to ship
+  an APK whose native libraries are incomplete.
+
+## 1.0.4 — withdrawn
+
+Broken on 64-bit devices; replaced by 1.0.5.
 
 ## 1.0.3
 
