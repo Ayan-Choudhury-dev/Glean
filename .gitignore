@@ -55,3 +55,6 @@ yarn-error.*
 
 # Kotlin compiler session cache
 android/.kotlin/
+
+# Local agent tooling config (machine-specific paths)
+opencode.json
