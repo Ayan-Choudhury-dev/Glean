@@ -408,6 +408,9 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   // ── Data loading ──────────────────────────────────────────────────────────
 
   loadHouseData: async (houseId) => {
+    // Make sure a queued write lands before we read, or a just-created pantry
+    // reads back empty and gets wiped (see flushLocalSave).
+    await flushLocalSave();
     const local = await localLoadHouse(houseId);
     if (local) {
       set({
@@ -731,23 +734,42 @@ export const useGleanStore = create<GleanState>((set, get) => ({
 // time so a sign-out/leave that already cleared the DB is never resurrected.
 let localSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
+/** Write the current house snapshot to SQLite now. */
+async function persistNow(): Promise<void> {
+  const s = useGleanStore.getState();
+  if (!s.house) return;
+  const houseId = s.house.id;
+  await localSaveHouse(houseId, {
+    house: s.house,
+    inventory: s.inventory,
+    shoppingList: s.shoppingList,
+    consumptionLogs: s.consumptionLogs,
+    houseOptions: s.houseOptions,
+  });
+  void pushHouse(houseId);
+}
+
 function scheduleLocalSave() {
   if (localSaveTimer) clearTimeout(localSaveTimer);
   localSaveTimer = setTimeout(() => {
     localSaveTimer = null;
-    const s = useGleanStore.getState();
-    if (!s.house) return;
-    const houseId = s.house.id;
-    void localSaveHouse(houseId, {
-      house: s.house,
-      inventory: s.inventory,
-      shoppingList: s.shoppingList,
-      consumptionLogs: s.consumptionLogs,
-      houseOptions: s.houseOptions,
-    }).then(() => {
-      void pushHouse(houseId);
-    });
+    void persistNow();
   }, 300);
+}
+
+/**
+ * Cancel the debounce and write immediately.
+ *
+ * Anything that reads from disk has to call this first: onboarding creates the
+ * house and its staples, then navigates; the pantry's loadHouseData would
+ * otherwise read a database that is still 300ms behind, replace the fresh
+ * items with an empty list, and let the debounced flush persist the emptiness.
+ */
+export async function flushLocalSave(): Promise<void> {
+  if (!localSaveTimer) return;
+  clearTimeout(localSaveTimer);
+  localSaveTimer = null;
+  await persistNow();
 }
 
 useGleanStore.subscribe((state, prev) => {

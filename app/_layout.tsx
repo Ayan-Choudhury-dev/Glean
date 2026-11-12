@@ -28,7 +28,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
-import { useGleanStore } from '@/store/useGleanStore';
+import { useGleanStore, flushLocalSave } from '@/store/useGleanStore';
 import { Tappable } from '@/components/ui/tappable';
 import { Text } from '@/components/ui/text';
 import { OverlayHost } from '@/components/OverlayHost';
@@ -131,6 +131,15 @@ export default function RootLayout() {
         },
       });
     });
+  }, []);
+
+  // Flush the debounced local mirror when the app leaves the foreground: the
+  // OS can kill a backgrounded app without running another timer.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', next => {
+      if (next !== 'active') void flushLocalSave();
+    });
+    return () => sub.remove();
   }, []);
 
   // Safety: never let a slow/hung session request trap the app on the splash.

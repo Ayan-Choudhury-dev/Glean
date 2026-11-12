@@ -20,6 +20,7 @@ import { theme, accents, type AccentKey } from '@/constants/theme';
 import { useAppearance, useColors } from '@/lib/appearance';
 import { getServerConfig } from '@/lib/serverConfig';
 import { currentVersion } from '@/lib/updates';
+import { checkForUpdate, downloadAndInstall } from '@/lib/updates';
 import { showDialog, showToast } from '@/lib/overlay';
 import { HouseAvatar } from '@/components/HouseAvatar';
 import { initialsFor } from '@/lib/initials';
@@ -43,6 +44,39 @@ export default function ProfileScreen() {
   const accentKey = useAppearance(s => s.accent);
   const setAccentKey = useAppearance(s => s.setAccent);
   const [serverConnected, setServerConnected] = useState(false);
+  const [updateBusy, setUpdateBusy] = useState(false);
+
+  /** Manual update check — the same path the launch check uses. */
+  const handleCheckUpdates = async () => {
+    if (updateBusy) return;
+    setUpdateBusy(true);
+    try {
+      const update = await checkForUpdate();
+      if (!update) {
+        showToast(`Glean ${currentVersion()} is the latest version`);
+        return;
+      }
+      showDialog({
+        title: `Glean ${update.version} is available`,
+        message: 'Install it now? Your pantry is kept.',
+        confirmLabel: 'Install',
+        cancelLabel: 'Later',
+        onConfirm: () => {
+          void downloadAndInstall(update).catch(err => {
+            showDialog({
+              title: 'Could not install',
+              message: `${err instanceof Error ? err.message : String(err)}\n\nYou can download it from the release page instead.`,
+              confirmLabel: 'Open page',
+              cancelLabel: 'Close',
+              onConfirm: () => { void Linking.openURL(update.url); },
+            });
+          });
+        },
+      });
+    } finally {
+      setUpdateBusy(false);
+    }
+  };
   const [renameOpen, setRenameOpen] = useState(false);
 
   useEffect(() => {
@@ -351,6 +385,13 @@ export default function ProfileScreen() {
       <SectionHeader title="About" />
       <Card>
         <SettingRow icon="information-circle-outline" label="App version" value={currentVersion()} chevron={false} />
+        <Divider />
+        <SettingRow
+          icon="cloud-download-outline"
+          label="Check for updates"
+          value={updateBusy ? 'Checking…' : undefined}
+          onPress={handleCheckUpdates}
+        />
         <Divider />
         <SettingRow icon="help-circle-outline" label="Send feedback" onPress={() => Linking.openURL('mailto:hello@glean.app?subject=Glean%20feedback')} />
       </Card>

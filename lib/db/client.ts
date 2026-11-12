@@ -62,7 +62,10 @@ export async function localSaveHouse(houseId: string, data: LocalHouseData): Pro
 
     const bulk = async (table: string, rows: Record<string, unknown>[]) => {
       for (const row of rows) {
-        const { sql, args } = buildInsert(table, row);
+        // The rows come from the store, whose item types carry no house_id —
+        // but the column is NOT NULL, so an insert without it aborts the whole
+        // transaction and the pantry silently fails to persist.
+        const { sql, args } = buildInsert(table, { ...row, house_id: houseId });
         await db.runAsync(sql, ...args);
       }
     };

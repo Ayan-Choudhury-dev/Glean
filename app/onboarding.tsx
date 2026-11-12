@@ -12,7 +12,7 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useGleanStore } from '../store/useGleanStore';
+import { useGleanStore, flushLocalSave } from '../store/useGleanStore';
 import { Tappable } from '../components/ui/tappable';
 import { Text } from '../components/ui/text';
 import { theme } from '@/constants/theme';
@@ -173,6 +173,10 @@ export default function OnboardingScreen() {
         initSupabase(server);
         await useGleanStore.getState().syncNow();
       }
+
+      // Write the new pantry before the tabs mount. The mirror is debounced, and
+      // anything that reads it back first would see an empty database.
+      await flushLocalSave();
 
       router.replace('/(tabs)');
     } catch (e) {
