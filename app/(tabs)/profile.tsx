@@ -268,11 +268,11 @@ export default function ProfileScreen() {
         />
         <Divider />
         <SettingRow
-          icon="people-outline"
-          label="Share with your household"
+          icon="person-add-outline"
+          label="Add member"
           value={
             !serverConnected
-              ? 'This phone only'
+              ? 'Needs a server'
               : lastSyncedAt
                 ? `Synced ${timeAgo(lastSyncedAt)}`
                 : 'Connected'

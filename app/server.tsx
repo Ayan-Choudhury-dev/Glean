@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, ScrollView, Share, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/lib/appearance';
@@ -38,6 +38,7 @@ export default function ServerScreen() {
   const [remote, setRemote] = useState<{ houseId: string | null } | null>(null);
   const [localCount, setLocalCount] = useState(0);
   const [savedAddress, setSavedAddress] = useState<string | null>(null);
+  const profile = useGleanStore(s => s.profile);
 
   const reveal = useRef(new Animated.Value(0)).current;
 
@@ -147,6 +148,14 @@ export default function ServerScreen() {
     });
   };
 
+  /** The add-member action: hand the address over however the phone shares. */
+  const handleShareAddress = () => {
+    if (!savedAddress) return;
+    void Share.share({
+      message: `Our pantry is on Glean. Open Glean → Settings → Add member and enter ${savedAddress} — then choose “Use the pantry from the server”.`,
+    }).catch(() => showToast('Could not open the share sheet'));
+  };
+
   const connected = phase === 'connected';
 
   return (
@@ -159,17 +168,17 @@ export default function ServerScreen() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: connected ? colors.accent : colors.borderStrong }} />
         <Text style={{ color: colors.textMuted, fontSize: theme.type.label, fontFamily: theme.fonts.medium }}>
-          {connected ? 'Shared with your household' : 'This phone only'}
+          {connected ? 'Shared · anyone with the address' : 'This phone only'}
         </Text>
       </View>
 
       <Text style={{ color: colors.text, fontSize: theme.type.heading, fontFamily: theme.fonts.display, marginBottom: 8 }}>
-        One pantry, everyone at home
+        {connected ? 'Your pantry is shared' : 'Add someone to your pantry'}
       </Text>
       <Text style={{ color: colors.textMuted, fontSize: theme.type.label, marginBottom: 6, lineHeight: 21 }}>
         {connected
-          ? 'Everyone who enters this address sees the same stock and the same shopping list. Add something here, it shows up on their phone.'
-          : 'Right now this pantry lives on this phone. Connect a Glean server you run and the people you live with see the same stock and the same shopping list.'}
+          ? 'Their phone reads the same stock and the same shopping list. Add something here, it shows up there.'
+          : 'Glean keeps the pantry on this phone. To let someone else use it, both phones have to talk to one server you run — that is the only way two phones can share without an account.'}
       </Text>
       <Text style={{ color: colors.textMuted, fontSize: theme.type.label, marginBottom: 22, lineHeight: 21 }}>
         You keep the server. No account here, nothing sent anywhere else.
@@ -183,20 +192,21 @@ export default function ServerScreen() {
             <Row icon="basket-outline" label="Items on this phone" value={String(localCount)} />
           </Card>
 
-          <SectionLabel>Add your household</SectionLabel>
+          <SectionLabel>Members</SectionLabel>
           <Card>
-            <View style={{ padding: 16, gap: 10 }}>
-              <Text style={{ color: colors.text, fontSize: theme.type.body, fontFamily: theme.fonts.medium }}>
-                On their phone
-              </Text>
-              <Text style={{ color: colors.textMuted, fontSize: theme.type.label, lineHeight: 21 }}>
-                Settings → Share with your household → enter <Text style={{ color: colors.text, fontFamily: theme.fonts.medium }}>{savedAddress}</Text>
-              </Text>
-              <Text style={{ color: colors.textMuted, fontSize: theme.type.label, lineHeight: 21 }}>
-                Then choose “Use the pantry from the server”. They will see this pantry, not their own.
+            <Row icon="person-outline" label="You" value={profile?.name ?? ''} />
+            <Divider />
+            <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
+              <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, lineHeight: 19 }}>
+                There is no member list to show — the server is the shared thing. Anyone who enters this address joins.
               </Text>
             </View>
           </Card>
+
+          <PrimaryButton label="Send them the address" onPress={handleShareAddress} />
+          <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, lineHeight: 19, marginTop: 10, textAlign: 'center' }}>
+            They open Glean → Settings → Add member → enter this address → “Use the pantry from the server”.
+          </Text>
 
           <SecondaryButton label="Stop sharing" onPress={handleDisconnect} tone="danger" />
         </>
@@ -260,6 +270,12 @@ export default function ServerScreen() {
                       : 'Load it onto this phone to see the household’s pantry.'
                     : `Upload the ${localCount} ${localCount === 1 ? 'item' : 'items'} on this phone, and everyone else joins from there.`}
                 </Text>
+
+                {remote.houseId && localCount > 0 && (
+                  <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, marginTop: 10, lineHeight: 19 }}>
+                    Joining replaces the {localCount} {localCount === 1 ? 'item' : 'items'} on this phone with the household pantry.
+                  </Text>
+                )}
 
                 <View style={{ gap: 10, marginTop: 14 }}>
                   {remote.houseId ? (
