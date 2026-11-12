@@ -83,16 +83,18 @@ if [[ -f android/app/build.gradle ]]; then
 fi
 
 # ── Build ────────────────────────────────────────────────────────────────────
+# One Gradle run for both ABIs: `splits.abi` emits one APK per architecture, so
+# building them separately only risks stale native-lib state between runs (that
+# is how 1.0.4 shipped an arm64 APK with no libworklets.so).
 # Signing still uses the debug keystore; see ROADMAP "Release keystore".
-step "Building arm64-v8a release APK"
-( cd android && run ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a )
-step "Building armeabi-v7a release APK"
-( cd android && run ./gradlew assembleRelease -PreactNativeArchitectures=armeabi-v7a )
+step "Building release APKs (arm64-v8a, armeabi-v7a)"
+( cd android && run ./gradlew clean assembleRelease \
+  -PreactNativeArchitectures=arm64-v8a,armeabi-v7a )
 
 step "Collecting APKs into dist/release"
 run mkdir -p "$DIST"
-# Expo's template emits a single `app-release.apk` (one ABI baked in per build);
-# a project with ABI splits emits `app-<abi>-release.apk`. Accept either.
+# Expo's template emits `app-<abi>-release.apk` when splits are on, and a single
+# `app-release.apk` when they are not. Accept either.
 for abi in "${ABIS[@]}"; do
   src=""
   for candidate in "$APK_DIR/app-$abi-release.apk" "$APK_DIR/app-release.apk"; do
@@ -100,6 +102,20 @@ for abi in "${ABIS[@]}"; do
   done
   [[ -n "$src" ]] || die "no release APK found in $APK_DIR for $abi"
   run cp "$src" "$DIST/glean-$VERSION-$abi.apk"
+done
+
+# A release that installs but dies on launch is worse than a failed build.
+# Every APK must carry the JSI/Hermes libs and the worklets runtime.
+step "Verifying native libraries"
+REQUIRED_LIBS=(libhermesvm.so libjsi.so libappmodules.so libworklets.so libreactnative.so)
+for abi in "${ABIS[@]}"; do
+  apk="$DIST/glean-$VERSION-$abi.apk"
+  listing="$(unzip -l "$apk")"
+  for lib in "${REQUIRED_LIBS[@]}"; do
+    grep -q "lib/$abi/$lib" <<<"$listing" \
+      || die "$apk is missing lib/$abi/$lib"
+  done
+  echo "ok: $abi has ${#REQUIRED_LIBS[@]} required libs"
 done
 
 # ── Publish ──────────────────────────────────────────────────────────────────
