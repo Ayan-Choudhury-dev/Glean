@@ -205,7 +205,12 @@ export default function ServerScreen() {
           <SectionLabel>Your server’s address</SectionLabel>
           <TextInput
             value={address}
-            onChangeText={text => { setAddress(text); setError(null); }}
+            onChangeText={text => {
+              setAddress(text);
+              setError(null);
+              // Editing the address invalidates whatever the last probe found.
+              if (phase === 'choose') { setPhase('idle'); setRemote(null); }
+            }}
             placeholder="192.168.1.20:8000"
             placeholderTextColor={colors.textFaint}
             autoCapitalize="none"
