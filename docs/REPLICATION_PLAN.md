@@ -10,7 +10,7 @@ This is a plan, not a promise. It is phased so each step leaves the app working.
 
 | openGym | Glean today | Target |
 |---|---|---|
-| `frontend/` React + Vite + Capacitor | `app/` Expo Router (RN) | **Decision needed** (see below) |
+| `frontend/` React + Vite + Capacitor | `app/` Expo Router (RN) | Stay Expo (see below) |
 | `api/` Node `http` server | `backend/` Postgres + PostgREST (Docker) | Keep Supabase; document the API |
 | `web/` nginx + Dockerfile | `backend/` nginx | Merge into `backend/web/` |
 | `docker-compose.yml` at root | `backend/docker-compose.yml` | Add a root compose that points at `backend/` |
@@ -26,17 +26,15 @@ This is a plan, not a promise. It is phased so each step leaves the app working.
 
 ## The stack decision
 
-openGym's `frontend/` is React + Vite packaged with Capacitor. Glean is Expo/RN.
-These are different enough that "replicate the frontend structure" means one of:
+**Decided: stay on Expo/RN.** A Capacitor + React (Vite) rewrite was tried and
+discarded — it traded native iOS quality and `expo-sqlite`/`expo-camera` for a
+webview wrapper, with no user-visible gain. Glean is a mobile-first product, so
+the native app is the product.
 
-1. **Stay Expo/RN.** Keep `app/`, add the docs/scripts/metadata around it. The
-   mobile app stays native, but the "web build is the product" loop stays weak.
-2. **Migrate to Capacitor + React (Vite).** Rewrite the UI layer as React DOM,
-   keep the SQLite/sync concepts, and gain openGym's exact structure and the
-   browser-first iteration loop.
-
-Recommendation: **2** if parity and fast iteration matter; **1** if shipping the
-current app soon matters more. The rest of this plan works either way.
+What openGym's structure still buys us, without changing the stack:
+- the docs set, scripts, store metadata and root compose file around `app/`;
+- a browser build via `expo start --web` for quick iteration, not as the product;
+- the same local-first → optional self-hosted server story.
 
 ## Phases
 

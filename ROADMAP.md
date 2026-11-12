@@ -2,6 +2,16 @@
 
 Deferred work, roughly in priority order. Nothing here is started.
 
+## Done
+
+- **Release script** — `scripts/release.sh` bumps the version, builds per-ABI
+  APKs and creates the GitHub release (dry by default; `CONFIRM=1` to publish).
+- **Docs set** — `docs/ARCHITECTURE`, `MOBILE`, `APP_STORES`, `API`, `FAQ`,
+  `DATA_IMPORTS`, plus `DESIGN.md`.
+- **Store copy** — `fastlane/metadata/android/en-US/` listing text and changelog.
+- **Cleanup** — dropped the unused `expo-clipboard` dependency and the legacy
+  auth-based `supabase/` schema (superseded by `backend/init/01-schema.sql`).
+
 ## Release packaging
 
 - **Smaller APK** — ✅ per-ABI split APKs (`arm64-v8a`, `armeabi-v7a`) are built
@@ -29,9 +39,3 @@ Deferred work, roughly in priority order. Nothing here is started.
 
 - **Google OAuth** — `lib/googleAuth.ts` and the onboarding button are kept but
   unused. Re-enable by setting `EXPO_PUBLIC_GOOGLE_*` and re-importing.
-
-## Cleanup
-
-- Remove the unused `expo-clipboard` dependency.
-- Delete or archive the legacy `supabase/schema.sql` + `seed.sql` (auth-based,
-  superseded by `backend/init/01-schema.sql`).

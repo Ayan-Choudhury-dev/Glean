@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Dropped the Capacitor/React web rewrite; Glean stays a native Expo app.
+- Docs: architecture, mobile builds, store status, API, CSV format, FAQ, design
+  tokens.
+- `scripts/release.sh` cuts a per-ABI APK release; `scripts/screenshots.mjs`
+  captures store screenshots from a device.
+- Play/F-Droid listing copy under `fastlane/metadata/android/en-US/`.
+- Cleanup: removed the unused `expo-clipboard` dependency and the legacy
+  auth-based `supabase/` schema.
+
 ## 1.0.3
 
 - New first-run welcome: what Glean does, your name, and a quick pick of common

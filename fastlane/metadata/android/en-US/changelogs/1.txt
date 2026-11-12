@@ -1,0 +1,1 @@
+First public release: pantry inventory, shopping list, barcode scan, CSV import/export.

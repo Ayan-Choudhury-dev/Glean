@@ -1,0 +1,1 @@
+Local-first pantry tracker. Offline, no account, barcode scan.

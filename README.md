@@ -120,6 +120,17 @@ All data is stored locally in a SQLite database on your device. Nothing is
 sent to a server, and there is no account or sign-in. Uninstalling the app
 removes the data.
 
+## Docs
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — how the app, local DB and sync fit together
+- [`DESIGN.md`](DESIGN.md) — design tokens and screen rules
+- [`docs/MOBILE.md`](docs/MOBILE.md) — dev builds, running on a phone, troubleshooting
+- [`docs/APP_STORES.md`](docs/APP_STORES.md) — Play, F-Droid and direct APK status
+- [`docs/API.md`](docs/API.md) — the PostgREST surface of the optional backend
+- [`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md) — running your own server
+- [`docs/DATA_IMPORTS.md`](docs/DATA_IMPORTS.md) — CSV import/export format
+- [`docs/FAQ.md`](docs/FAQ.md) — common questions
+
 ## Roadmap
 
 Planned and deferred work lives in [`ROADMAP.md`](ROADMAP.md).

@@ -1,0 +1,40 @@
+Glean is a local-first pantry tracker. Keep track of what is in your kitchen,
+know what is running low, and build a shopping list - all stored on your device,
+with no account and no server.
+
+FEATURES
+
+Pantry inventory
+Track items with quantities, categories, storage locations and barcodes.
+Adjust quantities inline as you use or restock things.
+
+Shopping list
+Add what you need to buy, then update your pantry in one tap when you get
+home. Purchased items restock the matching inventory entries.
+
+Recent activity
+See what was used and restocked recently, per item.
+
+Barcode scanning
+Scan a product barcode with the camera when adding an item.
+
+Import and export
+Bring an existing list in as CSV, and export your inventory as CSV to back it
+up or move it to another device.
+
+Works offline
+Everything lives in a local SQLite database on the phone. No internet
+connection is required, there is no sign-in, and nothing is uploaded.
+
+Optional self-hosted sync
+If you want the same pantry on more than one device, you can point the app at
+your own server running the bundled Docker setup. This is entirely optional;
+the app works fully without it.
+
+PRIVACY
+
+No account, no tracking, no ads. Your data stays on your device unless you
+choose to connect your own server.
+
+Glean is free software, licensed under Apache-2.0. Source code:
+https://github.com/Ayan-Choudhury-dev/Glean
