@@ -9,6 +9,7 @@ import {
   localClearProfile,
 } from '../lib/db/client';
 import { pushHouse, pullHouse } from '../lib/sync';
+import { getServerConfig } from '../lib/serverConfig';
 import { RECENT_ACTIVITY_FETCH_LIMIT } from '../constants/config';
 
 // ─── UUID helper ──────────────────────────────────────────────────────────────
@@ -150,6 +151,8 @@ interface GleanState {
   /** True once the persisted session has been restored (or confirmed absent). */
   sessionLoaded: boolean;
   syncError: string | null;
+  /** ISO timestamp of the last successful push to the self-hosted server. */
+  lastSyncedAt: string | null;
   lastPantryUpdate: {
     items: ShoppingItem[];
     previousInventory: InventoryItem[];
@@ -257,6 +260,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   loading: false,
   sessionLoaded: false,
   syncError: null,
+  lastSyncedAt: null,
   lastPantryUpdate: null,
 
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -442,6 +446,9 @@ export const useGleanStore = create<GleanState>((set, get) => ({
       houseOptions: s.houseOptions,
     });
     await pushHouse(s.house.id);
+    // pushHouse is a no-op without a configured server; only stamp the time
+    // when there is somewhere it could have gone.
+    if (await getServerConfig()) set({ lastSyncedAt: new Date().toISOString() });
   },
 
   addHouseOption: (type, name, icon) => {

@@ -19,13 +19,24 @@ import { NativeSheet } from '../../components/NativeSheet';
 import { theme, accents, type AccentKey } from '@/constants/theme';
 import { useAppearance, useColors } from '@/lib/appearance';
 import { getServerConfig } from '@/lib/serverConfig';
+import { currentVersion } from '@/lib/updates';
 import { showDialog, showToast } from '@/lib/overlay';
 import { HouseAvatar } from '@/components/HouseAvatar';
 import { initialsFor } from '@/lib/initials';
 import { HOUSE_IMAGES } from '@/constants/houseImages';
 
+/** "just now" / "5m ago" / "3h ago" / "2d ago" — coarse on purpose. */
+function timeAgo(iso: string): string {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 export default function ProfileScreen() {
-  const { profile, house, inventory, importCSV, signOut, loadHouseData, setAvatar, setName, renameHouse, leaveHouse, setHouseImage } = useGleanStore();
+  const { profile, house, inventory, importCSV, signOut, loadHouseData, setAvatar, setName, renameHouse, leaveHouse, setHouseImage, lastSyncedAt } = useGleanStore();
   const colors = useColors();
   const appearanceMode = useAppearance(s => s.mode);
   const setAppearanceMode = useAppearance(s => s.setMode);
@@ -339,7 +350,7 @@ export default function ProfileScreen() {
       {/* ── About ──────────────────────────────────────────────────────── */}
       <SectionHeader title="About" />
       <Card>
-        <SettingRow icon="information-circle-outline" label="App version" value="1.0.0" chevron={false} />
+        <SettingRow icon="information-circle-outline" label="App version" value={currentVersion()} chevron={false} />
         <Divider />
         <SettingRow icon="help-circle-outline" label="Send feedback" onPress={() => Linking.openURL('mailto:hello@glean.app?subject=Glean%20feedback')} />
       </Card>
@@ -350,7 +361,13 @@ export default function ProfileScreen() {
         <SettingRow
           icon="cloud-outline"
           label="Self-hosted backend"
-          value={serverConnected ? 'Connected' : 'Not connected'}
+          value={
+            !serverConnected
+              ? 'Not connected'
+              : lastSyncedAt
+                ? `Synced ${timeAgo(lastSyncedAt)}`
+                : 'Connected'
+          }
           onPress={() => router.push('/server')}
         />
       </Card>
