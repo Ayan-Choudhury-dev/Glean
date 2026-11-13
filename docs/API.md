@@ -1,8 +1,16 @@
 # Glean API
 
-The optional backend exposes the pantry tables over PostgREST. This document
-covers the surface the app actually uses. Nothing else exists: no auth service,
-no storage API, no realtime socket, no RPC functions.
+There are two backends. The app talks to whichever it finds at the address you
+give it: it probes `GET /api/health`, which PocketBase answers and PostgREST
+does not.
+
+| Backend | Shape | Auth | Realtime |
+|---|---|---|---|
+| PocketBase (recommended) | `/api/collections/<name>/records` | account on your server | yes, SSE |
+| Postgres + PostgREST | `/rest/v1/<table>` | shared token in nginx | no |
+
+The PostgREST section below is kept because that bundle still exists. New
+installs should use `backend/pocketbase/docker-compose.yml`.
 
 ## Base URL
 
@@ -141,3 +149,66 @@ information: it grants nothing and protects nothing.
 - No pagination handling; pulls fetch all rows for a house.
 - No realtime; changes reach other devices on the next push or pull.
 - No migrations beyond the init script, which runs only on an empty data volume.
+
+
+---
+
+# PocketBase
+
+One container, SQLite in `pb_data/`, admin UI at `/_/`.
+
+## Base URL
+
+```
+http://<host>:8090
+```
+
+## Auth
+
+Every request carries the session token from:
+
+```http
+POST /api/collections/users/auth-with-password
+Content-Type: application/json
+
+{ "identity": "you@example.com", "password": "..." }
+```
+
+then `Authorization: <token>` on each call. Collections are readable and
+writable by any authenticated user on that server — it is one household's
+server, not a multi-tenant service.
+
+## Collections
+
+`houses`, `inventory`, `shopping_list`, `consumption_logs`, `house_options`,
+`pairing_codes`. Each row keeps the app's uuid in a `uid` text field, unique per
+collection; PocketBase's own `id` is 15 characters and is never exposed.
+
+Created by `scripts/pocketbase-bootstrap.mjs`, which is idempotent.
+
+## The calls the app makes
+
+```http
+GET    /api/collections/houses/records?page=1&perPage=1
+GET    /api/collections/inventory/records?filter=house_id="<uuid>"
+GET    /api/collections/houses/records?filter=uid="<uuid>"
+POST   /api/collections/inventory/records
+PATCH  /api/collections/inventory/records/<recordId>
+GET    /api/realtime            (SSE, for change events)
+```
+
+Two gotchas, both found the hard way:
+
+- an empty `filter` is a `400`; use `page`/`perPage` instead of `getFirstListItem('')`
+- sorting on `created` is a `400` unless the collection has an autodate field
+
+## Pairing
+
+`pairing_codes` is the one collection readable without a session, because the
+joining phone redeems before it can sign in. Rows are `code` (6 characters),
+`house_id`, `expires_at`; they are deleted on first successful redemption.
+
+## Security
+
+Accounts live on your server, so the token never leaves it. Put TLS in front
+before exposing it beyond the LAN — see `SELF_HOSTING.md`.

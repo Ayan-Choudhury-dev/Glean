@@ -41,8 +41,10 @@ Deferred work, roughly in priority order. Nothing here is started.
 
 - **Shared token** — done (`GLEAN_TOKEN` in nginx). Empty disables the gate.
 - **Backups** — `scripts/backend-backup.sh` / `backend-restore.sh`.
-- **PocketBase** — planned, not started. See
-  `docs/MIGRATION_POCKETBASE.md`; the only reason to move is realtime.
+- **PocketBase** — phases 1–2 done and verified against a live instance
+  (`backend/pocketbase/`, `lib/pocketbase.ts`, `scripts/pocketbase-*.mjs`).
+  Left: realtime on a device, a release that speaks both protocols, and deleting
+  the Postgres bundle once that release has shipped.
 
 ## Web
 

@@ -11,6 +11,20 @@
 - Cleanup: removed the unused `expo-clipboard` dependency and the legacy
   auth-based `supabase/` schema.
 
+## 1.0.10
+
+- Self-hosted sync actually works: the app stopped sending an Authorization
+  header that made the bundled PostgREST answer 500. Anyone who tried to
+  connect a server before this release had a broken connection.
+- The app understands two backends. Point it at a PocketBase server and it asks
+  for that server's account instead of a key; everything else is unchanged.
+- Joining a household is a six-character code, valid ten minutes, burned on use.
+- Returning to the app refreshes from the server, so a second phone sees changes
+  without the manual restore.
+- The server can be locked with a shared token (`GLEAN_TOKEN`), and the app says
+  so when a server rejects the key instead of blaming the address.
+- Backups: `scripts/backend-backup.sh` and `backend-restore.sh`.
+
 ## 1.0.9
 
 - Settings gains a Developer section: preview the update sheet, walk a download,

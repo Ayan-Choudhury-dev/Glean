@@ -6,7 +6,41 @@ want to sync a pantry across devices.
 The backend is **Postgres + PostgREST + nginx** in Docker. No Node, no build
 step on the host.
 
-## Quick start
+## Which backend
+
+Two options, same app:
+
+| | PocketBase (recommended) | Postgres + PostgREST |
+|---|---|---|
+| Containers | 1 | 3 |
+| Data | `pb_data/` directory | Postgres volume |
+| Accounts | one per person, on your server | shared token |
+| Live sync | yes, pushes as you type | refreshes when the app opens |
+| Admin UI | yes, at `/_/` | none |
+
+New installs: use PocketBase. The Postgres bundle still works and is documented
+below; existing installs do not have to move.
+
+### PocketBase in four commands
+
+```bash
+cd backend/pocketbase
+cp .env.example .env
+docker compose up -d          # http://<host>:8090
+```
+
+Then open `http://<host>:8090/_/`, create the superuser, run the bootstrap, and
+create a household user:
+
+```bash
+PB_URL=http://<host>:8090 PB_ADMIN_EMAIL=you@example.com PB_ADMIN_PASSWORD=... \
+  node scripts/pocketbase-bootstrap.mjs
+```
+
+In the app: **Settings → Add member → the address → your account**. Backups are
+`pb_data/`, so `docker run --rm -v glean-pocketbase_pb_data:/d -v "$PWD":/b alpine tar czf /b/pb.tgz -C /d .`
+
+## Quick start (Postgres + PostgREST)
 
 ```bash
 git clone https://github.com/Ayan-Choudhury-dev/Glean.git
