@@ -21,9 +21,22 @@ export function getSupabase(): SupabaseClient | null {
   return client;
 }
 
+/**
+ * PostgREST with no JWT secret answers 500 to any request carrying an
+ * Authorization header, and supabase-js always sends one (even with auth
+ * disabled). Our backend authenticates with a token in nginx and uses the anon
+ * role, so the header is noise — drop it before the request leaves.
+ */
+const fetchWithoutAuthorization: typeof fetch = (input, init) => {
+  const headers = new Headers(init?.headers ?? undefined);
+  headers.delete('Authorization');
+  return fetch(input, { ...init, headers });
+};
+
 /** Create and activate a client for the given self-hosted server. */
 export function initSupabase(config: ServerConfig): SupabaseClient {
   client = createClient(config.url, config.anonKey, {
+    global: { fetch: fetchWithoutAuthorization },
     auth: {
       storage: getStorage(),
       autoRefreshToken: true,
@@ -42,6 +55,7 @@ export function clearSupabase(): void {
 export async function testConnection(config: ServerConfig): Promise<string | null> {
   try {
     const test = createClient(config.url, config.anonKey, {
+      global: { fetch: fetchWithoutAuthorization },
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
     const { error } = await test.from('profiles').select('id').limit(1);

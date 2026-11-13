@@ -28,7 +28,9 @@ const TABLES = ['houses', 'inventory', 'shopping_list', 'consumption_logs', 'hou
 
 async function oldRows(table) {
   const res = await fetch(`${OLD_URL}/rest/v1/${table}?select=*`, {
-    headers: { apikey: OLD_KEY, Authorization: `Bearer ${OLD_KEY}` },
+    // PostgREST without a JWT secret rejects an Authorization header with 500,
+    // so only the token nginx checks is sent.
+    headers: { apikey: OLD_KEY },
   });
   if (!res.ok) throw new Error(`${table}: ${res.status} ${await res.text()}`);
   return res.json();
