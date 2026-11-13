@@ -9,6 +9,14 @@ import { Tappable } from '@/components/ui/tappable';
 import { showDialog, showToast } from '@/lib/overlay';
 import { getServerConfig, saveServerConfig, clearServerConfig, normalizeAddress, DEFAULT_SERVER_KEY } from '@/lib/serverConfig';
 import { initSupabase, clearSupabase, testConnection } from '@/lib/supabase';
+import {
+  probePocketBase,
+  initPocketBase,
+  clearPocketBase,
+  loginPocketBase,
+  pocketBaseToken,
+  restorePocketBaseAuth,
+} from '@/lib/pocketbase';
 import { pushHouse, firstServerHouseId, createPairingCode, redeemPairingCode } from '@/lib/sync';
 import { useGleanStore } from '@/store/useGleanStore';
 
@@ -42,6 +50,8 @@ export default function ServerScreen() {
   const [pairCode, setPairCode] = useState('');
   /** Code minted on this phone for someone else to redeem. */
   const [minted, setMinted] = useState<string | null>(null);
+  /** Filled once the probe says this address is a PocketBase server. */
+  const [pbLogin, setPbLogin] = useState<{ email: string; password: string } | null>(null);
   const profile = useGleanStore(s => s.profile);
 
   const reveal = useRef(new Animated.Value(0)).current;
@@ -55,7 +65,12 @@ export default function ServerScreen() {
       setAddress(cfg.url);
       setKey(cfg.anonKey);
       setSavedAddress(cfg.url);
-      initSupabase(cfg);
+      if (cfg.backend === 'pocketbase') {
+        initPocketBase(cfg.url);
+        restorePocketBaseAuth(cfg.token ?? '');
+      } else {
+        initSupabase(cfg);
+      }
       setPhase('connected');
     })();
   }, []);
@@ -77,13 +92,54 @@ export default function ServerScreen() {
   /** Probe the address, then decide whether to ask the user anything at all. */
   const handleConnect = async () => {
     setError(null);
-    const config = cfg();
-    if (!config.url) {
+    const base = normalizeAddress(address);
+    if (!base) {
       setError('Enter your server’s address, for example http://192.168.1.20:8000');
       return;
     }
     setPhase('checking');
 
+    // Which server is this? PocketBase answers /api/health; the bundled
+    // Postgres + PostgREST does not.
+    const isPocketBase = await probePocketBase(base);
+    if (isPocketBase) {
+      if (!pbLogin) {
+        setPbLogin({ email: '', password: '' });
+        setPhase('idle');
+        return;
+      }
+      initPocketBase(base);
+      const loginError = await loginPocketBase(pbLogin.email.trim(), pbLogin.password);
+      if (loginError) {
+        setPhase('idle');
+        setError(`Sign-in failed.\n\n${loginError}`);
+        return;
+      }
+      await saveServerConfig({
+        url: base,
+        anonKey: '',
+        backend: 'pocketbase',
+        token: pocketBaseToken(),
+      });
+      const houseId = pairCode.trim()
+        ? await redeemPairingCode(pairCode)
+        : await firstServerHouseId();
+      if (pairCode.trim() && !houseId) {
+        setPhase('idle');
+        setError('That code has expired or was already used. Ask for a new one — codes last ten minutes.');
+        return;
+      }
+      if (houseId && useGleanStore.getState().house?.id !== houseId) {
+        await useGleanStore.getState().adoptServerHouse(houseId);
+      }
+      setSavedAddress(base);
+      setPairCode('');
+      setPhase('connected');
+      showToast('Connected to your server');
+      return;
+    }
+
+    const config = cfg();
     const failure = await testConnection(config);
     if (failure) {
       setPhase('idle');
@@ -332,6 +388,55 @@ export default function ServerScreen() {
             Someone already in the household can make one: Settings → Add member → Create a code.
           </Text>
 
+          {pbLogin && (
+            <View style={{ marginTop: 18, gap: 10 }}>
+              <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, fontFamily: theme.fonts.medium, marginLeft: 4 }}>
+                This server is PocketBase — sign in
+              </Text>
+              <TextInput
+                value={pbLogin.email}
+                onChangeText={email => setPbLogin(prev => (prev ? { ...prev, email } : prev))}
+                placeholder="you@example.com"
+                placeholderTextColor={colors.textFaint}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                style={{
+                  backgroundColor: colors.surfaceMuted,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: theme.radii.md,
+                  paddingHorizontal: 16,
+                  height: 52,
+                  fontSize: theme.type.body,
+                  color: colors.text,
+                }}
+              />
+              <TextInput
+                value={pbLogin.password}
+                onChangeText={password => setPbLogin(prev => (prev ? { ...prev, password } : prev))}
+                placeholder="Password"
+                placeholderTextColor={colors.textFaint}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={{
+                  backgroundColor: colors.surfaceMuted,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: theme.radii.md,
+                  paddingHorizontal: 16,
+                  height: 52,
+                  fontSize: theme.type.body,
+                  color: colors.text,
+                }}
+              />
+              <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, lineHeight: 18 }}>
+                The account you created on your own server. It never leaves it.
+              </Text>
+            </View>
+          )}
+
           {error && (
             <Animated.View style={{ opacity: reveal, marginTop: 12, flexDirection: 'row', gap: 10, backgroundColor: colors.dangerBg, borderWidth: 1, borderColor: colors.dangerBorder, borderRadius: theme.radii.md, padding: 14 }}>
               <Ionicons name="alert-circle" size={18} color={colors.danger} style={{ marginTop: 1 }} />
@@ -384,10 +489,20 @@ export default function ServerScreen() {
 
           <View style={{ marginTop: 20 }}>
             <PrimaryButton
-              label={phase === 'checking' ? 'Looking for your server…' : 'Connect'}
+              label={
+                phase === 'checking'
+                  ? 'Looking for your server…'
+                  : pbLogin && !(pbLogin.email.trim() && pbLogin.password)
+                    ? 'Enter your server account'
+                    : 'Connect'
+              }
               onPress={handleConnect}
               busy={phase === 'checking'}
-              disabled={phase === 'checking' || phase === 'choose'}
+              disabled={
+                phase === 'checking' ||
+                phase === 'choose' ||
+                (!!pbLogin && !(pbLogin.email.trim() && pbLogin.password))
+              }
             />
           </View>
 

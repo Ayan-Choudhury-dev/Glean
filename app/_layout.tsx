@@ -35,6 +35,7 @@ import { theme } from '@/constants/theme';
 import { useAppearance, useColors } from '@/lib/appearance';
 import { getServerConfig } from '@/lib/serverConfig';
 import { initSupabase } from '@/lib/supabase';
+import { initPocketBase, restorePocketBaseAuth, getPocketBase, pbSubscribe, pbUnsubscribe } from '@/lib/pocketbase';
 import { pullHouse } from '@/lib/sync';
 import { useUpdateFlow } from '@/lib/updates';
 import '@/global.css';
@@ -93,7 +94,15 @@ export default function RootLayout() {
 
   // Restore the self-hosted server connection (if configured).
   useEffect(() => {
-    getServerConfig().then(cfg => { if (cfg) initSupabase(cfg); });
+    getServerConfig().then(cfg => {
+      if (!cfg) return;
+      if (cfg.backend === 'pocketbase') {
+        initPocketBase(cfg.url);
+        restorePocketBaseAuth(cfg.token ?? '');
+      } else {
+        initSupabase(cfg);
+      }
+    });
   }, []);
 
   // Self-update check. Silent: the result lands in the Settings row and a toast,
@@ -101,6 +110,24 @@ export default function RootLayout() {
   useEffect(() => {
     void useUpdateFlow.getState().check();
   }, []);
+
+  // PocketBase pushes changes; PostgREST cannot, so it keeps the foreground
+  // refresh below. Reloading the house is cheaper than patching rows here — the
+  // store already turns a snapshot into state.
+  const houseId = useGleanStore(s => s.house?.id);
+  useEffect(() => {
+    if (!houseId || !getPocketBase()) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const onChange = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { void useGleanStore.getState().loadHouseData(houseId); }, 400);
+    };
+    void pbSubscribe(houseId, onChange);
+    return () => {
+      if (timer) clearTimeout(timer);
+      void pbUnsubscribe();
+    };
+  }, [houseId]);
 
   // Refresh from the server when the app comes back to the foreground, so a
   // second phone sees the household's changes without a manual restore. Push

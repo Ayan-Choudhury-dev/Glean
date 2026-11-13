@@ -1,4 +1,12 @@
 import { getSupabase } from './supabase';
+import {
+  getPocketBase,
+  pbPushHouse,
+  pbPullHouse,
+  pbFirstHouseId,
+  pbCreatePairingCode,
+  pbRedeemPairingCode,
+} from './pocketbase';
 import { localLoadHouse, localSaveHouse } from './db/client';
 import type {
   House,
@@ -8,11 +16,18 @@ import type {
   HouseOption,
 } from '../store/useGleanStore';
 
-// Push/pull between local SQLite and a self-hosted Supabase (single-tenant).
-// Auth is local-only; the server is trusted storage (see schema-selfhost.sql).
+// Push/pull between local SQLite and a self-hosted server.
+//
+// Two backends are supported while the PocketBase migration lands: Postgres +
+// PostgREST (the original bundle) and PocketBase (one container, realtime). The
+// public functions here are the seam — callers never know which is active.
+
+/** PocketBase is active when its client exists; otherwise PostgREST. */
+const usingPocketBase = () => getPocketBase() !== null;
 
 /** Push the local house snapshot to the server (backup). No-op when unconfigured. */
 export async function pushHouse(houseId: string): Promise<void> {
+  if (usingPocketBase()) return pbPushHouse(houseId);
   const sb = getSupabase();
   if (!sb) return;
   const data = await localLoadHouse(houseId);
@@ -53,6 +68,7 @@ export async function pushHouse(houseId: string): Promise<void> {
 
 /** Pull a house from the server into local SQLite. Returns false if not found. */
 export async function pullHouse(houseId: string): Promise<boolean> {
+  if (usingPocketBase()) return pbPullHouse(houseId);
   const sb = getSupabase();
   if (!sb) return false;
 
@@ -79,6 +95,7 @@ export async function pullHouse(houseId: string): Promise<boolean> {
 
 /** The server's single house id (self-hosted single-tenant), if any. */
 export async function firstServerHouseId(): Promise<string | null> {
+  if (usingPocketBase()) return pbFirstHouseId();
   const sb = getSupabase();
   if (!sb) return null;
   const { data } = await sb.from('houses').select('id').limit(1);
@@ -106,6 +123,7 @@ function randomCode(): string {
 
 /** Mint a code for this pantry. Returns null when not connected. */
 export async function createPairingCode(houseId: string): Promise<string | null> {
+  if (usingPocketBase()) return pbCreatePairingCode(houseId);
   const sb = getSupabase();
   if (!sb) return null;
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -124,6 +142,7 @@ export async function createPairingCode(houseId: string): Promise<string | null>
 
 /** Resolve a code to a pantry id and burn it. Null when invalid or expired. */
 export async function redeemPairingCode(code: string): Promise<string | null> {
+  if (usingPocketBase()) return pbRedeemPairingCode(code);
   const sb = getSupabase();
   if (!sb) return null;
   const normalized = code.trim().toUpperCase();
