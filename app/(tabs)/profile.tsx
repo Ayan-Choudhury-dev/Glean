@@ -20,6 +20,7 @@ import { theme, accents, type AccentKey } from '@/constants/theme';
 import { useAppearance, useColors } from '@/lib/appearance';
 import { getServerConfig } from '@/lib/serverConfig';
 import { currentVersion, useUpdateFlow } from '@/lib/updates';
+import { showDownloadProgress } from '@/lib/updateNotifications';
 import { showDialog, showToast } from '@/lib/overlay';
 import { HouseAvatar } from '@/components/HouseAvatar';
 import { initialsFor } from '@/lib/initials';
@@ -36,7 +37,7 @@ function timeAgo(iso: string): string {
 }
 
 export default function ProfileScreen() {
-  const { profile, house, inventory, importCSV, loadHouseData, setAvatar, setName, renameHouse, leaveHouse, setHouseImage, lastSyncedAt } = useGleanStore();
+  const { profile, house, inventory, importCSV, signOut, loadHouseData, setAvatar, setName, renameHouse, leaveHouse, setHouseImage, lastSyncedAt } = useGleanStore();
   const colors = useColors();
   const appearanceMode = useAppearance(s => s.mode);
   const setAppearanceMode = useAppearance(s => s.setMode);
@@ -48,6 +49,7 @@ export default function ProfileScreen() {
   const updateProgress = useUpdateFlow(s => s.progress);
   const checkForUpdates = useUpdateFlow(s => s.check);
   const openUpdateSheet = useUpdateFlow(s => s.openSheet);
+  const previewUpdate = useUpdateFlow(s => s.preview);
 
   const [renameOpen, setRenameOpen] = useState(false);
 
@@ -110,6 +112,20 @@ export default function ProfileScreen() {
     setImageOpen(false);
     const ok = await setHouseImage(key);
     if (ok) showToast('House image updated');
+  };
+
+  const handleRestartOnboarding = () => {
+    showDialog({
+      title: 'Restart onboarding?',
+      message: 'This clears the profile on this phone so the first-run flow runs again. Your pantry rows stay in the database but become unreachable until you finish setup.',
+      confirmLabel: 'Restart',
+      cancelLabel: 'Cancel',
+      destructive: true,
+      onConfirm: async () => {
+        await signOut();
+        router.replace('/onboarding');
+      },
+    });
   };
 
   const handleLeave = () => {
@@ -404,7 +420,6 @@ export default function ProfileScreen() {
         <SettingRow icon="help-circle-outline" label="Send feedback" onPress={() => Linking.openURL('mailto:hello@glean.app?subject=Glean%20feedback')} />
       </Card>
 
-      {/* ── Account ────────────────────────────────────────────────────── */}
       {/* ── This device ───────────────────────────────────────────────────────────── */}
       <SectionHeader title="This device" />
       <Card>
@@ -416,6 +431,37 @@ export default function ProfileScreen() {
         />
       </Card>
 
+      {/* ── Developer ─────────────────────────────────────────────────────────────── */}
+      <SectionHeader title="Developer" />
+      <Card>
+        <SettingRow
+          icon="bug-outline"
+          label="Preview update sheet"
+          value="available"
+          onPress={() => previewUpdate('available')}
+        />
+        <Divider />
+        <SettingRow
+          icon="download-outline"
+          label="Preview download"
+          value="progress + shade"
+          onPress={() => previewUpdate('downloading')}
+        />
+        <Divider />
+        <SettingRow
+          icon="notifications-outline"
+          label="Test notification"
+          value="posts one"
+          onPress={() => { void showDownloadProgress(0.42, currentVersion()); showToast('Notification posted'); }}
+        />
+        <Divider />
+        <SettingRow
+          icon="refresh-outline"
+          label="Restart onboarding"
+          value="clears this device"
+          onPress={handleRestartOnboarding}
+        />
+      </Card>
 
       {/* Rename household sheet */}
       <NativeSheet visible={renameOpen} onClose={() => setRenameOpen(false)}>

@@ -131,7 +131,12 @@ interface UpdateFlow {
   install: () => Promise<void>;
   openSheet: () => void;
   closeSheet: () => void;
+  /** Dev tools: drive the sheet without waiting for a real release. */
+  preview: (mode: 'available' | 'downloading') => void;
+  reset: () => void;
 }
+
+let previewTimer: ReturnType<typeof setInterval> | null = null;
 
 export const useUpdateFlow = create<UpdateFlow>((set, get) => ({
   phase: 'idle',
@@ -177,4 +182,37 @@ export const useUpdateFlow = create<UpdateFlow>((set, get) => ({
 
   openSheet: () => set({ open: true }),
   closeSheet: () => set({ open: false }),
+
+  preview: (mode) => {
+    const fake: UpdateInfo = {
+      version: '9.9.9',
+      url: 'https://github.com/Ayan-Choudhury-dev/Glean/releases/latest',
+      apkUrl: null,
+      apkSize: 48_000_000,
+    };
+    if (mode === 'available') {
+      set({ phase: 'available', info: fake, open: true, progress: 0, error: null });
+      return;
+    }
+    // Walk the bar and the shade notification without touching the network.
+    set({ phase: 'downloading', info: fake, open: true, progress: 0, error: null });
+    previewTimer = setInterval(() => {
+      const next = Math.min(1, get().progress + 0.04);
+      set({ progress: next });
+      void showDownloadProgress(next, fake.version);
+      if (next >= 1) {
+        if (previewTimer) clearInterval(previewTimer);
+        previewTimer = null;
+        set({ phase: 'opening' });
+        void showInstallReady(fake.version);
+      }
+    }, 120);
+  },
+
+  reset: () => {
+    if (previewTimer) clearInterval(previewTimer);
+    previewTimer = null;
+    void clearDownloadNotification();
+    set({ phase: 'idle', info: null, progress: 0, error: null, open: false });
+  },
 }));
