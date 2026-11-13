@@ -76,7 +76,7 @@ The dashboard + API are at `http://<host>:8000`; the schema applies automaticall
 on first boot. See [`backend/README.md`](backend/README.md) and
 [`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md) (HTTPS, Tunnel, Tailscale).
 
-Then in the app: **Profile → Self-hosted backend → URL + anon key**.
+Then in the app: **Settings → Add member → your server's address**.
 
 ### Checks
 

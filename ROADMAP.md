@@ -16,7 +16,8 @@ Deferred work, roughly in priority order. Nothing here is started.
 
 - **Smaller APK** — ✅ per-ABI split APKs (`arm64-v8a`, `armeabi-v7a`) are built
   and published, and the emulator ABIs are dropped. Remaining ideas:
-  - Enable R8 / resource shrinking for release builds (currently off).
+  - R8 is on (`android.enableMinifyInReleaseBuilds=true` since the SDK 58
+    upgrade); resource shrinking is still off.
   - Look for unused native code to trim.
 - **Release keystore** — the current APK is signed with the development keystore.
   Generate a proper release keystore before publishing to Play.

@@ -64,7 +64,7 @@ export function UpdateSheet() {
 
         {phase === 'opening' && (
           <Text style={{ color: colors.textMuted, fontSize: theme.type.label, lineHeight: 21 }}>
-            Android is showing the install prompt. Choose Update — your pantry, shopping list and history stay as they are.
+            Android is showing the install prompt. Choose Update — your pantry stays as it is. The download is kept, so you can install it later from Settings if you close this.
           </Text>
         )}
 

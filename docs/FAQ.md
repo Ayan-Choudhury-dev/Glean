@@ -37,9 +37,9 @@ Two options:
    **Import CSV** box on the new device. The file has four columns —
    `Name,Quantity,Category,Location` — so photos, barcodes, shopping-list
    entries, and consumption history are **not** included.
-2. **Self-hosted backend.** Run the bundled Docker backend, connect the old
-   phone and push, then on the new phone use **Restore from server**. This
-   carries the full dataset.
+2. **Add member.** Run the bundled Docker backend, connect the old phone and
+   upload, then on the new phone enter the same address and choose **Use the
+   pantry from the server**. This carries the full dataset.
 
 ### What is the self-hosted backend, and what is it not?
 

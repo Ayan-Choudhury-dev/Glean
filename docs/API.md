@@ -28,8 +28,9 @@ Authorization: Bearer <anon key>
 Content-Type: application/json
 ```
 
-Both values come from **Profile → Self-hosted backend**. The key must be
-non-empty but can be any string (for example `glean`); it is not validated.
+The address comes from **Settings → Add member**. The bundled server accepts
+any non-empty key — it is not validated — so the app fills in `glean` and hides
+the field under Advanced.
 `lib/serverConfig.ts` stores URL and key in the local SQLite `meta` table, and
 `lib/supabase.ts` builds the client from them at startup. No config means no
 client and no network calls.

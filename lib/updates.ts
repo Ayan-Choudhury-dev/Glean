@@ -2,11 +2,8 @@ import Constants from 'expo-constants';
 import { File, Paths } from 'expo-file-system';
 import { getContentUriAsync } from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
-import {
-  clearDownloadNotification,
-  showDownloadProgress,
-  showInstallReady,
-} from './updateNotifications';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import { clearUpdateNotification, showInstallReady } from './updateNotifications';
 import { create } from 'zustand';
 
 // Lightweight self-update check against GitHub releases (no store, no account).
@@ -88,13 +85,27 @@ export async function checkForUpdate(): Promise<UpdateInfo | null> {
  * and local SQLite data is untouched. Requires REQUEST_INSTALL_PACKAGES, and the
  * user must allow installs from Glean the first time.
  */
+/** Where a downloaded update lives. Documents, not cache: the OS may evict cache. */
+export function apkFile(version: string): File {
+  return new File(Paths.document, `glean-${version}.apk`);
+}
+
+/** True when a previous download is still on disk and can be installed as-is. */
+export function hasSavedApk(version: string): boolean {
+  try {
+    return apkFile(version).exists;
+  } catch {
+    return false;
+  }
+}
+
 export async function downloadAndInstall(
   info: UpdateInfo,
   onProgress?: (fraction: number) => void,
 ): Promise<void> {
   if (!info.apkUrl) throw new Error('This release has no APK attached.');
 
-  const target = new File(Paths.cache, `glean-${info.version}.apk`);
+  const target = apkFile(info.version);
   if (target.exists) target.delete();
 
   const download = File.createDownloadTask(info.apkUrl, target, {
@@ -103,10 +114,25 @@ export async function downloadAndInstall(
     },
   });
 
-  await download.downloadAsync();
+  // Keep the screen on for the length of the transfer. This is not a
+  // foreground service: Android can still suspend a backgrounded app, and the
+  // task dies with the JS runtime. It stops the common failure — the screen
+  // sleeping mid-download — without pretending to be a background service.
+  const awakeTag = `glean-update-${info.version}`;
+  await activateKeepAwakeAsync(awakeTag).catch(() => {});
+  try {
+    await download.downloadAsync();
+  } finally {
+    deactivateKeepAwake(awakeTag);
+  }
   onProgress?.(1);
 
-  const contentUri = await getContentUriAsync(target.uri);
+  await installApk(target);
+}
+
+/** Hand an APK already on disk to the system installer. */
+export async function installApk(file: File): Promise<void> {
+  const contentUri = await getContentUriAsync(file.uri);
   await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
     data: contentUri,
     flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
@@ -131,6 +157,7 @@ interface UpdateFlow {
   install: () => Promise<void>;
   openSheet: () => void;
   closeSheet: () => void;
+  installSaved: (version: string) => Promise<void>;
   /** Dev tools: drive the sheet without waiting for a real release. */
   preview: (mode: 'available' | 'downloading') => void;
   reset: () => void;
@@ -167,16 +194,22 @@ export const useUpdateFlow = create<UpdateFlow>((set, get) => ({
     if (!info) return;
     set({ phase: 'downloading', progress: 0, error: null, open: true });
     try {
-      await downloadAndInstall(info, fraction => {
-        set({ progress: fraction });
-        // Mirror the bar into the shade so progress survives leaving the app.
-        void showDownloadProgress(fraction, info.version);
-      });
+      await downloadAndInstall(info, fraction => set({ progress: fraction }));
       set({ phase: 'opening' });
       void showInstallReady(info.version);
     } catch (e) {
       set({ phase: 'error', error: e instanceof Error ? e.message : String(e) });
-      void clearDownloadNotification();
+      void clearUpdateNotification();
+    }
+  },
+
+  /** Install an APK from a previous download instead of fetching it again. */
+  installSaved: async (version: string) => {
+    try {
+      await installApk(apkFile(version));
+      set({ phase: 'opening', open: true });
+    } catch (e) {
+      set({ phase: 'error', error: e instanceof Error ? e.message : String(e) });
     }
   },
 
@@ -194,12 +227,11 @@ export const useUpdateFlow = create<UpdateFlow>((set, get) => ({
       set({ phase: 'available', info: fake, open: true, progress: 0, error: null });
       return;
     }
-    // Walk the bar and the shade notification without touching the network.
+    // Walk the bar and fire the completion notification, no network involved.
     set({ phase: 'downloading', info: fake, open: true, progress: 0, error: null });
     previewTimer = setInterval(() => {
       const next = Math.min(1, get().progress + 0.04);
       set({ progress: next });
-      void showDownloadProgress(next, fake.version);
       if (next >= 1) {
         if (previewTimer) clearInterval(previewTimer);
         previewTimer = null;
@@ -212,7 +244,7 @@ export const useUpdateFlow = create<UpdateFlow>((set, get) => ({
   reset: () => {
     if (previewTimer) clearInterval(previewTimer);
     previewTimer = null;
-    void clearDownloadNotification();
+    void clearUpdateNotification();
     set({ phase: 'idle', info: null, progress: 0, error: null, open: false });
   },
 }));

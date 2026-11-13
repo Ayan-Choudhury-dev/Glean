@@ -19,8 +19,8 @@ import { NativeSheet } from '../../components/NativeSheet';
 import { theme, accents, type AccentKey } from '@/constants/theme';
 import { useAppearance, useColors } from '@/lib/appearance';
 import { getServerConfig } from '@/lib/serverConfig';
-import { currentVersion, useUpdateFlow } from '@/lib/updates';
-import { showDownloadProgress } from '@/lib/updateNotifications';
+import { currentVersion, useUpdateFlow, hasSavedApk } from '@/lib/updates';
+import { showInstallReady } from '@/lib/updateNotifications';
 import { flushLocalSave } from '@/store/useGleanStore';
 import { showDialog, showToast } from '@/lib/overlay';
 import { HouseAvatar } from '@/components/HouseAvatar';
@@ -51,6 +51,7 @@ export default function ProfileScreen() {
   const checkForUpdates = useUpdateFlow(s => s.check);
   const openUpdateSheet = useUpdateFlow(s => s.openSheet);
   const previewUpdate = useUpdateFlow(s => s.preview);
+  const installSaved = useUpdateFlow(s => s.installSaved);
 
   const [renameOpen, setRenameOpen] = useState(false);
 
@@ -438,14 +439,18 @@ export default function ProfileScreen() {
               ? 'Checking…'
               : updatePhase === 'downloading'
                 ? `Downloading ${Math.round(updateProgress * 100)}%`
-                : updatePhase === 'available'
-                  ? `${updateInfo?.version ?? ''} available`
-                  : updatePhase === 'current'
-                    ? 'Up to date'
-                    : undefined
+                : updateInfo && hasSavedApk(updateInfo.version)
+                  ? 'Ready to install'
+                  : updatePhase === 'available'
+                    ? `${updateInfo?.version ?? ''} available`
+                    : updatePhase === 'current'
+                      ? 'Up to date'
+                      : undefined
           }
           onPress={() => {
-            if (updatePhase === 'available' || updatePhase === 'downloading') {
+            if (updateInfo && hasSavedApk(updateInfo.version)) {
+              void installSaved(updateInfo.version);
+            } else if (updatePhase === 'available' || updatePhase === 'downloading') {
               openUpdateSheet();
             } else {
               void checkForUpdates({ openWhenAvailable: true });
@@ -487,8 +492,8 @@ export default function ProfileScreen() {
         <SettingRow
           icon="notifications-outline"
           label="Test notification"
-          value="posts one"
-          onPress={() => { void showDownloadProgress(0.42, currentVersion()); showToast('Notification posted'); }}
+          value="install ready"
+          onPress={() => { void showInstallReady(currentVersion()); showToast('Notification posted'); }}
         />
         <Divider />
         <SettingRow

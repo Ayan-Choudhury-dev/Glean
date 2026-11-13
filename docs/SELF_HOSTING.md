@@ -27,7 +27,7 @@ Open `http://<host>:8000` for the read-only dashboard. The API is under
 
 ## Point the app at it
 
-In Glean: **Profile → Self-hosted backend**
+In Glean: **Settings → Add member**
 
 - URL: `http://<host>:8000`
 - Anon key: any non-empty string (e.g. `glean`)
