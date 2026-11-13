@@ -68,7 +68,6 @@ function Chip({
   return (
     <Tappable
       onPress={onPress}
-      haptic
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       accessibilityLabel={`Filter: ${label}`}
@@ -403,7 +402,6 @@ export default function InventoryScreen() {
       </Text>
       <Tappable
         onPress={() => router.push('/item-form')}
-        haptic
         accessibilityRole="button"
         accessibilityLabel="Add new item"
         style={{ marginTop: 24, backgroundColor: C.accent, borderRadius: theme.radii.md, paddingHorizontal: 24, paddingVertical: 14 }}

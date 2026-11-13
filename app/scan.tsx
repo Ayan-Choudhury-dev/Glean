@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, ScrollView, Image, Linking, ActivityIndicator } from 'react-native';
+import { View, ScrollView, Image, Linking, ActivityIndicator, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -12,6 +12,7 @@ import { lookupProduct } from '../lib/productLookup';
 import { theme } from '@/constants/theme';
 import { useColors } from '@/lib/appearance';
 import { showToast } from '@/lib/overlay';
+import { tapHaptic } from '@/lib/haptics';
 
 const BARCODE_TYPES: NonNullable<
   React.ComponentProps<typeof CameraView>['barcodeScannerSettings']
@@ -47,6 +48,10 @@ export default function ScanScreen() {
   const [locationTarget, setLocationTarget] = useState<string | null>(null);
   // Remembered across scans so unpacking a bag doesn't mean re-picking each time.
   const [lastLocation, setLastLocation] = useState('');
+  const [torch, setTorch] = useState(false);
+  /** Barcode currently being renamed inline — unknown products are named here. */
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState('');
 
   const locationOptions = useMemo(
     () => houseOptions.filter(o => o.type === 'location'),
@@ -83,6 +88,7 @@ export default function ScanScreen() {
 
       if (!continuous) pausedRef.current = true;
 
+      tapHaptic();
       const known = findExisting(data);
       setPending(prev => [
         ...prev,
@@ -90,7 +96,9 @@ export default function ScanScreen() {
           barcode: data,
           name: known?.name ?? '',
           category: known?.category ?? 'Other',
-          location: known?.location ?? lastLocation,
+          // A fresh scan is never blocked on picking a location: remember the
+          // last one, else fall back to Pantry and let the chip change it.
+          location: known?.location ?? lastLocation ?? 'Pantry',
           qty: 1,
           imageUrl: known?.image_url,
           status: known ? 'ready' : 'looking-up',
@@ -113,7 +121,7 @@ export default function ScanScreen() {
             name: result.name,
             brand: result.brand,
             category: byName?.category ?? result.category,
-            location: p.location || byName?.location || '',
+            location: p.location || byName?.location || lastLocation || 'Pantry',
             imageUrl: result.imageUrl ?? byName?.image_url,
             status: 'ready' as const,
             mode: byName ? ('topup' as const) : ('new' as const),
@@ -190,7 +198,6 @@ export default function ScanScreen() {
         </Text>
         <Tappable
           onPress={permission.canAskAgain ? requestPermission : () => Linking.openSettings()}
-          haptic
           accessibilityRole="button"
           accessibilityLabel="Grant camera access"
           style={{ marginTop: 8, backgroundColor: colors.accent, borderRadius: theme.radii.md, minHeight: 48, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center' }}
@@ -218,6 +225,7 @@ export default function ScanScreen() {
         style={{ flex: 1 }}
         facing="back"
         barcodeScannerSettings={{ barcodeTypes: BARCODE_TYPES }}
+        enableTorch={torch}
         onBarcodeScanned={pausedRef.current ? undefined : handleScan}
       >
         <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -231,6 +239,15 @@ export default function ScanScreen() {
             <Ionicons name="close" size={22} color="#fff" />
           </Tappable>
           <View style={{ flex: 1 }} />
+          <Tappable
+            onPress={() => setTorch(t => !t)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: torch }}
+            accessibilityLabel={torch ? 'Turn the light off' : 'Turn the light on'}
+            style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: torch ? colors.accent : 'rgba(0,0,0,0.45)' }}
+          >
+            <Ionicons name={torch ? 'flashlight' : 'flashlight-outline'} size={18} color="#fff" />
+          </Tappable>
           <Tappable
             onPress={() => router.push('/item-form')}
             accessibilityRole="button"
@@ -294,11 +311,42 @@ export default function ScanScreen() {
                 )}
 
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: theme.type.body, color: colors.text, fontFamily: theme.fonts.medium }} numberOfLines={1}>
-                    {p.status === 'looking-up' ? 'Looking up…' : p.name}
-                  </Text>
+                  {editing === p.barcode ? (
+                    <TextInput
+                      value={draftName}
+                      onChangeText={setDraftName}
+                      autoFocus
+                      autoCorrect={false}
+                      returnKeyType="done"
+                      onSubmitEditing={() => {
+                        const name = draftName.trim();
+                        if (name) {
+                          setPending(prev => prev.map(q => (q.barcode === p.barcode ? { ...q, name, status: 'ready' } : q)));
+                        }
+                        setEditing(null);
+                      }}
+                      onBlur={() => setEditing(null)}
+                      placeholder="Name this item"
+                      placeholderTextColor={colors.textFaint}
+                      style={{ backgroundColor: colors.surfaceMuted, borderRadius: theme.radii.sm, paddingHorizontal: 10, height: 34, fontSize: theme.type.body, color: colors.text }}
+                    />
+                  ) : (
+                    <Tappable
+                      onPress={() => {
+                        if (p.status === 'looking-up') return;
+                        setDraftName(p.name);
+                        setEditing(p.barcode);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Rename ${p.name || 'this item'}`}
+                    >
+                      <Text style={{ fontSize: theme.type.body, color: colors.text, fontFamily: theme.fonts.medium }} numberOfLines={1}>
+                        {p.status === 'looking-up' ? 'Looking up…' : p.name}
+                      </Text>
+                    </Tappable>
+                  )}
                   <Text style={{ fontSize: theme.type.caption, color: p.status === 'unknown' ? colors.warning : colors.textMuted, marginTop: 2 }} numberOfLines={1}>
-                    {p.mode === 'topup' ? 'In pantry · tops up' : p.status === 'unknown' ? 'Not found — check the name later' : p.category}
+                    {p.mode === 'topup' ? 'In pantry · tops up' : p.status === 'unknown' ? 'Not found — tap the name to set one' : p.category}
                   </Text>
                   <Tappable
                     onPress={() => openLocationPicker(p.barcode)}
@@ -338,6 +386,7 @@ export default function ScanScreen() {
           onPress={commit}
           disabled={!canCommit}
           haptic
+          hapticStyle="confirm"
           accessibilityRole="button"
           accessibilityLabel={`Add ${pending.length} items to inventory`}
           style={{ marginHorizontal: 20, marginTop: 8, backgroundColor: colors.accent, borderRadius: theme.radii.md, minHeight: 52, alignItems: 'center', justifyContent: 'center', opacity: canCommit ? 1 : 0.5 }}
@@ -349,7 +398,10 @@ export default function ScanScreen() {
                 ? 'Set a location for each item'
                 : stillLooking
                   ? 'Looking up…'
-                  : `Add ${newCount ? `${newCount} new` : ''}${newCount && topupCount ? ' · ' : ''}${topupCount ? `${topupCount} top-up` : ''}`}
+                  : `Add ${[
+                      newCount ? `${newCount} new` : null,
+                      topupCount ? `${topupCount} top-up${topupCount === 1 ? '' : 's'}` : null,
+                    ].filter(Boolean).join(' · ')}`}
           </Text>
         </Tappable>
       </View>

@@ -389,6 +389,7 @@ export default function ItemFormScreen() {
           onPress={handleSave}
           disabled={!isDirty}
           haptic
+          hapticStyle="confirm"
           style={{
             flex: 1,
             backgroundColor: isDirty ? colors.accent : colors.border,

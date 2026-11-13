@@ -21,6 +21,7 @@ import { useAppearance, useColors } from '@/lib/appearance';
 import { getServerConfig } from '@/lib/serverConfig';
 import { currentVersion, useUpdateFlow } from '@/lib/updates';
 import { showDownloadProgress } from '@/lib/updateNotifications';
+import { flushLocalSave } from '@/store/useGleanStore';
 import { showDialog, showToast } from '@/lib/overlay';
 import { HouseAvatar } from '@/components/HouseAvatar';
 import { initialsFor } from '@/lib/initials';
@@ -112,6 +113,41 @@ export default function ProfileScreen() {
     setImageOpen(false);
     const ok = await setHouseImage(key);
     if (ok) showToast('House image updated');
+  };
+
+  /** Boilerplate pantry for exercising flows, and for a fresh server. */
+  const handleSeedData = async () => {
+    const { inventory, addInventoryItem, syncNow } = useGleanStore.getState();
+    const have = new Set(inventory.map(i => i.name.toLowerCase()));
+    const seed: { name: string; qty: number; category: string; location: string }[] = [
+      { name: 'Milk', qty: 2, category: 'Dairy', location: 'Fridge' },
+      { name: 'Eggs', qty: 6, category: 'Dairy', location: 'Fridge' },
+      { name: 'Butter', qty: 1, category: 'Dairy', location: 'Fridge' },
+      { name: 'Bread', qty: 1, category: 'Grains', location: 'Pantry' },
+      { name: 'Rice', qty: 2, category: 'Grains', location: 'Pantry' },
+      { name: 'Pasta', qty: 3, category: 'Grains', location: 'Pantry' },
+      { name: 'Coffee', qty: 1, category: 'Beverages', location: 'Pantry' },
+      { name: 'Tea', qty: 20, category: 'Beverages', location: 'Pantry' },
+      { name: 'Tomatoes', qty: 4, category: 'Vegetables', location: 'Fridge' },
+      { name: 'Onions', qty: 3, category: 'Vegetables', location: 'Pantry' },
+      { name: 'Bananas', qty: 5, category: 'Fruits', location: 'Counter' },
+      { name: 'Apples', qty: 4, category: 'Fruits', location: 'Fridge' },
+      { name: 'Olive oil', qty: 1, category: 'Spices', location: 'Pantry' },
+      { name: 'Dish soap', qty: 1, category: 'Cleaning', location: 'Counter' },
+    ];
+    let added = 0;
+    for (const item of seed) {
+      if (have.has(item.name.toLowerCase())) continue;
+      addInventoryItem(item);
+      added++;
+    }
+    await flushLocalSave();
+    if (serverConnected) await syncNow();
+    showToast(
+      added === 0
+        ? 'Sample items were already there'
+        : `Added ${added} items${serverConnected ? ' · pushed to server' : ''}`,
+    );
   };
 
   const handleRestartOnboarding = () => {
@@ -453,6 +489,13 @@ export default function ProfileScreen() {
           label="Test notification"
           value="posts one"
           onPress={() => { void showDownloadProgress(0.42, currentVersion()); showToast('Notification posted'); }}
+        />
+        <Divider />
+        <SettingRow
+          icon="leaf-outline"
+          label="Seed sample pantry"
+          value="14 groceries"
+          onPress={() => { void handleSeedData(); }}
         />
         <Divider />
         <SettingRow

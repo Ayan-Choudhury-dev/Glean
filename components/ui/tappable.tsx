@@ -10,9 +10,14 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useColors } from '@/lib/appearance';
-import * as Haptics from 'expo-haptics';
+import { tapHaptic, toggleHaptic, confirmHaptic } from '@/lib/haptics';
 
-type TappableProps = PressableProps & { haptic?: boolean };
+type TappableProps = PressableProps & {
+  /** Opt-in feedback. Only for taps that change data, not for navigation. */
+  haptic?: boolean;
+  /** Which effect: a plain selection, a value flip, or a completed action. */
+  hapticStyle?: 'tap' | 'toggle' | 'confirm';
+};
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -37,7 +42,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 export const Tappable = React.forwardRef<
   React.ComponentRef<typeof Pressable>,
   TappableProps
->(function Tappable({ style, android_ripple, onPressIn, onPressOut, onFocus, onBlur, haptic, ...props }, ref) {
+>(function Tappable({ style, android_ripple, onPressIn, onPressOut, onFocus, onBlur, haptic, hapticStyle = 'tap', ...props }, ref) {
   const [pressed, setPressed] = useState(false);
   const [focused, setFocused] = useState(false);
   const colors = useColors();
@@ -69,7 +74,11 @@ export const Tappable = React.forwardRef<
       }
       style={merged}
       onPressIn={event => {
-        if (haptic) void Haptics.selectionAsync();
+        if (haptic) {
+          if (hapticStyle === 'confirm') confirmHaptic();
+          else if (hapticStyle === 'toggle') toggleHaptic();
+          else tapHaptic();
+        }
         setPressed(true);
         Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 40, bounciness: 0 }).start();
         onPressIn?.(event);

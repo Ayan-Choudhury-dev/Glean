@@ -21,7 +21,7 @@ import { showDialog } from '@/lib/overlay';
 import { saveServerConfig, normalizeAddress, DEFAULT_SERVER_KEY } from '@/lib/serverConfig';
 import { initSupabase, testConnection } from '@/lib/supabase';
 
-type Step = 'welcome' | 'name' | 'household' | 'staples' | 'where';
+type Step = 'welcome' | 'name' | 'household' | 'pantry' | 'staples' | 'where';
 
 const STAPLES: { name: string; category: string; location: string }[] = [
   { name: 'Milk',      category: 'Dairy',      location: 'Fridge' },
@@ -95,6 +95,9 @@ export default function OnboardingScreen() {
   const [picked, setPicked] = useState<Set<string>>(new Set());
   /** Asked up front: a shared kitchen is the only reason to offer a server. */
   const [household, setHousehold] = useState<'solo' | 'shared' | null>(null);
+  /** Named here so the household has an identity before the first item lands. */
+  const [houseName, setHouseName] = useState('');
+  const [houseNameTouched, setHouseNameTouched] = useState(false);
   const [serverMode, setServerMode] = useState(false);
   const [serverUrl, setServerUrl] = useState('');
   const [busy, setBusy] = useState(false);
@@ -153,7 +156,7 @@ export default function OnboardingScreen() {
       const { profile: p } = useGleanStore.getState();
       let houseId = p?.house_id ?? null;
       if (p && !houseId) {
-        const created = await createHouse('My Pantry');
+        const created = await createHouse(effectiveHouseName);
         if (typeof created === 'string') {
           showDialog({ title: 'Could not create pantry', message: created, cancelLabel: null });
           return;
@@ -186,9 +189,14 @@ export default function OnboardingScreen() {
   };
 
   const order: Step[] = household === 'solo'
-    ? ['welcome', 'name', 'household', 'staples']
-    : ['welcome', 'name', 'household', 'staples', 'where'];
+    ? ['welcome', 'name', 'household', 'pantry', 'staples']
+    : ['welcome', 'name', 'household', 'pantry', 'staples', 'where'];
   const stepIndex = order.indexOf(step);
+
+  const suggestedHouseName = household === 'shared'
+    ? 'Our pantry'
+    : `${name.trim() || 'My'}'s pantry`;
+  const effectiveHouseName = houseName.trim() || suggestedHouseName;
 
   /** Solo kitchens never see the server step; shared ones get it after staples. */
   const afterStaples = () => {
@@ -327,6 +335,45 @@ export default function OnboardingScreen() {
             </View>
           )}
 
+          {step === 'pantry' && (
+            <View>
+              <Text style={{ fontSize: 30, color: colors.text, fontFamily: theme.fonts.displayBold, letterSpacing: -0.4 }}>
+                Name your pantry
+              </Text>
+              <Text style={{ color: colors.textMuted, fontSize: theme.type.md, marginTop: 8, marginBottom: 24, lineHeight: 22 }}>
+                {household === 'shared'
+                  ? 'The name everyone at home sees. You can change it later.'
+                  : 'Just a label for this pantry. You can change it later.'}
+              </Text>
+              <TextInput
+                style={{
+                  backgroundColor: colors.surfaceMuted,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: theme.radii.md,
+                  paddingHorizontal: 16,
+                  height: 56,
+                  fontSize: theme.type.body,
+                  color: colors.text,
+                  fontFamily: theme.fonts.regular,
+                }}
+                placeholder={suggestedHouseName}
+                placeholderTextColor={colors.textFaint}
+                value={houseName}
+                onChangeText={text => { setHouseName(text); setHouseNameTouched(true); }}
+                autoFocus
+                autoCorrect={false}
+                returnKeyType="next"
+                onSubmitEditing={() => setStep('staples')}
+              />
+              {!houseNameTouched && (
+                <Text style={{ color: colors.textFaint, fontSize: theme.type.caption, marginTop: 8, lineHeight: 18 }}>
+                  Leaving this empty uses “{suggestedHouseName}”.
+                </Text>
+              )}
+            </View>
+          )}
+
           {step === 'staples' && (
             <View>
               <Text style={{ fontSize: 30, color: colors.text, fontFamily: theme.fonts.displayBold, letterSpacing: -0.4 }}>
@@ -446,10 +493,17 @@ export default function OnboardingScreen() {
             <>
               <PrimaryButton
                 label="Continue"
-                onPress={() => setStep('staples')}
+                onPress={() => setStep('pantry')}
                 disabled={!household}
               />
               <SecondaryButton label="Back" onPress={() => setStep('name')} />
+            </>
+          )}
+
+          {step === 'pantry' && (
+            <>
+              <PrimaryButton label="Continue" onPress={() => setStep('staples')} />
+              <SecondaryButton label="Back" onPress={() => setStep('household')} />
             </>
           )}
 

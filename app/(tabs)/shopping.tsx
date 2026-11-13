@@ -341,7 +341,6 @@ export default function ShoppingScreen() {
             </Tappable>
             <Tappable
               onPress={() => router.push('/scan')}
-              haptic
               hitSlop={10}
               accessibilityRole="button"
               accessibilityLabel="Add item to list"
@@ -455,6 +454,7 @@ export default function ShoppingScreen() {
               setSnackbar({ message: `${count} item${count !== 1 ? 's' : ''} added to pantry`, canUndo: true });
             }}
             haptic
+            hapticStyle="confirm"
             accessibilityRole="button"
             accessibilityLabel={`Update pantry with ${purchased.length} items`}
             style={{ flex: 1, backgroundColor: C.accent, borderRadius: theme.radii.md, height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 24 }}
