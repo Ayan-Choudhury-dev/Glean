@@ -69,7 +69,17 @@ create table if not exists house_options (
   created_at timestamptz default now()
 );
 
+-- One-time codes so a second phone can join without typing the pantry's id.
+-- The phone that is already connected mints a code; the other redeems it.
+create table if not exists pairing_codes (
+  code       text primary key,
+  house_id   text not null,
+  created_at timestamptz default now(),
+  expires_at timestamptz not null
+);
+
 create index if not exists inventory_house_id_idx        on inventory (house_id);
+create index if not exists pairing_codes_expiry_idx      on pairing_codes (expires_at);
 create index if not exists shopping_list_house_id_idx    on shopping_list (house_id);
 create index if not exists consumption_logs_house_id_idx on consumption_logs (house_id);
 create index if not exists house_options_house_id_idx    on house_options (house_id);
@@ -81,3 +91,4 @@ alter table inventory        disable row level security;
 alter table shopping_list    disable row level security;
 alter table consumption_logs disable row level security;
 alter table house_options    disable row level security;
+alter table pairing_codes    disable row level security;

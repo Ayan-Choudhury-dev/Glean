@@ -11,6 +11,24 @@
 - Cleanup: removed the unused `expo-clipboard` dependency and the legacy
   auth-based `supabase/` schema.
 
+## 1.0.9
+
+- Settings gains a Developer section: preview the update sheet, walk a download,
+  post the ready notification, restart onboarding, seed a sample pantry.
+- The scanner no longer blocks on picking a location, unknown products can be
+  named inline, and there is a torch.
+- Onboarding asks for the pantry name.
+- Tap feedback uses Android's haptic constants instead of a vibrator buzz, and
+  only where a tap changes data.
+
+## 1.0.8
+
+- Updates install in the app: the sheet shows progress, the notification fires
+  when the APK is ready, and the download is kept so it can be installed later.
+- Settings was reorganised: one Household card, no fake account rows, Accent
+  inside Appearance, and the update row reports its state.
+- Dialogs animate out as well as in.
+
 ## 1.0.5
 
 - Settings shows when the pantry last synced, instead of a bare "Connected", and

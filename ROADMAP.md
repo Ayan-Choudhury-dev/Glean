@@ -26,9 +26,16 @@ Deferred work, roughly in priority order. Nothing here is started.
 
 ## Sync
 
-- **Realtime pull** — a second device currently only sees changes after a manual
-  "Restore from server". Add a realtime subscription (or polling) for live sync.
-- **Conflict resolution** — push-on-change is last-write-wins today.
+- **Realtime pull** — a second device refreshes when the app returns to the
+  foreground (push, then pull). A realtime subscription or a timer would make it
+  live while both phones are open; that needs a change feed, since PostgREST has
+  none.
+- **Conflict resolution** — push-on-change is last-write-wins per row. Two phones
+  editing the same item offline will clobber; a row-level `updated_at` comparison
+  would fix it.
+- **Pairing** — a joining code now exists (`pairing_codes`), ten minutes, burned
+  on use. It saves retyping the pantry id, not the server address: the app cannot
+  discover a server it has never been told about.
 
 ## Web
 

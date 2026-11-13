@@ -9,7 +9,7 @@ import { Tappable } from '@/components/ui/tappable';
 import { showDialog, showToast } from '@/lib/overlay';
 import { getServerConfig, saveServerConfig, clearServerConfig, normalizeAddress, DEFAULT_SERVER_KEY } from '@/lib/serverConfig';
 import { initSupabase, clearSupabase, testConnection } from '@/lib/supabase';
-import { pushHouse, firstServerHouseId } from '@/lib/sync';
+import { pushHouse, firstServerHouseId, createPairingCode, redeemPairingCode } from '@/lib/sync';
 import { useGleanStore } from '@/store/useGleanStore';
 
 /**
@@ -38,6 +38,10 @@ export default function ServerScreen() {
   const [remote, setRemote] = useState<{ houseId: string | null } | null>(null);
   const [localCount, setLocalCount] = useState(0);
   const [savedAddress, setSavedAddress] = useState<string | null>(null);
+  /** Optional joining code, typed on the phone that is joining. */
+  const [pairCode, setPairCode] = useState('');
+  /** Code minted on this phone for someone else to redeem. */
+  const [minted, setMinted] = useState<string | null>(null);
   const profile = useGleanStore(s => s.profile);
 
   const reveal = useRef(new Animated.Value(0)).current;
@@ -91,6 +95,29 @@ export default function ServerScreen() {
     }
 
     initSupabase(config);
+
+    // Joining by code: the code names the pantry, so there is nothing to choose.
+    if (pairCode.trim()) {
+      const joinedId = await redeemPairingCode(pairCode);
+      if (!joinedId) {
+        setPhase('idle');
+        setError('That code has expired or was already used. Ask for a new one — codes last ten minutes.');
+        return;
+      }
+      await saveServerConfig(config);
+      const ok = await useGleanStore.getState().adoptServerHouse(joinedId);
+      if (!ok) {
+        setPhase('idle');
+        setError('The server answered, but that pantry could not be loaded. Try again.');
+        return;
+      }
+      setSavedAddress(config.url);
+      setPairCode('');
+      setPhase('connected');
+      showToast('Joined the household pantry');
+      return;
+    }
+
     const houseId = await firstServerHouseId();
     setRemote({ houseId });
     setLocalCount(useGleanStore.getState().inventory.length);
@@ -148,12 +175,15 @@ export default function ServerScreen() {
     });
   };
 
-  /** The add-member action: hand the address over however the phone shares. */
-  const handleShareAddress = () => {
-    if (!savedAddress) return;
-    void Share.share({
-      message: `Our pantry is on Glean. Open Glean → Settings → Add member and enter ${savedAddress} — then choose “Use the pantry from the server”.`,
-    }).catch(() => showToast('Could not open the share sheet'));
+  const handleCreateCode = async () => {
+    const house = useGleanStore.getState().house;
+    if (!house) return;
+    const code = await createPairingCode(house.id);
+    if (!code) {
+      showToast('Could not create a code — is the server reachable?');
+      return;
+    }
+    setMinted(code);
   };
 
   const connected = phase === 'connected';
@@ -203,10 +233,32 @@ export default function ServerScreen() {
             </View>
           </Card>
 
-          <PrimaryButton label="Send them the address" onPress={handleShareAddress} />
-          <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, lineHeight: 19, marginTop: 10, textAlign: 'center' }}>
-            They open Glean → Settings → Add member → enter this address → “Use the pantry from the server”.
-          </Text>
+          {minted ? (
+            <View style={{ backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accentBorder, borderRadius: theme.radii.lg, padding: 18, alignItems: 'center', gap: 8 }}>
+              <Text style={{ color: colors.textMuted, fontSize: theme.type.caption }}>Joining code · valid 10 minutes</Text>
+              <Text style={{ color: colors.text, fontSize: 34, letterSpacing: 8, fontFamily: theme.fonts.monoMedium }}>{minted}</Text>
+              <Tappable
+                onPress={() => {
+                  if (!savedAddress) return;
+                  void Share.share({
+                    message: `Join our pantry in Glean: open Settings → Add member, enter ${savedAddress}, then the code ${minted}.`,
+                  }).catch(() => showToast('Could not open the share sheet'));
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Send the joining code"
+                style={{ marginTop: 4, height: 40, paddingHorizontal: 16, borderRadius: theme.radii.md, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Text style={{ color: colors.onAccent, fontSize: theme.type.label, fontFamily: theme.fonts.medium }}>Send it</Text>
+              </Tappable>
+            </View>
+          ) : (
+            <>
+              <PrimaryButton label="Create a code" onPress={() => { void handleCreateCode(); }} />
+              <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, lineHeight: 19, marginTop: 10, textAlign: 'center' }}>
+                They open Glean → Settings → Add member → enter this address and the code.
+              </Text>
+            </>
+          )}
 
           <SecondaryButton label="Stop sharing" onPress={handleDisconnect} tone="danger" />
         </>
@@ -241,6 +293,35 @@ export default function ServerScreen() {
           />
           <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, marginTop: 8, lineHeight: 18 }}>
             Whatever address you open the Glean server on in a browser. http:// is added for you.
+          </Text>
+
+          <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, fontFamily: theme.fonts.medium, marginTop: 18, marginBottom: 8, marginLeft: 4 }}>
+            Joining code (optional)
+          </Text>
+          <TextInput
+            value={pairCode}
+            onChangeText={text => { setPairCode(text.toUpperCase().slice(0, 6)); setError(null); }}
+            placeholder="ABC234"
+            placeholderTextColor={colors.textFaint}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={6}
+            editable={phase !== 'checking'}
+            style={{
+              backgroundColor: colors.surfaceMuted,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: theme.radii.md,
+              paddingHorizontal: 16,
+              height: 52,
+              fontSize: theme.type.title,
+              letterSpacing: 4,
+              color: colors.text,
+              fontFamily: theme.fonts.mono,
+            }}
+          />
+          <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, marginTop: 8, lineHeight: 18 }}>
+            Someone already in the household can make one: Settings → Add member → Create a code.
           </Text>
 
           {error && (

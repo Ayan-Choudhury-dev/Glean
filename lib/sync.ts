@@ -84,3 +84,61 @@ export async function firstServerHouseId(): Promise<string | null> {
   const { data } = await sb.from('houses').select('id').limit(1);
   return data?.[0]?.id ?? null;
 }
+
+// ─── Pairing ───────────────────────────────────────────────────────────────
+// A second phone joins by redeeming a short code instead of retyping the
+// pantry's id. Codes are minted by the phone that is already connected, live for
+// ten minutes, and are consumed on first use. The server has no auth, so the
+// code is a convenience, not a security boundary — anyone who can reach the API
+// can read the tables anyway.
+
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1
+const CODE_LENGTH = 6;
+const CODE_TTL_MS = 10 * 60 * 1000;
+
+function randomCode(): string {
+  let out = '';
+  for (let i = 0; i < CODE_LENGTH; i++) {
+    out += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+  }
+  return out;
+}
+
+/** Mint a code for this pantry. Returns null when not connected. */
+export async function createPairingCode(houseId: string): Promise<string | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = randomCode();
+    const { error } = await sb.from('pairing_codes').insert({
+      code,
+      house_id: houseId,
+      expires_at: new Date(Date.now() + CODE_TTL_MS).toISOString(),
+    });
+    if (!error) return code;
+    // 23505 = unique violation; try another code.
+    if (!String(error.code ?? '').includes('23505')) return null;
+  }
+  return null;
+}
+
+/** Resolve a code to a pantry id and burn it. Null when invalid or expired. */
+export async function redeemPairingCode(code: string): Promise<string | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const normalized = code.trim().toUpperCase();
+  if (normalized.length !== CODE_LENGTH) return null;
+
+  const { data, error } = await sb
+    .from('pairing_codes')
+    .select('code, house_id, expires_at')
+    .eq('code', normalized)
+    .limit(1);
+
+  if (error || !data?.length) return null;
+  const row = data[0] as { code: string; house_id: string; expires_at: string };
+  if (new Date(row.expires_at).getTime() < Date.now()) return null;
+
+  await sb.from('pairing_codes').delete().eq('code', row.code);
+  return row.house_id;
+}

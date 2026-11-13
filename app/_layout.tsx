@@ -35,6 +35,7 @@ import { theme } from '@/constants/theme';
 import { useAppearance, useColors } from '@/lib/appearance';
 import { getServerConfig } from '@/lib/serverConfig';
 import { initSupabase } from '@/lib/supabase';
+import { pullHouse } from '@/lib/sync';
 import { useUpdateFlow } from '@/lib/updates';
 import '@/global.css';
 
@@ -99,6 +100,26 @@ export default function RootLayout() {
   // never a modal on launch. Installing lives in the update sheet.
   useEffect(() => {
     void useUpdateFlow.getState().check();
+  }, []);
+
+  // Refresh from the server when the app comes back to the foreground, so a
+  // second phone sees the household's changes without a manual restore. Push
+  // first: whatever this phone just did wins for that row (last write wins).
+  useEffect(() => {
+    const refreshFromServer = async () => {
+      const cfg = await getServerConfig();
+      if (!cfg) return;
+      const s = useGleanStore.getState();
+      if (!s.house) return;
+      await flushLocalSave();
+      await s.syncNow();
+      await pullHouse(s.house.id);
+      await s.loadHouseData(s.house.id);
+    };
+    const sub = AppState.addEventListener('change', next => {
+      if (next === 'active') void refreshFromServer();
+    });
+    return () => sub.remove();
   }, []);
 
   // Flush the debounced local mirror when the app leaves the foreground: the
