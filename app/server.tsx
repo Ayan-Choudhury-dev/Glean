@@ -87,6 +87,14 @@ export default function ServerScreen() {
     const failure = await testConnection(config);
     if (failure) {
       setPhase('idle');
+      const authProblem = /401|403|invalid api key|jwt/i.test(failure);
+      if (authProblem) {
+        setAdvancedOpen(true);
+        setError(
+          `This server rejected the key.\n\nPaste its token under Advanced — the same value as GLEAN_TOKEN on the server.`,
+        );
+        return;
+      }
       setError(
         `Couldn’t reach ${config.url}.\n\n` +
         'Check the address, and that the server is running. On another network you may need a tunnel or a VPN.',

@@ -1,0 +1,50 @@
+server {
+  listen 80;
+  server_name _;
+  root /usr/share/nginx/html;
+  index index.html;
+
+  # Shared token gate.
+  #
+  # PostgREST runs with RLS off and the anon role has full access, so without
+  # this anyone who can reach the port owns the pantry. The app already sends the
+  # key it was given on every request (apikey + Authorization: Bearer), so the
+  # gate compares that value against GLEAN_TOKEN. An empty GLEAN_TOKEN disables
+  # the gate and logs a warning at start-up (see backend/README.md).
+  set $deny 0;
+  if ($http_apikey != ${GLEAN_TOKEN}) {
+    set $deny 1;
+  }
+  if ($http_authorization = "Bearer ${GLEAN_TOKEN}") {
+    set $deny 0;
+  }
+  if (${GLEAN_TOKEN} = "") {
+    set $deny 0;
+  }
+
+  location /healthz {
+    access_log off;
+    add_header Content-Type text/plain;
+    return 200 "ok\n";
+  }
+
+  # The Supabase JS client calls /rest/v1/<table>. PostgREST serves at /<table>.
+  location /rest/v1/ {
+    if ($deny = 1) { return 401; }
+    proxy_pass http://rest:3000/;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+
+  location = /rest/v1 {
+    if ($deny = 1) { return 401; }
+    return 308 /rest/v1/;
+  }
+
+  # Web dashboard (read-only viewer) at /.
+  location / {
+    try_files $uri /index.html;
+  }
+}

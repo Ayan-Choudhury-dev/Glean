@@ -39,6 +39,9 @@ services:
       dockerfile: Dockerfile.web
     restart: unless-stopped
     depends_on: [rest]
+    environment:
+      # Shared token the app must send. Empty disables the gate (open API).
+      GLEAN_TOKEN: ${GLEAN_TOKEN:-}
     ports:
       - "${PORT:-8000}:80"
 

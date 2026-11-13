@@ -68,15 +68,68 @@ IP: `http://100.x.y.z:8000`. Nothing is exposed to the internet.
 
 ## Data and backups
 
-- All data lives in the `db_data` Docker volume.
-- Back up: `docker run --rm -v glean_db_data:/data -v "$PWD":/backup alpine tar czf /backup/glean-db.tgz -C /data .`
-- Reset (wipes data and re-applies the schema on next boot): `docker compose down -v`
+All data lives in the `db_data` Docker volume.
+
+```bash
+scripts/backend-backup.sh                 # ./backups/glean-<date>.sql.gz
+scripts/backend-backup.sh /mnt/nas        # somewhere else
+scripts/backend-restore.sh backups/glean-20261113-101500.sql.gz
+```
+
+The dump is a plain `pg_dump`, a few hundred kilobytes, restorable into any
+Postgres. Keep it out of the repo (it is gitignored) and copy it somewhere that
+is not the machine running the server.
+
+Reset (wipes data, re-applies the schema on next boot): `docker compose down -v`
+
+## The shared token
+
+Postgres has Row Level Security **off** and the API role can read and write
+everything, so the token is the only thing standing between your pantry and
+whoever can reach the port.
+
+```bash
+# in backend/.env
+GLEAN_TOKEN=$(openssl rand -hex 24)
+docker compose up -d          # picks it up on recreate
+```
+
+Then in the app: **Settings → Add member → Advanced**, paste the same value.
+Every request carries it; nginx answers `401` without it. If the token is empty
+the gate is disabled and the container prints a warning on start — fine on a
+LAN, not fine on a public hostname.
+
+Health check: `curl -f http://<host>:8000/healthz`.
+
+## Upgrades
+
+Images are pinned in `backend/docker-compose.yml`. To move to a newer release:
+
+```bash
+cd backend
+docker compose pull
+docker compose up -d
+```
+
+Schema changes ship in `backend/init/01-schema.sql`, which only runs on a fresh
+volume. For an existing volume, apply the new statements by hand (the file is
+idempotent: `create table if not exists`, `create index if not exists`):
+
+```bash
+docker compose exec -T db psql -U glean -d glean < init/01-schema.sql
+```
+
+Back up first. There is no downgrade path.
 
 ## Security
 
-The bundled schema disables Row Level Security and has **no authentication** —
-anyone who can reach the API can read and write everything. Keep it on a trusted
-network, or add TLS + real auth before exposing it publicly.
+Beyond the token:
+
+- The token is compared in nginx, so it never reaches Postgres or the dashboard.
+- TLS matters more than the token: without it the token travels in clear text.
+  Use the HTTPS or Tunnel sections above.
+- The dashboard at `/` is read-only and needs no token; it only renders what the
+  API already exposes to a browser on the same host.
 
 ## Ports
 

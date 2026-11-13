@@ -20,7 +20,7 @@ This is a plan, not a promise. It is phased so each step leaves the app working.
 | `.env.example`, `.dockerignore` | `.env` (local only) | Add both |
 | `README`, `ROADMAP`, `CHANGELOG`, `CONTRIBUTING`, `SECURITY`, `NOTICE` | README + ROADMAP + NOTICE | Add the rest |
 | Mobile: local vs server at first launch | ✅ added | Keep |
-| Mobile: pairing a phone to a server | ❌ | Add (server-side token) |
+| Mobile: pairing a phone to a server | ✅ joining code | Keep |
 | Mobile: self-updater | Check + prompt ✅ | Add in-app install |
 | `DESIGN.md` + `PRODUCT.md` | PRODUCT.md ✅ | Add DESIGN.md via `/impeccable document` |
 

@@ -58,3 +58,6 @@ android/.kotlin/
 
 # Local agent tooling config (machine-specific paths)
 opencode.json
+
+# Backend dumps
+backups/

@@ -37,6 +37,13 @@ Deferred work, roughly in priority order. Nothing here is started.
   on use. It saves retyping the pantry id, not the server address: the app cannot
   discover a server it has never been told about.
 
+## Self-hosting
+
+- **Shared token** — done (`GLEAN_TOKEN` in nginx). Empty disables the gate.
+- **Backups** — `scripts/backend-backup.sh` / `backend-restore.sh`.
+- **PocketBase** — planned, not started. See
+  `docs/MIGRATION_POCKETBASE.md`; the only reason to move is realtime.
+
 ## Web
 
 - **Full web app** — the self-hosted backend serves a read-only dashboard. Serving
