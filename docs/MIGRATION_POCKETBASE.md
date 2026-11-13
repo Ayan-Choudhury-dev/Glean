@@ -73,14 +73,22 @@ API without waiting for a migration, and it is the security floor either way.
 
 ### Phase 3 — data migration
 
-`scripts/migrate-to-pocketbase.mjs`:
+```bash
+cd backend/pocketbase && docker compose up -d
+# open http://<host>:8090/_/ and create the first superuser + a household user
 
-1. `pg_dump --data-only --inserts` (or read the API) into rows.
-2. Create the admin user, then the six collections.
-3. POST each row with its `uid` preserved.
-4. Compare counts per collection; abort on mismatch.
+PB_URL=http://localhost:8090 PB_ADMIN_EMAIL=... PB_ADMIN_PASSWORD=... \
+  node scripts/pocketbase-bootstrap.mjs          # six collections
 
-Run it against a copy of the volume, never the live one.
+OLD_URL=http://<old-host>:8000 OLD_KEY=<token> \
+PB_URL=http://localhost:8090 PB_USER=... PB_PASSWORD=... \
+  node scripts/migrate-to-pocketbase.mjs         # rows, uid preserved
+```
+
+Both scripts are idempotent-ish: the bootstrap skips existing collections, the
+migration skips records PocketBase rejects as duplicates. Counts are printed per
+collection — compare them before cutover. Run it against a copy of the old
+volume, never the live one.
 
 ### Phase 4 — cutover
 
