@@ -100,9 +100,17 @@ export function NativeSheet({
 
   // Claim a downward drag when the inner list is at the top; otherwise let the
   // list scroll. Capture phase so the sheet wins before the list does.
+  //
+  // The second clause is the deliberate-pull escape hatch: once a downward drag
+  // passes the distance that would close the sheet anyway, take it even if the
+  // list is still scrolled. RN re-evaluates capture on every move, so a list
+  // that reaches the top mid-gesture hands off on its own; this covers the case
+  // where the list is long and the pull starts deep in it.
   const shouldClaim = React.useCallback(
-    (_e: unknown, g: { dy: number; dx: number }) =>
-      g.dy > 4 && Math.abs(g.dy) > Math.abs(g.dx) && scrollY.current <= 0,
+    (_e: unknown, g: { dy: number; dx: number }) => {
+      if (g.dy <= 4 || Math.abs(g.dy) <= Math.abs(g.dx)) return false;
+      return scrollY.current <= 2 || g.dy > CLOSE_DRAG_PX;
+    },
     [],
   );
 

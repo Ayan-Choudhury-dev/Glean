@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, ScrollView, TextInput, FlatList, RefreshControl, Animated, Share, Image } from 'react-native';
+import { View, ScrollView, TextInput, FlatList, RefreshControl, Animated, Easing, Share, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Svg, Path, Defs, Pattern, Circle, Rect } from 'react-native-svg';
@@ -15,6 +15,7 @@ import { theme } from '@/constants/theme';
 import { FEATURES } from '@/constants/config';
 import { useC, useColors } from '@/lib/appearance';
 import { showDialog } from '@/lib/overlay';
+import { toggleHaptic, confirmHaptic } from '@/lib/haptics';
 
 const PAD = 24;
 type Tab = 'to_buy' | 'purchased';
@@ -79,6 +80,18 @@ const ShoppingRow = React.memo(function ShoppingRow({
           <Text style={{ fontSize: theme.type.label, color: C.muted }} numberOfLines={1}>{subtitle}</Text>
         ) : null}
       </View>
+
+      {purchased && (
+        <Tappable
+          onPress={() => onRemove(item)}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={`Remove ${item.name} from the list`}
+          style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Ionicons name="close" size={16} color={C.faint} />
+        </Tappable>
+      )}
 
       {!purchased && (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -223,6 +236,52 @@ const ReceiptCard = ({ count, children }: { count: number; children: React.React
   );
 };
 
+/**
+ * The one authored moment: putting the shop away.
+ *
+ * A stamp lands on the receipt, holds, and lifts. It is the only place the app
+ * celebrates, so it is short and physical rather than confetti.
+ */
+function StockedStamp({ count }: { count: number }) {
+  const C = useC();
+  const enter = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.sequence([
+      Animated.timing(enter, { toValue: 1, duration: 180, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.delay(620),
+      Animated.timing(enter, { toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
+    ]).start();
+  }, [enter]);
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 96,
+        alignItems: 'center',
+        opacity: enter,
+        transform: [
+          { scale: enter.interpolate({ inputRange: [0, 1], outputRange: [1.25, 1] }) },
+          { rotate: enter.interpolate({ inputRange: [0, 1], outputRange: ['-6deg', '-3deg'] }) },
+        ],
+      }}
+    >
+      <View style={{ borderWidth: 3, borderColor: C.green, borderRadius: theme.radii.md, paddingHorizontal: 18, paddingVertical: 8, backgroundColor: C.card, transform: [{ rotate: '-3deg' }] }}>
+        <Text style={{ color: C.green, fontFamily: theme.fonts.monoMedium, fontSize: theme.type.title, letterSpacing: 3, textTransform: 'uppercase' }}>
+          Stocked
+        </Text>
+        <Text style={{ color: C.green, fontFamily: theme.fonts.monoMedium, fontSize: theme.type.caption, textAlign: 'center', letterSpacing: 1 }}>
+          {count} item{count === 1 ? '' : 's'}
+        </Text>
+      </View>
+    </Animated.View>
+  );
+}
+
 export default function ShoppingScreen() {
   const {
     inventory, shoppingList, consumptionLogs, house,
@@ -240,6 +299,7 @@ export default function ShoppingScreen() {
   const [addItemSearch, setAddItemSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [snackbar, setSnackbar] = useState<{ message: string; canUndo?: boolean } | null>(null);
+  const [stampCount, setStampCount] = useState<number | null>(null);
 
   const toBuy = shoppingList.filter(i => i.status === 'to_buy');
   const purchased = shoppingList.filter(i => i.status === 'purchased');
@@ -276,6 +336,7 @@ export default function ShoppingScreen() {
     const { shoppingList: list, markAsPurchased, unmarkPurchased } = useGleanStore.getState();
     const item = list.find(i => i.id === id);
     if (!item) return;
+    toggleHaptic();
     if (item.status === 'purchased') unmarkPurchased(id);
     else markAsPurchased(id);
   }, []);
@@ -340,7 +401,7 @@ export default function ShoppingScreen() {
               <Ionicons name="share-outline" size={22} color={C.text} />
             </Tappable>
             <Tappable
-              onPress={() => router.push('/scan')}
+              onPress={() => setAddItemSheet(true)}
               hitSlop={10}
               accessibilityRole="button"
               accessibilityLabel="Add item to list"
@@ -390,7 +451,19 @@ export default function ShoppingScreen() {
                 <Ionicons name="basket-outline" size={34} color={C.accent} />
               </View>
               <Text style={{ fontSize: theme.type.lg, fontWeight: '600', color: C.text }}>Nothing to buy yet</Text>
-              <Text style={{ fontSize: theme.type.md, color: C.muted, marginTop: 6, textAlign: 'center' }}>Search your inventory to add an item.</Text>
+              <Text style={{ fontSize: theme.type.md, color: C.muted, marginTop: 6, textAlign: 'center' }}>
+                Add what you are out of, and tick it off in the shop.
+              </Text>
+              <Tappable
+                onPress={() => setAddItemSheet(true)}
+                haptic
+                accessibilityRole="button"
+                accessibilityLabel="Add your first item"
+                style={{ marginTop: 20, height: 48, paddingHorizontal: 24, borderRadius: theme.radii.md, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 }}
+              >
+                <Ionicons name="add" size={18} color={C.onAccent} />
+                <Text style={{ color: C.onAccent, fontSize: theme.type.md, fontWeight: '600' }}>Add an item</Text>
+              </Tappable>
             </View>
           ) : (
             <>
@@ -450,7 +523,11 @@ export default function ShoppingScreen() {
           <Tappable
             onPress={() => {
               const count = purchased.length;
+              confirmHaptic();
               updatePantry();
+              setStampCount(count);
+              setTab('to_buy');
+              setTimeout(() => setStampCount(null), 1100);
               setSnackbar({ message: `${count} item${count !== 1 ? 's' : ''} added to pantry`, canUndo: true });
             }}
             haptic
@@ -466,6 +543,8 @@ export default function ShoppingScreen() {
           </Tappable>
         </View>
       )}
+
+      {stampCount !== null && <StockedStamp count={stampCount} />}
 
       {snackbar && (
         <View style={{ position: 'absolute', left: PAD, right: PAD, bottom: insets.bottom + 88, minHeight: 52, borderRadius: theme.radii.md, backgroundColor: colors.snackbarBg, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 8, gap: 12 }}>
@@ -494,6 +573,17 @@ export default function ShoppingScreen() {
             </Tappable>
           </View>
 
+          <Tappable
+            onPress={() => { setAddItemSheet(false); router.push('/scan'); }}
+            accessibilityRole="button"
+            accessibilityLabel="Scan a barcode instead"
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 10, paddingHorizontal: 12, height: 44, borderRadius: theme.radii.md, borderWidth: 1, borderColor: C.border }}
+          >
+            <Ionicons name="barcode-outline" size={18} color={C.accent} />
+            <Text style={{ flex: 1, fontSize: theme.type.md, color: C.text }}>Scan a barcode</Text>
+            <Ionicons name="chevron-forward" size={16} color={C.faint} />
+          </Tappable>
+
           <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceSunken, borderWidth: 1, borderColor: C.border, borderRadius: theme.radii.md, height: 44, paddingHorizontal: 12 }}>
               <Ionicons name="search-outline" size={18} color={C.faint} />
@@ -513,7 +603,7 @@ export default function ShoppingScreen() {
             keyExtractor={item => item.id}
             nestedScrollEnabled
             scrollEventThrottle={16}
-            onScroll={sheetScroll ? e => { sheetScroll.current = e.nativeEvent.contentOffset.y; } : undefined}
+            onScroll={sheetScroll ? e => { sheetScroll.current = Math.max(0, e.nativeEvent.contentOffset.y); } : undefined}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 40 }}
             ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: colors.borderLight, marginLeft: 16, marginRight: 16 }} />}

@@ -65,7 +65,7 @@ export function PickerSheet({
           style={{ flex: 1 }}
           nestedScrollEnabled
           scrollEventThrottle={16}
-          onScroll={sheetScroll ? e => { sheetScroll.current = e.nativeEvent.contentOffset.y; } : undefined}
+          onScroll={sheetScroll ? e => { sheetScroll.current = Math.max(0, e.nativeEvent.contentOffset.y); } : undefined}
           contentContainerStyle={{ paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
           ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: colors.surfaceSunken, marginLeft: 20, marginRight: 20 }} />}

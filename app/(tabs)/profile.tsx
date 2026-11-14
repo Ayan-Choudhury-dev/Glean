@@ -21,6 +21,7 @@ import { useAppearance, useColors } from '@/lib/appearance';
 import { getServerConfig } from '@/lib/serverConfig';
 import { currentVersion, useUpdateFlow, hasSavedApk } from '@/lib/updates';
 import { showInstallReady } from '@/lib/updateNotifications';
+import { ANDROID_HAPTIC_DEMO, playAndroidHaptic } from '@/lib/haptics';
 import { flushLocalSave } from '@/store/useGleanStore';
 import { showDialog, showToast } from '@/lib/overlay';
 import { HouseAvatar } from '@/components/HouseAvatar';
@@ -45,6 +46,8 @@ export default function ProfileScreen() {
   const accentKey = useAppearance(s => s.accent);
   const setAccentKey = useAppearance(s => s.setAccent);
   const [serverConnected, setServerConnected] = useState(false);
+  /** Developer tools stay collapsed: they are not part of the product. */
+  const [devOpen, setDevOpen] = useState(false);
   const updatePhase = useUpdateFlow(s => s.phase);
   const updateInfo = useUpdateFlow(s => s.info);
   const updateProgress = useUpdateFlow(s => s.progress);
@@ -472,8 +475,20 @@ export default function ProfileScreen() {
         />
       </Card>
 
-      {/* ── Developer ─────────────────────────────────────────────────────────────── */}
-      <SectionHeader title="Developer" />
+      {/* ── Developer (collapsed by default) ─────────────────────────────────────────────────────────────── */}
+      <Tappable
+        onPress={() => setDevOpen(open => !open)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: devOpen }}
+        accessibilityLabel="Developer tools"
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 28, paddingTop: 20, paddingBottom: 8 }}
+      >
+        <Text style={{ fontSize: theme.type.caption, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.2 }}>
+          Developer
+        </Text>
+        <Ionicons name={devOpen ? 'chevron-up' : 'chevron-down'} size={14} color={colors.textMuted} />
+      </Tappable>
+      {devOpen && (
       <Card>
         <SettingRow
           icon="bug-outline"
@@ -510,6 +525,32 @@ export default function ProfileScreen() {
           onPress={handleRestartOnboarding}
         />
       </Card>
+      )}
+
+      {devOpen && (
+      <>
+        <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, fontFamily: theme.fonts.medium, marginHorizontal: 28, marginTop: 18, marginBottom: 8 }}>
+          Haptics — tap to feel each one
+        </Text>
+        <Card>
+          {ANDROID_HAPTIC_DEMO.map((effect, index) => (
+            <View key={effect.value}>
+              {index > 0 && <Divider />}
+              <Tappable
+                onPress={() => playAndroidHaptic(effect.value)}
+                accessibilityRole="button"
+                accessibilityLabel={`Play ${effect.label}`}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 }}
+              >
+                <Ionicons name="pulse-outline" size={16} color={colors.textMuted} />
+                <Text style={{ flex: 1, color: colors.text, fontSize: theme.type.label }}>{effect.label}</Text>
+                <Text style={{ color: colors.textFaint, fontSize: theme.type.caption, fontFamily: theme.fonts.mono }}>tap</Text>
+              </Tappable>
+            </View>
+          ))}
+        </Card>
+      </>
+      )}
 
       {/* Rename household sheet */}
       <NativeSheet visible={renameOpen} onClose={() => setRenameOpen(false)}>
