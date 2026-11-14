@@ -21,7 +21,7 @@ import { useAppearance, useColors } from '@/lib/appearance';
 import { getServerConfig } from '@/lib/serverConfig';
 import { currentVersion, useUpdateFlow, hasSavedApk } from '@/lib/updates';
 import { showInstallReady } from '@/lib/updateNotifications';
-import { ANDROID_HAPTIC_DEMO, playAndroidHaptic } from '@/lib/haptics';
+import { HAPTIC_DEMO, playHapticDemo, HAPTIC_MODE } from '@/lib/haptics';
 import { flushLocalSave } from '@/store/useGleanStore';
 import { showDialog, showToast } from '@/lib/overlay';
 import { HouseAvatar } from '@/components/HouseAvatar';
@@ -529,15 +529,18 @@ export default function ProfileScreen() {
 
       {devOpen && (
       <>
-        <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, fontFamily: theme.fonts.medium, marginHorizontal: 28, marginTop: 18, marginBottom: 8 }}>
-          Haptics — tap to feel each one
+        <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, fontFamily: theme.fonts.medium, marginHorizontal: 28, marginTop: 18, marginBottom: 4 }}>
+          Haptics — tap each one
+        </Text>
+        <Text style={{ color: colors.textFaint, fontSize: theme.type.caption, marginHorizontal: 28, marginBottom: 8, lineHeight: 18 }}>
+          Active: {HAPTIC_MODE}. If every "System" row is silent, Samsung's system vibration is off and the Vibrator rows are the ones that work.
         </Text>
         <Card>
-          {ANDROID_HAPTIC_DEMO.map((effect, index) => (
-            <View key={effect.value}>
+          {HAPTIC_DEMO.map((effect, index) => (
+            <View key={effect.label}>
               {index > 0 && <Divider />}
               <Tappable
-                onPress={() => playAndroidHaptic(effect.value)}
+                onPress={() => playHapticDemo(effect)}
                 accessibilityRole="button"
                 accessibilityLabel={`Play ${effect.label}`}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 }}

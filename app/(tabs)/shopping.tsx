@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, ScrollView, TextInput, FlatList, RefreshControl, Animated, Easing, Share, Image } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, ScrollView, TextInput, RefreshControl, Animated, Easing, Share, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Svg, Path, Defs, Pattern, Circle, Rect } from 'react-native-svg';
@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tappable } from '../../components/ui/tappable';
 import { Text } from '../../components/ui/text';
 import { CollapsibleHeaderBar, LargeTitle, useCollapsibleHeader, useHeaderContentInset } from '../../components/CollapsibleHeader';
-import { NativeSheet, useSheetScroll } from '../../components/NativeSheet';
+import { ListSheet, type ListSheetHandle } from '../../components/ListSheet';
 import { useGleanStore, ShoppingItem } from '../../store/useGleanStore';
 import { getRestockSuggestions, type RestockSuggestion } from '../../lib/predictions';
 import { categoryImage } from '@/constants/categoryImages';
@@ -293,9 +293,8 @@ export default function ShoppingScreen() {
   const headerInset = useHeaderContentInset();
   const C = useC();
   const colors = useColors();
-  const sheetScroll = useSheetScroll();
   const [tab, setTab] = useState<Tab>('to_buy');
-  const [addItemSheet, setAddItemSheet] = useState(false);
+  const addSheetRef = useRef<ListSheetHandle>(null);
   const [addItemSearch, setAddItemSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [snackbar, setSnackbar] = useState<{ message: string; canUndo?: boolean } | null>(null);
@@ -401,7 +400,7 @@ export default function ShoppingScreen() {
               <Ionicons name="share-outline" size={22} color={C.text} />
             </Tappable>
             <Tappable
-              onPress={() => setAddItemSheet(true)}
+              onPress={() => addSheetRef.current?.present()}
               hitSlop={10}
               accessibilityRole="button"
               accessibilityLabel="Add item to list"
@@ -455,7 +454,7 @@ export default function ShoppingScreen() {
                 Add what you are out of, and tick it off in the shop.
               </Text>
               <Tappable
-                onPress={() => setAddItemSheet(true)}
+                onPress={() => addSheetRef.current?.present()}
                 haptic
                 accessibilityRole="button"
                 accessibilityLabel="Add your first item"
@@ -564,17 +563,11 @@ export default function ShoppingScreen() {
       )}
 
       {/* Add item sheet */}
-      <NativeSheet visible={addItemSheet} onClose={() => setAddItemSheet(false)} snapPoints={['90%']}>
-        <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 }}>
-            <Text style={{ flex: 1, fontSize: theme.type.lg, fontWeight: '600', color: C.text }}>Add item</Text>
-            <Tappable onPress={() => setAddItemSheet(false)} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
-              <Ionicons name="close" size={22} color={C.muted} />
-            </Tappable>
-          </View>
+      <ListSheet ref={addSheetRef} title="Add item">
+        <View>
 
           <Tappable
-            onPress={() => { setAddItemSheet(false); router.push('/scan'); }}
+            onPress={() => { addSheetRef.current?.dismiss(); router.push('/scan'); }}
             accessibilityRole="button"
             accessibilityLabel="Scan a barcode instead"
             style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 10, paddingHorizontal: 12, height: 44, borderRadius: theme.radii.md, borderWidth: 1, borderColor: C.border }}
@@ -598,50 +591,19 @@ export default function ShoppingScreen() {
             </View>
           </View>
 
-          <FlatList
-            data={addItemResults}
-            keyExtractor={item => item.id}
-            nestedScrollEnabled
-            scrollEventThrottle={16}
-            onScroll={sheetScroll ? e => { sheetScroll.current = Math.max(0, e.nativeEvent.contentOffset.y); } : undefined}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: 40 }}
-            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: colors.borderLight, marginLeft: 16, marginRight: 16 }} />}
-            ListEmptyComponent={
-              addItemSearch.trim().length > 0 ? (
-                <Tappable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Add ${addItemSearch.trim()}`}
-                  style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16 }}
-                  onPress={() => {
-                    addToShoppingList(addItemSearch.trim());
-                    setAddItemSheet(false);
-                  }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: theme.type.md, fontWeight: '500', color: C.text }}>Add "{addItemSearch.trim()}"</Text>
-                    <Text style={{ fontSize: theme.type.sm, color: C.faint }}>Not in your inventory</Text>
-                  </View>
-                  <Ionicons name="add-circle-outline" size={22} color={C.accent} />
-                </Tappable>
-              ) : (
-                <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                  <Text style={{ fontSize: theme.type.md, color: C.faint }}>No items found</Text>
-                </View>
-              )
-            }
-            renderItem={({ item }) => {
-              const alreadyQueued = queuedIds.has(item.id) || queuedNames.has(item.name.toLowerCase());
-              return (
+          {addItemResults.map((item, index) => {
+            const alreadyQueued = queuedIds.has(item.id) || queuedNames.has(item.name.toLowerCase());
+            return (
+              <View key={item.id}>
+                {index > 0 && <View style={{ height: 1, backgroundColor: colors.borderLight, marginLeft: 16, marginRight: 16 }} />}
                 <Tappable
                   accessibilityRole="button"
                   accessibilityLabel={alreadyQueued ? `${item.name}, already added` : `Add ${item.name}`}
                   style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, opacity: alreadyQueued ? 0.5 : 1 }}
                   onPress={() => {
-                    if (!alreadyQueued) {
-                      addToShoppingList(item.name, item.id);
-                      setAddItemSheet(false);
-                    }
+                    if (alreadyQueued) return;
+                    addToShoppingList(item.name, item.id);
+                    addSheetRef.current?.dismiss();
                   }}
                   disabled={alreadyQueued}
                 >
@@ -655,11 +617,35 @@ export default function ShoppingScreen() {
                     <Ionicons name="add-circle-outline" size={22} color={C.accent} />
                   )}
                 </Tappable>
-              );
-            }}
-          />
+              </View>
+            );
+          })}
+
+          {addItemResults.length === 0 && (
+            addItemSearch.trim().length > 0 ? (
+              <Tappable
+                accessibilityRole="button"
+                accessibilityLabel={`Add ${addItemSearch.trim()}`}
+                style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16 }}
+                onPress={() => {
+                  addToShoppingList(addItemSearch.trim());
+                  addSheetRef.current?.dismiss();
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: theme.type.md, fontWeight: '500', color: C.text }}>Add "{addItemSearch.trim()}"</Text>
+                  <Text style={{ fontSize: theme.type.sm, color: C.faint }}>Not in your inventory</Text>
+                </View>
+                <Ionicons name="add-circle-outline" size={22} color={C.accent} />
+              </Tappable>
+            ) : (
+              <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                <Text style={{ fontSize: theme.type.md, color: C.faint }}>No items found</Text>
+              </View>
+            )
+          )}
         </View>
-      </NativeSheet>
+      </ListSheet>
     </View>
   );
 }

@@ -25,6 +25,7 @@ import { AppState, View, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import 'react-native-reanimated';
 
 import { useGleanStore, flushLocalSave } from '@/store/useGleanStore';
@@ -180,6 +181,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
+      <BottomSheetModalProvider>
       <SafeAreaProvider>
         <ThemeProvider value={navTheme}>
           <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
@@ -195,6 +197,7 @@ export default function RootLayout() {
           <OverlayHost />
         </ThemeProvider>
       </SafeAreaProvider>
+      </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );
 }
