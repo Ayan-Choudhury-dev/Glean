@@ -3,8 +3,9 @@
 # Cut a Glean Android release: bump version, verify, build per-ABI APKs, then
 # (only with CONFIRM=1) commit, tag, push and publish on GitHub.
 #
-#   scripts/release.sh 1.0.4              # build only, print next steps
-#   CONFIRM=1 scripts/release.sh 1.0.4    # build + commit + tag + push + release
+#   scripts/release.sh 1.0.10                       # build only, print next steps
+#   CONFIRM=1 scripts/release.sh 1.0.10             # build + commit + tag + publish
+#   SKIP_BUILD=1 CONFIRM=1 scripts/release.sh 1.0.10  # tag only; CI builds it
 #
 set -euo pipefail
 
@@ -83,6 +84,12 @@ if [[ -f android/app/build.gradle ]]; then
 fi
 
 # ── Build ────────────────────────────────────────────────────────────────────
+# SKIP_BUILD=1 tags the release and lets GitHub Actions build it, so the laptop
+# is not pinned for six minutes. CI runs scripts/verify-apks.sh and attaches the
+# APKs itself.
+if [[ "${SKIP_BUILD:-}" == "1" ]]; then
+  step "Skipping the build (SKIP_BUILD=1) — CI builds and attaches the APKs"
+else
 # One Gradle run for both ABIs: `splits.abi` emits one APK per architecture, so
 # building them separately only risks stale native-lib state between runs (that
 # is how 1.0.4 shipped an arm64 APK with no libworklets.so).
@@ -117,6 +124,7 @@ for abi in "${ABIS[@]}"; do
   done
   echo "ok: $abi has ${#REQUIRED_LIBS[@]} required libs"
 done
+fi
 
 # ── Publish ──────────────────────────────────────────────────────────────────
 if [[ "${CONFIRM:-}" != "1" ]]; then
@@ -150,12 +158,13 @@ run git tag -a "$TAG" -m "Glean $TAG"
 step "Pushing"
 run git push origin main
 run git push origin "$TAG"
-step "Creating GitHub release"
-run gh release create "$TAG" \
-  "$DIST/glean-$VERSION-arm64-v8a.apk" \
-  "$DIST/glean-$VERSION-armeabi-v7a.apk" \
-  --title "Glean $VERSION" \
-  --generate-notes
+if [[ "${SKIP_BUILD:-}" == "1" ]]; then
+  step "Tag pushed — GitHub Actions is building and will attach the APKs"
+  echo "Watch: gh run watch   (or the Actions tab)"
+else
+  step "Creating GitHub release"
+  run bash scripts/attach-release.sh "$VERSION"
+fi
 
 echo
 echo "Released $TAG"

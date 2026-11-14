@@ -91,6 +91,25 @@ glean-1.0.3-armeabi-v7a.apk   # 32-bit, widest compatibility
 Bundling both architectures roughly doubles download size. Try `arm64-v8a`
 first; if Android refuses it, use `armeabi-v7a`.
 
+## Building in CI
+
+Cutting a release does not need this machine:
+
+```bash
+SKIP_BUILD=1 CONFIRM=1 scripts/release.sh 1.0.10
+```
+
+That bumps `app.json` and the Gradle version, commits, tags, and pushes.
+`.github/workflows/android-release.yml` builds both ABIs on Ubuntu, runs
+`scripts/verify-apks.sh` (the native-library check that would have caught 1.0.4),
+and attaches the APKs to the release. Around twelve minutes, no laptop fan.
+
+A manual run from the Actions tab takes the version as input; it must match
+`app.json` or the job stops before building.
+
+Local builds still work: `CONFIRM=1 scripts/release.sh 1.0.10` does the whole
+thing here.
+
 ## Installing on a phone
 
 **USB:**
