@@ -19,8 +19,14 @@ import * as Haptics from 'expo-haptics';
 
 export type HapticMode = 'system' | 'vibrator';
 
-/** Which mechanism the UI uses. Switch here once the bench says what works. */
-export const HAPTIC_MODE: HapticMode = 'system';
+/**
+ * Which mechanism the UI uses.
+ *
+ * Settled on the S25: the system refuses HapticFeedbackConstants (its system
+ * vibration is off), the Vibrator at 12 ms reads as a tick. If that changes,
+ * the bench in Developer says so.
+ */
+export const HAPTIC_MODE: HapticMode = 'vibrator';
 
 /** Short enough to read as a tick rather than a buzz. */
 const PULSE_MS = 12;

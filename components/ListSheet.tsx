@@ -30,8 +30,8 @@ export type ListSheetHandle = {
 
 export const ListSheet = forwardRef<
   ListSheetHandle,
-  { title: string; children: React.ReactNode; footer?: React.ReactNode }
->(function ListSheet({ title, children, footer }, ref) {
+  { title: string; children: React.ReactNode; footer?: React.ReactNode; onDismiss?: () => void }
+>(function ListSheet({ title, children, footer, onDismiss }, ref) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const modalRef = useRef<BottomSheetModal>(null);
@@ -57,6 +57,7 @@ export const ListSheet = forwardRef<
       enablePanDownToClose
       enableDynamicSizing={false}
       backdropComponent={renderBackdrop}
+      onDismiss={onDismiss}
       handleIndicatorStyle={{ backgroundColor: colors.borderStrong, width: 40 }}
       backgroundStyle={{ backgroundColor: colors.surface }}
       // The list owns the scroll; the sheet takes over when it is at the top.

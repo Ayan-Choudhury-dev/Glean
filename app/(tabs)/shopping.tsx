@@ -261,7 +261,8 @@ function StockedStamp({ count }: { count: number }) {
         position: 'absolute',
         left: 0,
         right: 0,
-        bottom: 96,
+        // Clear of the snackbar, which sits at insets.bottom + 88.
+        bottom: 176,
         alignItems: 'center',
         opacity: enter,
         transform: [
