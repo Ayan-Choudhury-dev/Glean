@@ -3,91 +3,161 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Glean — household</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23FF385C'/%3E%3Cpath d='M8 20h16M8 14h16M8 26h10' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
   :root {
-    --ink: #222222;
-    --muted: #717171;
-    --line: #DDDDDD;
-    --soft: #F7F7F7;
-    --accent: #FF385C;
-    --accent-soft: #FFF1F3;
-    --danger: #C13515;
+    --ink: #222;
+    --muted: #6b6b6b;
+    --faint: #8f8f8f;
+    --line: #e2e2e2;
+    --soft: #f7f7f7;
+    --card: #fff;
+    --page: #fff;
+    --accent: #ff385c;
+    --accent-soft: #fff1f3;
+    --accent-line: #ffb3c1;
+    --danger: #c13515;
+    --ok: #008a05;
     --radius: 12px;
+    --shadow: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.04);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --ink: #F2F2F2; --muted: #B3B3B3; --line: #333; --soft: #242424;
-      --accent-soft: #3A1F27; --danger: #FF6B6B;
+      --ink: #f2f2f2; --muted: #b3b3b3; --faint: #8a8a8a;
+      --line: #333; --soft: #262626; --card: #1e1e1e; --page: #121212;
+      --accent-soft: #3a1f27; --accent-line: #7a2e3c;
+      --danger: #ff6b6b; --ok: #34c759;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
     }
-    body { background: #121212; }
-    .card { background: #1E1E1E; }
-    input { background: #2A2A2A; color: var(--ink); }
   }
   * { box-sizing: border-box; }
+  html, body { background: var(--page); }
   body {
-    margin: 0; padding: 32px 20px 64px;
-    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: var(--ink); background: #fff;
+    margin: 0; padding: 40px 20px 72px;
+    font: 15px/1.55 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 640px; margin: 0 auto; }
-  h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 4px; }
-  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 28px 0 8px; }
-  p.sub { color: var(--muted); margin: 0 0 24px; }
-  .card { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; overflow: hidden; }
+  .wrap { max-width: 620px; margin: 0 auto; }
+
+  /* One authored moment: the page settles in rather than popping. */
+  main { animation: settle .28s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes settle { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { main { animation: none; } }
+
+  header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 2px; }
+  h1 { font-size: 30px; line-height: 1.15; letter-spacing: -0.025em; margin: 0; font-weight: 700; }
+  h2 {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--faint); margin: 32px 0 10px;
+  }
+  .sub { color: var(--muted); margin: 6px 0 0; }
+  .who { color: var(--muted); font-size: 13px; margin-left: auto; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .pad { padding: 16px; }
   .row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
   .row + .row { border-top: 1px solid var(--line); }
-  .row .grow { flex: 1; min-width: 0; }
+  .grow { flex: 1; min-width: 0; }
   .name { font-weight: 600; }
   .meta { color: var(--muted); font-size: 13px; }
+  .tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }
+
   button {
     font: inherit; cursor: pointer; border-radius: 10px; padding: 10px 16px;
-    border: 1px solid var(--line); background: transparent; color: var(--ink);
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    transition: transform .12s ease, background .12s ease, opacity .12s ease;
   }
+  button:hover { background: var(--soft); }
+  button:active { transform: scale(.985); }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
-  button.ghost { border-color: transparent; color: var(--danger); }
-  button:disabled { opacity: 0.5; cursor: default; }
+  button.primary:hover { filter: brightness(1.05); background: var(--accent); }
+  button.quiet { border-color: transparent; color: var(--muted); padding: 8px 10px; }
+  button.quiet:hover { color: var(--ink); background: var(--soft); }
+  button.danger { border-color: transparent; color: var(--danger); padding: 8px 10px; }
+  button.danger:hover { background: var(--accent-soft); }
+  button:disabled { opacity: .45; cursor: default; transform: none; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 10px; }
+
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 14px 0 6px; }
   input {
     font: inherit; width: 100%; padding: 12px 14px; border-radius: 10px;
     border: 1px solid var(--line); background: var(--soft); color: var(--ink);
+    transition: border-color .12s ease;
   }
-  label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 12px 0 6px; }
+  input:focus { border-color: var(--accent); outline: none; }
+
   .stack { display: grid; gap: 10px; }
-  .error { color: var(--danger); font-size: 13px; margin-top: 10px; }
-  .code { font: 600 30px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 8px; }
-  .qr { display: grid; place-items: center; padding: 16px; background: var(--accent-soft); border-radius: var(--radius); margin-top: 12px; }
-  .qr img { image-rendering: pixelated; width: 208px; height: 208px; background: #fff; border-radius: 8px; }
-  .hidden { display: none; }
-  .foot { color: var(--muted); font-size: 13px; margin-top: 32px; }
-  a { color: var(--accent); }
+  .error { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 0; }
+  .error:empty { display: none; }
+
+  .code { font: 600 30px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .28em; }
+  .qr { display: grid; place-items: center; padding: 18px; background: var(--accent-soft); border-radius: var(--radius); margin-top: 14px; }
+  .qr img { width: 200px; height: 200px; background: #fff; border-radius: 8px; image-rendering: pixelated; }
+  .copy { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--muted); word-break: break-all; }
+
+  .confirm { display: flex; align-items: center; gap: 8px; padding: 10px 16px 14px; background: var(--accent-soft); border-top: 1px solid var(--accent-line); }
+  .confirm p { flex: 1; margin: 0; font-size: 13px; color: var(--ink); }
+
+  .skel { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--soft), var(--line), var(--soft)); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 12px);
+    background: var(--ink); color: var(--page); padding: 10px 18px; border-radius: 10px;
+    font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  .foot { color: var(--faint); font-size: 13px; margin-top: 36px; }
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header style="display:flex;align-items:baseline;gap:12px">
+<main>
+  <header>
     <h1 id="title">Glean</h1>
-    <span class="meta" id="who" style="flex:1"></span>
-    <button id="signout" class="hidden">Sign out</button>
+    <span class="who" id="who"></span>
+    <button class="quiet hidden" id="signout">Sign out</button>
   </header>
   <p class="sub" id="tagline">The household that shares this pantry.</p>
 
   <!-- Sign in -->
   <section id="signin" class="hidden">
     <h2>Sign in</h2>
-    <div class="card" style="padding:16px">
+    <div class="card pad">
       <form id="signin-form">
         <label for="email">Email</label>
         <input id="email" type="email" autocomplete="username" required>
         <label for="password">Password</label>
         <input id="password" type="password" autocomplete="current-password" required>
-        <div style="margin-top:16px"><button class="primary" type="submit">Sign in</button></div>
-        <div id="signin-error" class="error"></div>
+        <div style="margin-top:18px"><button class="primary" type="submit" id="signin-button">Sign in</button></div>
+        <p class="error" id="signin-error"></p>
       </form>
     </div>
-    <p class="foot">This account lives on this server. It is the same one the phones use.</p>
+    <p class="foot">This account lives on this server — the same one the phones use.</p>
   </section>
 
-  <!-- Household -->
+  <!-- Loading -->
+  <section id="loading" class="hidden">
+    <h2>Household</h2>
+    <div class="card pad stack">
+      <div class="skel" style="width:45%"></div>
+      <div class="skel" style="width:70%"></div>
+    </div>
+    <h2>Members</h2>
+    <div class="card pad stack">
+      <div class="skel" style="width:55%"></div>
+      <div class="skel" style="width:40%"></div>
+    </div>
+  </section>
+
+  <!-- App -->
   <section id="app" class="hidden">
     <h2>Household</h2>
     <div class="card" id="household"></div>
@@ -95,71 +165,95 @@
     <h2>Members</h2>
     <div class="card" id="members"></div>
     <div style="margin-top:12px"><button id="add-toggle">Add a member</button></div>
-    <div id="add-form" class="card hidden" style="padding:16px;margin-top:12px">
-      <form>
+
+    <div id="add-form" class="card hidden" style="margin-top:12px">
+      <form class="pad">
         <label for="new-email">Email</label>
         <input id="new-email" type="email" autocomplete="off" required>
         <label for="new-password">Temporary password</label>
         <input id="new-password" type="text" autocomplete="off" minlength="8" required>
-        <p class="meta" style="margin:8px 0 0">Tell them to sign in on their phone with these, then change it here if you like.</p>
-        <div style="margin-top:16px;display:flex;gap:8px">
+        <p class="meta" style="margin:8px 0 0">They sign in on their phone with these, then change it here.</p>
+        <div style="margin-top:18px;display:flex;gap:8px">
           <button class="primary" type="submit">Create account</button>
           <button type="button" id="add-cancel">Cancel</button>
         </div>
-        <div id="add-error" class="error"></div>
+        <p class="error" id="add-error"></p>
       </form>
     </div>
 
     <h2>Add someone to a phone</h2>
-    <div class="card" style="padding:16px">
-      <p class="meta" style="margin:0">Make a code, then have them open Glean → Settings → Add member → I have a code. Codes last ten minutes and work once.</p>
-      <div style="margin-top:14px"><button class="primary" id="make-code">Create a code</button></div>
+    <div class="card pad">
+      <p class="meta" style="margin:0">Make a code, then on their phone: Settings → Add member → I have a code. One use, ten minutes.</p>
+      <div style="margin-top:16px"><button class="primary" id="make-code">Create a code</button></div>
+      <p class="error" id="code-error"></p>
+
       <div id="code-box" class="hidden">
-        <div class="qr"><img id="qr" alt="Joining QR code"></div>
-        <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+        <div class="qr"><img id="qr" alt="QR code containing the joining link"></div>
+        <div class="copy">
           <span class="code" id="code"></span>
+          <button class="quiet" id="copy-code">Copy code</button>
           <span class="meta" id="code-meta"></span>
         </div>
+        <div class="copy">
+          <span class="mono" id="address"></span>
+          <button class="quiet" id="copy-address">Copy address</button>
+        </div>
+        <p class="meta" style="margin:12px 0 0">The QR opens Glean on a phone that can scan it. Until then, type the address and code.</p>
       </div>
-      <div id="code-error" class="error"></div>
     </div>
   </section>
 
   <p class="foot" id="foot"></p>
+</main>
 </div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="vendor/pocketbase.umd.js"></script>
 <script src="vendor/qrcode.js"></script>
 <script>
 const pb = new PocketBase(window.location.origin);
-
 const el = id => document.getElementById(id);
 const show = (id, on = true) => el(id).classList.toggle('hidden', !on);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtDate = iso => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
-function esc(value) {
-  return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let toastTimer;
+function toast(message) {
+  const node = el('toast');
+  node.textContent = message;
+  node.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => node.classList.remove('show'), 2200);
 }
 
-async function boot() {
-  el('foot').textContent = `Glean on ${window.location.host} · PocketBase ${pb.baseURL}`;
-  if (pb.authStore.isValid) {
-    render();
-    return;
+async function copy(text, label) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(`${label} copied`);
+  } catch {
+    toast('Copy failed — select it manually');
   }
-  show('signin');
 }
 
+let codeExpiryTimer;
+
+/* ── Sign in ─────────────────────────────────────────────────────────────── */
 el('signin-form').addEventListener('submit', async event => {
   event.preventDefault();
+  const button = el('signin-button');
   el('signin-error').textContent = '';
+  button.disabled = true;
+  button.textContent = 'Signing in…';
   try {
     await pb.collection('users').authWithPassword(el('email').value.trim(), el('password').value);
     el('password').value = '';
     show('signin', false);
-    render();
-  } catch (error) {
-    el('signin-error').textContent = 'Could not sign in. Check the email and password.';
+    await render();
+  } catch {
+    el('signin-error').textContent = 'That email and password did not work.';
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Sign in';
   }
 });
 
@@ -168,12 +262,12 @@ el('signout').addEventListener('click', () => {
   location.reload();
 });
 
+/* ── Add member ──────────────────────────────────────────────────────────── */
 el('add-toggle').addEventListener('click', () => {
   show('add-form');
   el('new-email').focus();
 });
-
-el('add-cancel').addEventListener('click', () => show('add-form', false));
+el('add-cancel').addEventListener('click', () => { show('add-form', false); el('add-error').textContent = ''; });
 
 el('add-form').querySelector('form').addEventListener('submit', async event => {
   event.preventDefault();
@@ -182,40 +276,42 @@ el('add-form').querySelector('form').addEventListener('submit', async event => {
   const password = el('new-password').value;
   try {
     await pb.collection('users').create({
-      email,
-      password,
-      passwordConfirm: password,
-      emailVisibility: true,
-      verified: true,
+      email, password, passwordConfirm: password, emailVisibility: true, verified: true,
     });
     el('new-email').value = '';
     el('new-password').value = '';
     show('add-form', false);
-    render();
+    toast('Account created');
+    await render();
   } catch (error) {
-    el('add-error').textContent = error?.response?.data?.email?.message
-      ? `Email: ${error.response.data.email.message}`
-      : 'Could not create that account.';
+    const detail = error?.response?.data?.email?.message;
+    el('add-error').textContent = detail ? `Email: ${detail}` : 'Could not create that account.';
   }
 });
 
+/* ── Joining code ────────────────────────────────────────────────────────── */
 el('make-code').addEventListener('click', async () => {
   el('code-error').textContent = '';
+  const button = el('make-code');
+  button.disabled = true;
+  button.textContent = 'Making…';
   try {
     const houses = await pb.collection('houses').getList(1, 1);
     const house = houses.items[0];
     if (!house) {
-      el('code-error').textContent = 'No pantry on this server yet — upload one from a phone first.';
+      el('code-error').textContent = 'No pantry on this server yet. Upload one from a phone first.';
       return;
     }
+
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
     for (let i = 0; i < 6; i += 1) code += alphabet[Math.floor(Math.random() * alphabet.length)];
+    const expiresAt = Date.now() + 10 * 60 * 1000;
 
     await pb.collection('pairing_codes').create({
       code,
       house_id: house.uid,
-      expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      expires_at: new Date(expiresAt).toISOString(),
     });
 
     const payload = `glean://join?server=${encodeURIComponent(window.location.origin)}&code=${code}`;
@@ -224,24 +320,47 @@ el('make-code').addEventListener('click', async () => {
     qr.make();
     el('qr').src = qr.createDataURL(6, 4);
     el('code').textContent = code;
-    el('code-meta').textContent = 'valid 10 minutes';
+    el('address').textContent = window.location.origin;
     show('code-box');
-  } catch (error) {
+
+    clearInterval(codeExpiryTimer);
+    const tick = () => {
+      const left = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
+      el('code-meta').textContent = left > 0 ? `expires in ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : 'expired — make a new one';
+      if (left === 0) clearInterval(codeExpiryTimer);
+    };
+    tick();
+    codeExpiryTimer = setInterval(tick, 1000);
+  } catch {
     el('code-error').textContent = 'Could not create a code. Is the server reachable?';
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Create a code';
   }
 });
 
+el('copy-code').addEventListener('click', () => copy(el('code').textContent, 'Code'));
+el('copy-address').addEventListener('click', () => copy(window.location.origin, 'Address'));
+
+/* ── Render ──────────────────────────────────────────────────────────────── */
 async function render() {
   show('signin', false);
-  show('app');
-  show('signout');
+  show('app', false);
+  show('loading');
   el('who').textContent = pb.authStore.record?.email ?? '';
 
-  const [houses, members, inventory] = await Promise.all([
-    pb.collection('houses').getList(1, 1).catch(() => ({ items: [] })),
-    pb.collection('users').getFullList({ sort: 'created' }).catch(() => []),
-    pb.collection('inventory').getFullList().catch(() => []),
-  ]);
+  let houses = { items: [] };
+  let members = [];
+  let inventory = [];
+  try {
+    [houses, members, inventory] = await Promise.all([
+      pb.collection('houses').getList(1, 1),
+      pb.collection('users').getFullList({ sort: 'created' }),
+      pb.collection('inventory').getFullList(),
+    ]);
+  } catch {
+    /* empty server or rules: fall through with what we have */
+  }
 
   const house = houses.items[0];
   el('title').textContent = house?.name ?? 'Glean';
@@ -252,7 +371,7 @@ async function render() {
   el('household').innerHTML = house
     ? `<div class="row"><div class="grow"><div class="name">${esc(house.name)}</div>
          <div class="meta">${inventory.length} items · created ${fmtDate(house.created)}</div></div></div>
-       <div class="row"><div class="grow"><div class="meta">This server is the shared pantry. Anyone signed in here sees it.</div></div></div>`
+       <div class="row"><div class="grow"><div class="meta">Anyone signed in on this server sees this pantry.</div></div></div>`
     : `<div class="row"><div class="grow"><div class="meta">Upload a pantry from a phone: Settings → Add member → I run the server.</div></div></div>`;
 
   el('members').innerHTML = members.length
@@ -260,30 +379,55 @@ async function render() {
       <div class="row">
         <div class="grow">
           <div class="name">${esc(user.email)}</div>
-          <div class="meta">${user.verified ? 'verified' : 'not verified'} · added ${fmtDate(user.created)}</div>
+          <div class="meta">Added ${fmtDate(user.created)}</div>
         </div>
         ${user.id === pb.authStore.record?.id
-          ? '<span class="meta">you</span>'
-          : `<button class="ghost" data-remove="${esc(user.id)}">Remove</button>`}
+          ? '<span class="tag">you</span>'
+          : `<button class="danger" data-remove="${esc(user.id)}" aria-label="Remove ${esc(user.email)}">Remove</button>`}
       </div>`).join('')
-    : '<div class="row"><div class="grow"><div class="meta">No accounts yet.</div></div></div>';
+    : '<div class="row"><div class="grow"><div class="meta">No accounts yet. Add the first one below.</div></div></div>';
 
   el('members').querySelectorAll('[data-remove]').forEach(button => {
-    button.addEventListener('click', async () => {
-      const id = button.getAttribute('data-remove');
-      const email = members.find(user => user.id === id)?.email ?? 'this account';
-      if (!confirm(`Remove ${email}? Their phone will lose access to this pantry.`)) return;
-      try {
-        await pb.collection('users').delete(id);
-        render();
-      } catch (error) {
-        alert('Could not remove that account.');
-      }
-    });
+    button.addEventListener('click', () => askRemove(button, members));
+  });
+
+  show('loading', false);
+  show('app');
+  show('signout');
+}
+
+/** Inline confirmation instead of a browser dialog. */
+function askRemove(button, members) {
+  const id = button.getAttribute('data-remove');
+  const email = members.find(user => user.id === id)?.email ?? 'this account';
+  const row = button.closest('.row');
+  if (row.querySelector('.confirm')) return;
+
+  const bar = document.createElement('div');
+  bar.className = 'confirm';
+  bar.innerHTML = `<p>Remove ${esc(email)}? Their phone loses access.</p>
+    <button class="danger" data-yes>Remove</button>
+    <button class="quiet" data-no>Keep</button>`;
+  row.after(bar);
+
+  bar.querySelector('[data-no]').addEventListener('click', () => bar.remove());
+  bar.querySelector('[data-yes]').addEventListener('click', async () => {
+    bar.querySelector('[data-yes]').disabled = true;
+    try {
+      await pb.collection('users').delete(id);
+      toast('Account removed');
+      await render();
+    } catch {
+      toast('Could not remove that account');
+      bar.remove();
+    }
   });
 }
 
-boot();
+/* ── Boot ────────────────────────────────────────────────────────────────── */
+el('foot').textContent = `Glean · ${window.location.host}`;
+if (pb.authStore.isValid) render();
+else show('signin');
 </script>
 </body>
 </html>
