@@ -117,6 +117,8 @@ export default function ServerScreen() {
       if (!pbLogin) {
         setPbLogin({ email: '', password: '' });
         setPhase('idle');
+        setError(null);
+        showToast('PocketBase server — sign in below');
         return;
       }
       initPocketBase(base);
@@ -394,6 +396,57 @@ export default function ServerScreen() {
                 }}
               />
             </>
+          )}
+
+          {/* PocketBase asks for the account that lives on that server. It
+              appears after the address probe, not before. */}
+          {mode !== 'setup' && pbLogin && (
+            <View style={{ marginTop: 18, gap: 10 }}>
+              <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, fontFamily: theme.fonts.medium, marginLeft: 4 }}>
+                Sign in to your server
+              </Text>
+              <TextInput
+                value={pbLogin.email}
+                onChangeText={email => setPbLogin(prev => (prev ? { ...prev, email } : prev))}
+                placeholder="you@example.com"
+                placeholderTextColor={colors.textFaint}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                style={{
+                  backgroundColor: colors.surfaceMuted,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: theme.radii.md,
+                  paddingHorizontal: 16,
+                  height: 52,
+                  fontSize: theme.type.body,
+                  color: colors.text,
+                }}
+              />
+              <TextInput
+                value={pbLogin.password}
+                onChangeText={password => setPbLogin(prev => (prev ? { ...prev, password } : prev))}
+                placeholder="Password"
+                placeholderTextColor={colors.textFaint}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={{
+                  backgroundColor: colors.surfaceMuted,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: theme.radii.md,
+                  paddingHorizontal: 16,
+                  height: 52,
+                  fontSize: theme.type.body,
+                  color: colors.text,
+                }}
+              />
+              <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, lineHeight: 18 }}>
+                The account you created on your own server. It never leaves it.
+              </Text>
+            </View>
           )}
 
           {mode === 'join' && (
