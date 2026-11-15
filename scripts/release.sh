@@ -58,10 +58,11 @@ run node -e '
 ' "$VERSION"
 
 # ── Checks ───────────────────────────────────────────────────────────────────
-step "Typecheck"
-run npm run typecheck
-step "Tests"
-run npm test
+# One gate for everything that must be true before a tag: types, tests, a real
+# bundle, and the screen-wiring check that catches "state changed, nothing
+# rendered". A tag publishes to users, so this runs before it, not after.
+step "Preflight"
+run bash scripts/preflight.sh
 
 # ── Native project ───────────────────────────────────────────────────────────
 if [[ ! -d android ]]; then

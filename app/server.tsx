@@ -398,6 +398,50 @@ export default function ServerScreen() {
             </>
           )}
 
+          {/* What the probe found, and the decision that follows it. Without
+              this the screen connected and then showed nothing at all. */}
+          {phase === 'choose' && remote && (
+            <Animated.View
+              style={{
+                marginTop: 16,
+                opacity: reveal,
+                transform: [{ translateY: reveal.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+              }}
+            >
+              <View style={{ backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accentBorder, borderRadius: theme.radii.lg, padding: 16 }}>
+                <Text style={{ color: colors.text, fontSize: theme.type.body, fontFamily: theme.fonts.medium }}>
+                  {remote.houseId ? 'This server already has a pantry' : 'This server is empty'}
+                </Text>
+                <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, marginTop: 4, lineHeight: 19 }}>
+                  {remote.houseId
+                    ? localCount > 0
+                      ? `This phone has ${localCount} ${localCount === 1 ? 'item' : 'items'}. Which pantry should the household use?`
+                      : 'Load it onto this phone to see the household pantry.'
+                    : `Upload the ${localCount} ${localCount === 1 ? 'item' : 'items'} on this phone, and everyone else joins from there.`}
+                </Text>
+
+                {remote.houseId && localCount > 0 && (
+                  <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, marginTop: 10, lineHeight: 19 }}>
+                    Joining replaces the {localCount} {localCount === 1 ? 'item' : 'items'} on this phone with the household pantry.
+                  </Text>
+                )}
+
+                <View style={{ gap: 10, marginTop: 14 }}>
+                  {remote.houseId ? (
+                    <>
+                      <PrimaryButton label="Use the pantry from the server" onPress={() => { void finish('adopt'); }} />
+                      {localCount > 0 && (
+                        <SecondaryButton label="Replace it with this phone’s pantry" onPress={handleUploadOverRemote} />
+                      )}
+                    </>
+                  ) : (
+                    <PrimaryButton label="Upload this pantry" onPress={() => { void finish('upload'); }} />
+                  )}
+                </View>
+              </View>
+            </Animated.View>
+          )}
+
           {/* PocketBase asks for the account that lives on that server. It
               appears after the address probe, not before. */}
           {mode !== 'setup' && pbLogin && (

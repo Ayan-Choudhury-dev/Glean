@@ -13,7 +13,7 @@ This is a plan, not a promise. It is phased so each step leaves the app working.
 | `frontend/` React + Vite + Capacitor | `app/` Expo Router (RN) | Stay Expo (see below) |
 | `api/` Node `http` server | `backend/` Postgres + PostgREST (Docker) | Keep Supabase; document the API |
 | `web/` nginx + Dockerfile | `backend/` nginx | Merge into `backend/web/` |
-| `docker-compose.yml` at root | `backend/docker-compose.yml` | Add a root compose that points at `backend/` |
+| `docker-compose.yml` at root | root compose includes `backend/pocketbase/` | ✅ done |
 | `docs/` (ARCHITECTURE, SELF_HOSTING, MOBILE, APP_STORES, FAQ, API, …) | `docs/SELF_HOSTING.md` only | Add the full docs set |
 | `scripts/` (android, ios, ci, media) | none | Add release/build/screenshot scripts |
 | `fastlane/` store metadata | none | Add F-Droid + Play metadata |
