@@ -52,6 +52,12 @@ export default function ServerScreen() {
   const [minted, setMinted] = useState<string | null>(null);
   /** Filled once the probe says this address is a PocketBase server. */
   const [pbLogin, setPbLogin] = useState<{ email: string; password: string } | null>(null);
+  /**
+   * Which job this screen is doing. Three different people open it: someone with
+   * a code, someone who runs the server, and someone who has neither. Asking
+   * each of them for every field was the problem.
+   */
+  const [mode, setMode] = useState<'choose' | 'join' | 'connect' | 'setup'>('choose');
   const profile = useGleanStore(s => s.profile);
 
   const reveal = useRef(new Animated.Value(0)).current;
@@ -328,165 +334,111 @@ export default function ServerScreen() {
         </>
       ) : (
         <>
-          <SectionLabel>Your server’s address</SectionLabel>
-          <TextInput
-            value={address}
-            onChangeText={text => {
-              setAddress(text);
-              setError(null);
-              // Editing the address invalidates whatever the last probe found.
-              if (phase === 'choose') { setPhase('idle'); setRemote(null); }
-            }}
-            placeholder="192.168.1.20:8000"
-            placeholderTextColor={colors.textFaint}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-            editable={phase !== 'checking'}
-            style={{
-              backgroundColor: colors.surfaceMuted,
-              borderWidth: 1,
-              borderColor: error ? colors.dangerBorder : colors.border,
-              borderRadius: theme.radii.md,
-              paddingHorizontal: 16,
-              height: 52,
-              fontSize: theme.type.body,
-              color: colors.text,
-              fontFamily: theme.fonts.mono,
-            }}
-          />
-          <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, marginTop: 8, lineHeight: 18 }}>
-            Whatever address you open the Glean server on in a browser. http:// is added for you.
-          </Text>
+          {mode === 'choose' && (
+            <View style={{ gap: 10 }}>
+              <Text style={{ color: colors.text, fontSize: theme.type.body, fontFamily: theme.fonts.medium }}>
+                How are you joining?
+              </Text>
+              <ChoiceRow
+                icon="key-outline"
+                title="I have a code"
+                subtitle="Someone already shares this pantry"
+                onPress={() => setMode('join')}
+              />
+              <ChoiceRow
+                icon="server-outline"
+                title="I run the server"
+                subtitle="Connect this phone to it"
+                onPress={() => setMode('connect')}
+              />
+              <ChoiceRow
+                icon="cube-outline"
+                title="I haven't set one up"
+                subtitle="One Docker command, then come back"
+                onPress={() => setMode('setup')}
+              />
+            </View>
+          )}
 
-          <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, fontFamily: theme.fonts.medium, marginTop: 18, marginBottom: 8, marginLeft: 4 }}>
-            Joining code (optional)
-          </Text>
-          <TextInput
-            value={pairCode}
-            onChangeText={text => { setPairCode(text.toUpperCase().slice(0, 6)); setError(null); }}
-            placeholder="ABC234"
-            placeholderTextColor={colors.textFaint}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            maxLength={6}
-            editable={phase !== 'checking'}
-            style={{
-              backgroundColor: colors.surfaceMuted,
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: theme.radii.md,
-              paddingHorizontal: 16,
-              height: 52,
-              fontSize: theme.type.title,
-              letterSpacing: 4,
-              color: colors.text,
-              fontFamily: theme.fonts.mono,
-            }}
-          />
-          <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, marginTop: 8, lineHeight: 18 }}>
-            Someone already in the household can make one: Settings → Add member → Create a code.
-          </Text>
+          {mode !== 'choose' && mode !== 'setup' && (
+            <>
+              <SectionLabel>Your server’s address</SectionLabel>
+              <TextInput
+                value={address}
+                onChangeText={text => {
+                  setAddress(text);
+                  setError(null);
+                  if (phase === 'choose') { setPhase('idle'); setRemote(null); }
+                }}
+                placeholder="192.168.1.20:8090"
+                placeholderTextColor={colors.textFaint}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                editable={phase !== 'checking'}
+                style={{
+                  backgroundColor: colors.surfaceMuted,
+                  borderWidth: 1,
+                  borderColor: error ? colors.dangerBorder : colors.border,
+                  borderRadius: theme.radii.md,
+                  paddingHorizontal: 16,
+                  height: 52,
+                  fontSize: theme.type.body,
+                  color: colors.text,
+                  fontFamily: theme.fonts.mono,
+                }}
+              />
+            </>
+          )}
 
-          {pbLogin && (
-            <View style={{ marginTop: 18, gap: 10 }}>
-              <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, fontFamily: theme.fonts.medium, marginLeft: 4 }}>
-                This server is PocketBase — sign in
+          {mode === 'join' && (
+            <>
+              <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, fontFamily: theme.fonts.medium, marginTop: 18, marginBottom: 8, marginLeft: 4 }}>
+                Six-character code
               </Text>
               <TextInput
-                value={pbLogin.email}
-                onChangeText={email => setPbLogin(prev => (prev ? { ...prev, email } : prev))}
-                placeholder="you@example.com"
+                value={pairCode}
+                onChangeText={text => { setPairCode(text.toUpperCase().slice(0, 6)); setError(null); }}
+                placeholder="ABC234"
                 placeholderTextColor={colors.textFaint}
-                autoCapitalize="none"
+                autoCapitalize="characters"
                 autoCorrect={false}
-                keyboardType="email-address"
+                maxLength={6}
+                editable={phase !== 'checking'}
                 style={{
                   backgroundColor: colors.surfaceMuted,
                   borderWidth: 1,
                   borderColor: colors.border,
                   borderRadius: theme.radii.md,
                   paddingHorizontal: 16,
-                  height: 52,
-                  fontSize: theme.type.body,
+                  height: 56,
+                  fontSize: theme.type.heading,
+                  letterSpacing: 6,
+                  textAlign: 'center',
                   color: colors.text,
+                  fontFamily: theme.fonts.mono,
                 }}
               />
-              <TextInput
-                value={pbLogin.password}
-                onChangeText={password => setPbLogin(prev => (prev ? { ...prev, password } : prev))}
-                placeholder="Password"
-                placeholderTextColor={colors.textFaint}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={{
-                  backgroundColor: colors.surfaceMuted,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: theme.radii.md,
-                  paddingHorizontal: 16,
-                  height: 52,
-                  fontSize: theme.type.body,
-                  color: colors.text,
-                }}
-              />
-              <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, lineHeight: 18 }}>
-                The account you created on your own server. It never leaves it.
+            </>
+          )}
+
+          {mode === 'setup' && (
+            <View style={{ gap: 10 }}>
+              <Text style={{ color: colors.textMuted, fontSize: theme.type.label, lineHeight: 21 }}>
+                On a machine at home, or a VPS:
+              </Text>
+              <View style={{ backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: theme.radii.md, padding: 14 }}>
+                <Text selectable style={{ color: colors.text, fontSize: theme.type.caption, fontFamily: theme.fonts.mono, lineHeight: 20 }}>
+                  {"cd backend/pocketbase\ncp .env.example .env\ndocker compose up -d"}
+                </Text>
+              </View>
+              <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, lineHeight: 19 }}>
+                Then open http://&lt;host&gt;:8090/_/ and create the superuser and one account. Come back here and choose “I run the server”.
               </Text>
             </View>
           )}
 
-          {error && (
-            <Animated.View style={{ opacity: reveal, marginTop: 12, flexDirection: 'row', gap: 10, backgroundColor: colors.dangerBg, borderWidth: 1, borderColor: colors.dangerBorder, borderRadius: theme.radii.md, padding: 14 }}>
-              <Ionicons name="alert-circle" size={18} color={colors.danger} style={{ marginTop: 1 }} />
-              <Text style={{ flex: 1, color: colors.dangerText, fontSize: theme.type.caption, lineHeight: 19 }}>{error}</Text>
-            </Animated.View>
-          )}
-
-          {/* What the probe found — the decision that used to be a hidden button. */}
-          {phase === 'choose' && remote && (
-            <Animated.View
-              style={{
-                marginTop: 16,
-                opacity: reveal,
-                transform: [{ translateY: reveal.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
-              }}
-            >
-              <View style={{ backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accentBorder, borderRadius: theme.radii.lg, padding: 16 }}>
-                <Text style={{ color: colors.text, fontSize: theme.type.body, fontFamily: theme.fonts.medium }}>
-                  {remote.houseId ? 'This server already has a pantry' : 'This server is empty'}
-                </Text>
-                <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, marginTop: 4, lineHeight: 19 }}>
-                  {remote.houseId
-                    ? localCount > 0
-                      ? `This phone has ${localCount} ${localCount === 1 ? 'item' : 'items'}. Which pantry should the household use?`
-                      : 'Load it onto this phone to see the household’s pantry.'
-                    : `Upload the ${localCount} ${localCount === 1 ? 'item' : 'items'} on this phone, and everyone else joins from there.`}
-                </Text>
-
-                {remote.houseId && localCount > 0 && (
-                  <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, marginTop: 10, lineHeight: 19 }}>
-                    Joining replaces the {localCount} {localCount === 1 ? 'item' : 'items'} on this phone with the household pantry.
-                  </Text>
-                )}
-
-                <View style={{ gap: 10, marginTop: 14 }}>
-                  {remote.houseId ? (
-                    <>
-                      <PrimaryButton label="Use the pantry from the server" onPress={() => { void finish('adopt'); }} />
-                      {localCount > 0 && (
-                        <SecondaryButton label="Replace it with this phone’s pantry" onPress={handleUploadOverRemote} />
-                      )}
-                    </>
-                  ) : (
-                    <PrimaryButton label="Upload this pantry" onPress={() => { void finish('upload'); }} />
-                  )}
-                </View>
-              </View>
-            </Animated.View>
-          )}
-
+          {mode !== 'choose' && mode !== 'setup' && (
           <View style={{ marginTop: 20 }}>
             <PrimaryButton
               label={
@@ -505,8 +457,20 @@ export default function ServerScreen() {
               }
             />
           </View>
+          )}
 
-          {/* Advanced: only the people running a proxy that demands a key. */}
+          {mode === 'setup' && (
+            <View style={{ marginTop: 20 }}>
+              <SecondaryButton label="I've done that" onPress={() => setMode('connect')} />
+            </View>
+          )}
+
+          {mode !== 'choose' && (
+            <SecondaryButton label="Back" onPress={() => { setMode('choose'); setError(null); }} />
+          )}
+
+          {/* Advanced: only for someone connecting their own server. */}
+          {mode === 'connect' && (
           <Tappable
             onPress={() => setAdvancedOpen(open => !open)}
             accessibilityRole="button"
@@ -517,6 +481,7 @@ export default function ServerScreen() {
             <Ionicons name={advancedOpen ? 'chevron-down' : 'chevron-forward'} size={15} color={colors.textMuted} />
             <Text style={{ color: colors.textMuted, fontSize: theme.type.label, fontFamily: theme.fonts.medium }}>Advanced</Text>
           </Tappable>
+          )}
 
           {advancedOpen && (
             <View style={{ marginTop: 4 }}>
@@ -545,14 +510,6 @@ export default function ServerScreen() {
             </View>
           )}
 
-          <View style={{ marginTop: 28, gap: 6 }}>
-            <Text style={{ color: colors.text, fontSize: theme.type.label, fontFamily: theme.fonts.medium }}>
-              No server yet?
-            </Text>
-            <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, lineHeight: 19 }}>
-              Glean’s repository ships a small Docker setup: one command on any machine at home, or a VPS. Then come back and enter its address.
-            </Text>
-          </View>
         </>
       )}
     </ScrollView>
@@ -560,6 +517,48 @@ export default function ServerScreen() {
 }
 
 // ─── Bits ────────────────────────────────────────────────────────────────────
+
+/** One row of the "how are you joining?" choice. */
+function ChoiceRow({
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Tappable
+      onPress={onPress}
+      haptic
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${subtitle}`}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        padding: 16,
+        borderRadius: theme.radii.lg,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+        backgroundColor: colors.surface,
+      }}
+    >
+      <View style={{ width: 40, height: 40, borderRadius: theme.radii.md, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={icon} size={20} color={colors.accent} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: colors.text, fontSize: theme.type.body, fontFamily: theme.fonts.medium }}>{title}</Text>
+        <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, marginTop: 2 }}>{subtitle}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color={colors.borderStrong} />
+    </Tappable>
+  );
+}
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   const colors = useColors();
