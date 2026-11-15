@@ -16,9 +16,8 @@ import { type HouseOption, type HouseOptionType } from '@/store/useGleanStore';
  * finger when the list reaches the top, in one gesture.
  */
 export function PickerSheet({
-  visible, title, type, options, selected, onSelect, onCreate, onClose,
+  title, type, options, selected, onSelect, onCreate, onClose,
 }: {
-  visible: boolean;
   title: string;
   type: HouseOptionType;
   options: HouseOption[];
@@ -34,16 +33,12 @@ export function PickerSheet({
   const filteredOptions = options.filter(option => option.name.toLowerCase().includes(normalizedQuery));
   const exactMatch = options.some(option => option.name.toLowerCase() === normalizedQuery);
 
-  // The parent still drives visibility with a boolean; the sheet owns its own
-  // animation, so mirror it.
+  // Mounted only while open: a `BottomSheetModal` presented from an effect can
+  // race its own mount, and two of them alive at once is what made this fail to
+  // open in the item form.
   useEffect(() => {
-    if (visible) sheetRef.current?.present();
-    else sheetRef.current?.dismiss();
-  }, [visible]);
-
-  useEffect(() => {
-    if (!visible) setQuery('');
-  }, [visible]);
+    sheetRef.current?.present();
+  }, []);
 
   return (
     <ListSheet

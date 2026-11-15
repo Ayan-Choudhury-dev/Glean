@@ -37,6 +37,7 @@ import { useAppearance, useColors } from '@/lib/appearance';
 import { getServerConfig } from '@/lib/serverConfig';
 import { initSupabase } from '@/lib/supabase';
 import { initPocketBase, restorePocketBaseAuth, getPocketBase, pbSubscribe, pbUnsubscribe } from '@/lib/pocketbase';
+import { useDevFlags } from '@/lib/devFlags';
 import { pullHouse } from '@/lib/sync';
 import { useUpdateFlow } from '@/lib/updates';
 import '@/global.css';
@@ -116,8 +117,9 @@ export default function RootLayout() {
   // refresh below. Reloading the house is cheaper than patching rows here — the
   // store already turns a snapshot into state.
   const houseId = useGleanStore(s => s.house?.id);
+  const devRealtime = useDevFlags(s => s.realtime);
   useEffect(() => {
-    if (!houseId || !getPocketBase()) return;
+    if (!houseId || !getPocketBase() || !devRealtime) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const onChange = () => {
       if (timer) clearTimeout(timer);
@@ -128,7 +130,7 @@ export default function RootLayout() {
       if (timer) clearTimeout(timer);
       void pbUnsubscribe();
     };
-  }, [houseId]);
+  }, [houseId, devRealtime]);
 
   // Refresh from the server when the app comes back to the foreground, so a
   // second phone sees the household's changes without a manual restore. Push

@@ -1,5 +1,6 @@
 import { Platform, Vibration } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { useDevFlags, type HapticsMode } from './devFlags';
 
 /**
  * Haptics, with both Android mechanisms available.
@@ -20,13 +21,13 @@ import * as Haptics from 'expo-haptics';
 export type HapticMode = 'system' | 'vibrator';
 
 /**
- * Which mechanism the UI uses.
- *
- * Settled on the S25: the system refuses HapticFeedbackConstants (its system
- * vibration is off), the Vibrator at 12 ms reads as a tick. If that changes,
- * the bench in Developer says so.
+ * Which mechanism the UI uses. Settled on the S25: the system refuses
+ * HapticFeedbackConstants there (its system vibration is off), the Vibrator at
+ * 12 ms reads as a tick. Developer → Flags can flip it back for comparison.
  */
-export const HAPTIC_MODE: HapticMode = 'vibrator';
+export function currentHapticsMode(): HapticsMode {
+  return useDevFlags.getState().hapticsMode;
+}
 
 /** Short enough to read as a tick rather than a buzz. */
 const PULSE_MS = 12;
@@ -49,7 +50,7 @@ export function tapHaptic() {
     void Haptics.selectionAsync();
     return;
   }
-  if (HAPTIC_MODE === 'vibrator') return pulse();
+  if (currentHapticsMode() === 'vibrator') return pulse();
   system(Haptics.AndroidHaptics.Gesture_End);
 }
 
@@ -59,7 +60,7 @@ export function toggleHaptic() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     return;
   }
-  if (HAPTIC_MODE === 'vibrator') return pulse(16);
+  if (currentHapticsMode() === 'vibrator') return pulse(16);
   system(Haptics.AndroidHaptics.Toggle_On);
 }
 
@@ -69,7 +70,7 @@ export function confirmHaptic() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     return;
   }
-  if (HAPTIC_MODE === 'vibrator') return pulse(20);
+  if (currentHapticsMode() === 'vibrator') return pulse(20);
   system(Haptics.AndroidHaptics.Confirm);
 }
 
@@ -79,7 +80,7 @@ export function rejectHaptic() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     return;
   }
-  if (HAPTIC_MODE === 'vibrator') return pulse(30);
+  if (currentHapticsMode() === 'vibrator') return pulse(30);
   system(Haptics.AndroidHaptics.Reject);
 }
 

@@ -21,7 +21,7 @@ import { useAppearance, useColors } from '@/lib/appearance';
 import { getServerConfig } from '@/lib/serverConfig';
 import { currentVersion, useUpdateFlow, hasSavedApk } from '@/lib/updates';
 import { showInstallReady } from '@/lib/updateNotifications';
-import { HAPTIC_DEMO, playHapticDemo, HAPTIC_MODE } from '@/lib/haptics';
+import { useDevFlags } from '@/lib/devFlags';
 import { flushLocalSave } from '@/store/useGleanStore';
 import { showDialog, showToast } from '@/lib/overlay';
 import { HouseAvatar } from '@/components/HouseAvatar';
@@ -48,6 +48,12 @@ export default function ProfileScreen() {
   const [serverConnected, setServerConnected] = useState(false);
   /** Developer tools stay collapsed: they are not part of the product. */
   const [devOpen, setDevOpen] = useState(false);
+  const devHaptics = useDevFlags(s => s.hapticsMode);
+  const setDevHaptics = useDevFlags(s => s.setHapticsMode);
+  const devRealtime = useDevFlags(s => s.realtime);
+  const toggleDevRealtime = useDevFlags(s => s.toggleRealtime);
+  const devSuggestions = useDevFlags(s => s.suggestions);
+  const toggleDevSuggestions = useDevFlags(s => s.toggleSuggestions);
   const updatePhase = useUpdateFlow(s => s.phase);
   const updateInfo = useUpdateFlow(s => s.info);
   const updateProgress = useUpdateFlow(s => s.progress);
@@ -528,31 +534,33 @@ export default function ProfileScreen() {
       )}
 
       {devOpen && (
-      <>
-        <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, fontFamily: theme.fonts.medium, marginHorizontal: 28, marginTop: 18, marginBottom: 4 }}>
-          Haptics — tap each one
-        </Text>
-        <Text style={{ color: colors.textFaint, fontSize: theme.type.caption, marginHorizontal: 28, marginBottom: 8, lineHeight: 18 }}>
-          Active: {HAPTIC_MODE}. If every "System" row is silent, Samsung's system vibration is off and the Vibrator rows are the ones that work.
-        </Text>
-        <Card>
-          {HAPTIC_DEMO.map((effect, index) => (
-            <View key={effect.label}>
-              {index > 0 && <Divider />}
-              <Tappable
-                onPress={() => playHapticDemo(effect)}
-                accessibilityRole="button"
-                accessibilityLabel={`Play ${effect.label}`}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 }}
-              >
-                <Ionicons name="pulse-outline" size={16} color={colors.textMuted} />
-                <Text style={{ flex: 1, color: colors.text, fontSize: theme.type.label }}>{effect.label}</Text>
-                <Text style={{ color: colors.textFaint, fontSize: theme.type.caption, fontFamily: theme.fonts.mono }}>tap</Text>
-              </Tappable>
-            </View>
-          ))}
-        </Card>
-      </>
+        <>
+          <Text style={{ color: colors.textMuted, fontSize: theme.type.caption, fontFamily: theme.fonts.medium, marginHorizontal: 28, marginTop: 18, marginBottom: 8 }}>
+            Open decisions
+          </Text>
+          <Card>
+            <SettingRow
+              icon="pulse-outline"
+              label="Haptics"
+              value={devHaptics === 'vibrator' ? 'Vibrator 12 ms' : 'System constants'}
+              onPress={() => setDevHaptics(devHaptics === 'vibrator' ? 'system' : 'vibrator')}
+            />
+            <Divider />
+            <SettingRow
+              icon="flash-outline"
+              label="Realtime sync"
+              value={devRealtime ? 'On' : 'Off'}
+              onPress={toggleDevRealtime}
+            />
+            <Divider />
+            <SettingRow
+              icon="bulb-outline"
+              label="Restock suggestions"
+              value={devSuggestions ? 'On' : 'Off'}
+              onPress={toggleDevSuggestions}
+            />
+          </Card>
+        </>
       )}
 
       {/* Rename household sheet */}

@@ -15,6 +15,7 @@ import { theme } from '@/constants/theme';
 import { FEATURES } from '@/constants/config';
 import { useC, useColors } from '@/lib/appearance';
 import { showDialog } from '@/lib/overlay';
+import { useDevFlags } from '@/lib/devFlags';
 import { toggleHaptic, confirmHaptic } from '@/lib/haptics';
 
 const PAD = 24;
@@ -305,9 +306,12 @@ export default function ShoppingScreen() {
   const toBuy = shoppingList.filter(i => i.status === 'to_buy');
   const purchased = shoppingList.filter(i => i.status === 'purchased');
 
+  const devSuggestions = useDevFlags(s => s.suggestions);
   const suggestions = useMemo(
-    () => (FEATURES.restockSuggestions ? getRestockSuggestions(inventory, consumptionLogs, shoppingList) : []),
-    [inventory, consumptionLogs, shoppingList],
+    () => (FEATURES.restockSuggestions && devSuggestions
+      ? getRestockSuggestions(inventory, consumptionLogs, shoppingList)
+      : []),
+    [inventory, consumptionLogs, shoppingList, devSuggestions],
   );
 
   const queuedIds = new Set(shoppingList.map(s => s.inventory_id).filter(Boolean));
@@ -548,8 +552,12 @@ export default function ShoppingScreen() {
               confirmHaptic();
               updatePantry();
               setStampCount(count);
-              setTab('to_buy');
-              setTimeout(() => setStampCount(null), 1100);
+              // Stay on the receipt while the stamp lands; switching tabs now
+              // hid the only authored moment in the app.
+              setTimeout(() => {
+                setStampCount(null);
+                setTab('to_buy');
+              }, 1100);
               setSnackbar({ message: `${count} item${count !== 1 ? 's' : ''} added to pantry`, canUndo: true });
             }}
             haptic

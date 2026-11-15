@@ -406,8 +406,8 @@ export default function ScanScreen() {
         </Tappable>
       </View>
 
+      {locationTarget !== null && (
       <PickerSheet
-        visible={locationTarget !== null}
         title="Location"
         type="location"
         options={locationOptions}
@@ -427,6 +427,7 @@ export default function ScanScreen() {
         }}
         onClose={() => setLocationTarget(null)}
       />
+      )}
     </View>
   );
 }

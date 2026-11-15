@@ -421,8 +421,8 @@ export default function ItemFormScreen() {
       </View>
 
       {/* Category bottom sheet */}
+      {categorySheet && (
       <PickerSheet
-        visible={categorySheet}
         title="Category"
         type="category"
         options={categoryOptions}
@@ -431,10 +431,11 @@ export default function ItemFormScreen() {
         onCreate={value => { const option = addHouseOption('category', value, 'pricetag-outline'); if (option) { setCategory(option.name); setCategorySheet(false); } }}
         onClose={() => setCategorySheet(false)}
       />
+      )}
 
       {/* Location bottom sheet */}
+      {locationSheet && (
       <PickerSheet
-        visible={locationSheet}
         title="Location"
         type="location"
         options={locationOptions}
@@ -443,6 +444,7 @@ export default function ItemFormScreen() {
         onCreate={value => { const option = addHouseOption('location', value, 'location-outline'); if (option) { setLocation(option.name); setLocationSheet(false); } }}
         onClose={() => setLocationSheet(false)}
       />
+      )}
 
       {/* Photo expanded view */}
       <NativeSheet visible={photoOpen} onClose={() => setPhotoOpen(false)}>
