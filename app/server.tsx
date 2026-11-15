@@ -103,6 +103,11 @@ export default function ServerScreen() {
       setError('Enter your server’s address, for example http://192.168.1.20:8000');
       return;
     }
+    if (mode === 'join' && pairCode.trim().length !== 6) {
+      setError('Enter the six-character code from the person who invited you.');
+      return;
+    }
+
     setPhase('checking');
 
     // Which server is this? PocketBase answers /api/health; the bundled
