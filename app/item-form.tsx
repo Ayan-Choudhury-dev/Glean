@@ -27,6 +27,8 @@ import { useColors } from '@/lib/appearance';
 import { categoryImage } from '@/constants/categoryImages';
 import { RECENT_ACTIVITY_DISPLAY_LIMIT } from '@/constants/config';
 import { showDialog } from '@/lib/overlay';
+import { StockSparkline } from '@/components/StockSparkline';
+import { buildStockSeries, usageLabel } from '@/lib/stockHistory';
 
 export default function ItemFormScreen() {
   const insets = useSafeAreaInsets();
@@ -340,6 +342,14 @@ export default function ItemFormScreen() {
             <Ionicons name="chevron-down" size={16} color={colors.textFaint} />
           </Tappable>
         </Field>
+
+        {/* Stock over time, from the log — explains the restock suggestion */}
+        {isEdit && (() => {
+          const itemLogs = consumptionLogs.filter(l => l.inventory_id === existing!.id);
+          const series = buildStockSeries(parseInt(qty, 10) || 0, itemLogs);
+          if (series.length < 2) return null;
+          return <StockSparkline series={series} usage={usageLabel(itemLogs)} />;
+        })()}
 
         {/* Recent Activity */}
         {isEdit && (() => {
