@@ -1,9 +1,7 @@
-# Runs the bundled self-hosted backend from ./backend.
+# Runs the self-hosted backend from ./backend/pocketbase.
 # Requires Docker Compose 2.20+ for `include`.
 #
-#   cp backend/.env.example backend/.env
-#   docker compose up -d
-#
-# The dashboard + API are then at http://<host>:8000
+#   docker compose up -d          # http://<host>:8090
+#   open http://<host>:8090/_/    # create the superuser, then bootstrap
 include:
-  - backend/docker-compose.yml
+  - backend/pocketbase/docker-compose.yml

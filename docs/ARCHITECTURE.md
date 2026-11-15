@@ -146,27 +146,32 @@ Known limits, stated plainly:
 
 ## Backend topology
 
-`backend/docker-compose.yml` runs three services on one host:
+`backend/pocketbase/docker-compose.yml` runs one service:
 
 ```
-        :8000                          internal network
- client ──► nginx ──/rest/v1/──► PostgREST :3000 ──► Postgres :5432
-              └── /   (static read-only dashboard)
+        :8090
+ client ──► PocketBase ──► SQLite in pb_data/ (volume)
+              └── /_/  (admin UI, superuser only)
 ```
 
-- **db** — Postgres built from `backend/Dockerfile.db`, with
-  `backend/init/01-schema.sql` applied on first boot. Schema mirrors the app
-  tables with `timestamptz` timestamps.
-- **rest** — `postgrest/postgrest:v12.2.3`, `PGRST_DB_SCHEMAS=public`,
-  `PGRST_DB_ANON_ROLE=glean`, no JWT secret.
-- **proxy** — nginx serving `backend/web/index.html` at `/` and proxying
-  `/rest/v1/` to PostgREST, which satisfies the Supabase JS client's URL shape.
+- **Collections** — `houses`, `inventory`, `shopping_list`, `consumption_logs`,
+  `house_options`, `pairing_codes`, created by
+  `scripts/pocketbase-bootstrap.mjs`. Each row keeps the app's uuid in a `uid`
+  field, because PocketBase ids are 15-character alphanumerics and rewriting them
+  would mean migrating every phone.
+- **Auth** — one `users` record per person on that server. Collection rules let
+  any authenticated user read and write the household's rows; it is a
+  single-household server, not multi-tenant.
+- **Realtime** — SSE. The app subscribes while it is in the foreground and
+  reloads the house on a change; `react-native-sse` supplies the `EventSource`
+  that Hermes lacks.
+- **Pairing** — `pairing_codes` is the one collection readable without a session,
+  so a joining phone can redeem a six-character code before it signs in.
 
-Single-tenant by design: RLS is disabled on every table and the anon role has full
-access. Anyone who can reach the port can read and write everything, so it must
-run on a trusted network or behind an authenticating proxy. See `API.md`. The app
-never talks to Postgres directly and never uses Supabase Auth;
-`@supabase/supabase-js` is used purely as a PostgREST client.
+`lib/sync.ts` is the seam: `pushHouse` / `pullHouse` / `firstServerHouseId` /
+pairing route to PocketBase when its client exists, and to the PostgREST client
+otherwise. The old Postgres bundle was removed from the repo at v1.0.14; its
+compose file is in git history at `v1.0.13`.
 
 ## Build targets
 

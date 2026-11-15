@@ -39,14 +39,13 @@ Deferred work, roughly in priority order. Nothing here is started.
 
 ## Self-hosting
 
-- **Shared token** — done (`GLEAN_TOKEN` in nginx). Empty disables the gate.
-- **Backups** — `scripts/backend-backup.sh` / `backend-restore.sh`.
+- **Backups** — copy the `pb_data` volume; see SELF_HOSTING.md.
 - **PocketBase** — shipped as the recommended backend. Phases 1–2 verified
   against a live instance, the app speaks both protocols from 1.0.10, and the
   README/SELF_HOSTING now lead with it. Left: confirm realtime on a device, then
   delete `backend/` (Postgres + PostgREST + nginx) and the token gate with it.
-- **Postgres bundle** — legacy. Kept for installs that already run it; no new
-  install should start here.
+- **Postgres bundle** — removed from the repo at v1.0.14. Its compose file is
+  still in git history at `v1.0.13` for anyone running it.
 
 ## Web
 

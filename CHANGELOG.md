@@ -11,6 +11,13 @@
 - Cleanup: removed the unused `expo-clipboard` dependency and the legacy
   auth-based `supabase/` schema.
 
+## Unreleased
+
+- The Postgres + PostgREST bundle is gone; `backend/pocketbase/` is the backend.
+  Its compose file stays in git history at `v1.0.13`.
+- Restock suggestions are on, the add-item sheet stays open across adds, and
+  clearing purchased tears the receipt away.
+
 ## 1.0.10
 
 - Self-hosted sync actually works: the app stopped sending an Authorization

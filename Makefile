@@ -14,12 +14,12 @@ typecheck:          ## Type-check the project
 test:               ## Run unit tests
 	npm test
 
-backend-up:         ## Start the bundled backend (Docker)
-	@cd backend && { test -f .env || cp .env.example .env; }
-	@cd backend && docker compose up -d
+backend-up:         ## Start PocketBase (Docker)
+	@cd backend/pocketbase && { test -f .env || cp .env.example .env; }
+	@cd backend/pocketbase && docker compose up -d
 
-backend-down:       ## Stop the bundled backend
-	@cd backend && docker compose down
+backend-down:       ## Stop PocketBase
+	@cd backend/pocketbase && docker compose down
 
-backend-logs:       ## Tail backend logs
-	@cd backend && docker compose logs -f
+backend-logs:       ## Tail PocketBase logs
+	@cd backend/pocketbase && docker compose logs -f
