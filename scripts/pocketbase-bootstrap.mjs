@@ -165,8 +165,24 @@ async function main() {
     console.log(`ok    ${collection.name}`);
   }
 
-  console.log('\nCollections ready. Next: create the household user in the UI,');
-  console.log('then run scripts/migrate-to-pocketbase.mjs to move the rows.');
+  // Household management happens in the web UI, so members may read and add
+  // each other. Any account on the server can do this; that is the single
+  // household model.
+  const usersRules = {
+    listRule: '@request.auth.id != ""',
+    viewRule: '@request.auth.id != ""',
+    createRule: '@request.auth.id != ""',
+    updateRule: '@request.auth.id != ""',
+    deleteRule: '@request.auth.id != ""',
+  };
+  const updated = await api('/api/collections/users', {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(usersRules),
+  });
+  console.log(updated.ok ? 'ok    users rules' : `fail  users rules ${updated.status}`);
+
+  console.log('\nCollections ready. Open the web UI at / to add members.');
 }
 
 main().catch(err => {

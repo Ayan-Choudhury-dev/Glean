@@ -31,6 +31,21 @@ That creates the six collections. Finally, in the UI, create one **users**
 record — the account each phone signs in with. Accounts live on your server, not
 ours.
 
+## The web UI
+
+Open `http://<host>:8090/` and sign in with a household account. It manages the
+household, not the pantry:
+
+```
+Household   name and how many items are shared
+Members     who can sign in; add an account, remove one
+Join        create a six-character code and a QR for it
+```
+
+Served from `backend/pocketbase/web/` mounted at `/pb_public` (read-only). The
+admin UI at `/_/` is separate and needs the superuser: that is where you would
+look at raw rows or take a backup.
+
 ## Point the app at it
 
 In Glean: **Settings → Add member**

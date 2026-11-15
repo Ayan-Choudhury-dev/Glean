@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glean — household</title>
+<style>
+  :root {
+    --ink: #222222;
+    --muted: #717171;
+    --line: #DDDDDD;
+    --soft: #F7F7F7;
+    --accent: #FF385C;
+    --accent-soft: #FFF1F3;
+    --danger: #C13515;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #F2F2F2; --muted: #B3B3B3; --line: #333; --soft: #242424;
+      --accent-soft: #3A1F27; --danger: #FF6B6B;
+    }
+    body { background: #121212; }
+    .card { background: #1E1E1E; }
+    input { background: #2A2A2A; color: var(--ink); }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 20px 64px;
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink); background: #fff;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 4px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 28px 0 8px; }
+  p.sub { color: var(--muted); margin: 0 0 24px; }
+  .card { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; overflow: hidden; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+  .row + .row { border-top: 1px solid var(--line); }
+  .row .grow { flex: 1; min-width: 0; }
+  .name { font-weight: 600; }
+  .meta { color: var(--muted); font-size: 13px; }
+  button {
+    font: inherit; cursor: pointer; border-radius: 10px; padding: 10px 16px;
+    border: 1px solid var(--line); background: transparent; color: var(--ink);
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.ghost { border-color: transparent; color: var(--danger); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  input {
+    font: inherit; width: 100%; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--soft); color: var(--ink);
+  }
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 12px 0 6px; }
+  .stack { display: grid; gap: 10px; }
+  .error { color: var(--danger); font-size: 13px; margin-top: 10px; }
+  .code { font: 600 30px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 8px; }
+  .qr { display: grid; place-items: center; padding: 16px; background: var(--accent-soft); border-radius: var(--radius); margin-top: 12px; }
+  .qr img { image-rendering: pixelated; width: 208px; height: 208px; background: #fff; border-radius: 8px; }
+  .hidden { display: none; }
+  .foot { color: var(--muted); font-size: 13px; margin-top: 32px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header style="display:flex;align-items:baseline;gap:12px">
+    <h1 id="title">Glean</h1>
+    <span class="meta" id="who" style="flex:1"></span>
+    <button id="signout" class="hidden">Sign out</button>
+  </header>
+  <p class="sub" id="tagline">The household that shares this pantry.</p>
+
+  <!-- Sign in -->
+  <section id="signin" class="hidden">
+    <h2>Sign in</h2>
+    <div class="card" style="padding:16px">
+      <form id="signin-form">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" required>
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" required>
+        <div style="margin-top:16px"><button class="primary" type="submit">Sign in</button></div>
+        <div id="signin-error" class="error"></div>
+      </form>
+    </div>
+    <p class="foot">This account lives on this server. It is the same one the phones use.</p>
+  </section>
+
+  <!-- Household -->
+  <section id="app" class="hidden">
+    <h2>Household</h2>
+    <div class="card" id="household"></div>
+
+    <h2>Members</h2>
+    <div class="card" id="members"></div>
+    <div style="margin-top:12px"><button id="add-toggle">Add a member</button></div>
+    <div id="add-form" class="card hidden" style="padding:16px;margin-top:12px">
+      <form>
+        <label for="new-email">Email</label>
+        <input id="new-email" type="email" autocomplete="off" required>
+        <label for="new-password">Temporary password</label>
+        <input id="new-password" type="text" autocomplete="off" minlength="8" required>
+        <p class="meta" style="margin:8px 0 0">Tell them to sign in on their phone with these, then change it here if you like.</p>
+        <div style="margin-top:16px;display:flex;gap:8px">
+          <button class="primary" type="submit">Create account</button>
+          <button type="button" id="add-cancel">Cancel</button>
+        </div>
+        <div id="add-error" class="error"></div>
+      </form>
+    </div>
+
+    <h2>Add someone to a phone</h2>
+    <div class="card" style="padding:16px">
+      <p class="meta" style="margin:0">Make a code, then have them open Glean → Settings → Add member → I have a code. Codes last ten minutes and work once.</p>
+      <div style="margin-top:14px"><button class="primary" id="make-code">Create a code</button></div>
+      <div id="code-box" class="hidden">
+        <div class="qr"><img id="qr" alt="Joining QR code"></div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+          <span class="code" id="code"></span>
+          <span class="meta" id="code-meta"></span>
+        </div>
+      </div>
+      <div id="code-error" class="error"></div>
+    </div>
+  </section>
+
+  <p class="foot" id="foot"></p>
+</div>
+
+<script src="vendor/pocketbase.umd.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script>
+const pb = new PocketBase(window.location.origin);
+
+const el = id => document.getElementById(id);
+const show = (id, on = true) => el(id).classList.toggle('hidden', !on);
+const fmtDate = iso => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function boot() {
+  el('foot').textContent = `Glean on ${window.location.host} · PocketBase ${pb.baseURL}`;
+  if (pb.authStore.isValid) {
+    render();
+    return;
+  }
+  show('signin');
+}
+
+el('signin-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  el('signin-error').textContent = '';
+  try {
+    await pb.collection('users').authWithPassword(el('email').value.trim(), el('password').value);
+    el('password').value = '';
+    show('signin', false);
+    render();
+  } catch (error) {
+    el('signin-error').textContent = 'Could not sign in. Check the email and password.';
+  }
+});
+
+el('signout').addEventListener('click', () => {
+  pb.authStore.clear();
+  location.reload();
+});
+
+el('add-toggle').addEventListener('click', () => {
+  show('add-form');
+  el('new-email').focus();
+});
+
+el('add-cancel').addEventListener('click', () => show('add-form', false));
+
+el('add-form').querySelector('form').addEventListener('submit', async event => {
+  event.preventDefault();
+  el('add-error').textContent = '';
+  const email = el('new-email').value.trim();
+  const password = el('new-password').value;
+  try {
+    await pb.collection('users').create({
+      email,
+      password,
+      passwordConfirm: password,
+      emailVisibility: true,
+      verified: true,
+    });
+    el('new-email').value = '';
+    el('new-password').value = '';
+    show('add-form', false);
+    render();
+  } catch (error) {
+    el('add-error').textContent = error?.response?.data?.email?.message
+      ? `Email: ${error.response.data.email.message}`
+      : 'Could not create that account.';
+  }
+});
+
+el('make-code').addEventListener('click', async () => {
+  el('code-error').textContent = '';
+  try {
+    const houses = await pb.collection('houses').getList(1, 1);
+    const house = houses.items[0];
+    if (!house) {
+      el('code-error').textContent = 'No pantry on this server yet — upload one from a phone first.';
+      return;
+    }
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i += 1) code += alphabet[Math.floor(Math.random() * alphabet.length)];
+
+    await pb.collection('pairing_codes').create({
+      code,
+      house_id: house.uid,
+      expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    });
+
+    const payload = `glean://join?server=${encodeURIComponent(window.location.origin)}&code=${code}`;
+    const qr = qrcode(0, 'M');
+    qr.addData(payload);
+    qr.make();
+    el('qr').src = qr.createDataURL(6, 4);
+    el('code').textContent = code;
+    el('code-meta').textContent = 'valid 10 minutes';
+    show('code-box');
+  } catch (error) {
+    el('code-error').textContent = 'Could not create a code. Is the server reachable?';
+  }
+});
+
+async function render() {
+  show('signin', false);
+  show('app');
+  show('signout');
+  el('who').textContent = pb.authStore.record?.email ?? '';
+
+  const [houses, members, inventory] = await Promise.all([
+    pb.collection('houses').getList(1, 1).catch(() => ({ items: [] })),
+    pb.collection('users').getFullList({ sort: 'created' }).catch(() => []),
+    pb.collection('inventory').getFullList().catch(() => []),
+  ]);
+
+  const house = houses.items[0];
+  el('title').textContent = house?.name ?? 'Glean';
+  el('tagline').textContent = house
+    ? `${inventory.length} item${inventory.length === 1 ? '' : 's'} shared with everyone here.`
+    : 'No pantry on this server yet.';
+
+  el('household').innerHTML = house
+    ? `<div class="row"><div class="grow"><div class="name">${esc(house.name)}</div>
+         <div class="meta">${inventory.length} items · created ${fmtDate(house.created)}</div></div></div>
+       <div class="row"><div class="grow"><div class="meta">This server is the shared pantry. Anyone signed in here sees it.</div></div></div>`
+    : `<div class="row"><div class="grow"><div class="meta">Upload a pantry from a phone: Settings → Add member → I run the server.</div></div></div>`;
+
+  el('members').innerHTML = members.length
+    ? members.map(user => `
+      <div class="row">
+        <div class="grow">
+          <div class="name">${esc(user.email)}</div>
+          <div class="meta">${user.verified ? 'verified' : 'not verified'} · added ${fmtDate(user.created)}</div>
+        </div>
+        ${user.id === pb.authStore.record?.id
+          ? '<span class="meta">you</span>'
+          : `<button class="ghost" data-remove="${esc(user.id)}">Remove</button>`}
+      </div>`).join('')
+    : '<div class="row"><div class="grow"><div class="meta">No accounts yet.</div></div></div>';
+
+  el('members').querySelectorAll('[data-remove]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const id = button.getAttribute('data-remove');
+      const email = members.find(user => user.id === id)?.email ?? 'this account';
+      if (!confirm(`Remove ${email}? Their phone will lose access to this pantry.`)) return;
+      try {
+        await pb.collection('users').delete(id);
+        render();
+      } catch (error) {
+        alert('Could not remove that account.');
+      }
+    });
+  });
+}
+
+boot();
+</script>
+</body>
+</html>
