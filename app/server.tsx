@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, ScrollView, Share, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 import { useColors } from '@/lib/appearance';
 import { theme } from '@/constants/theme';
 import { Text } from '@/components/ui/text';
@@ -58,6 +59,17 @@ export default function ServerScreen() {
    * each of them for every field was the problem.
    */
   const [mode, setMode] = useState<'choose' | 'join' | 'connect' | 'setup'>('choose');
+
+  // A joining QR encodes glean://join?server=…&code=…, which the OS hands to the
+  // app. Land on the join path with both fields filled rather than making the
+  // person retype what they just scanned.
+  const params = useLocalSearchParams<{ server?: string; code?: string }>();
+  useEffect(() => {
+    if (!params.server && !params.code) return;
+    if (params.server) setAddress(String(params.server));
+    if (params.code) setPairCode(String(params.code).toUpperCase().slice(0, 6));
+    setMode('join');
+  }, [params.server, params.code]);
   const profile = useGleanStore(s => s.profile);
 
   const reveal = useRef(new Animated.Value(0)).current;
