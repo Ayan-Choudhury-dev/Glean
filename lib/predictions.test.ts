@@ -76,31 +76,53 @@ describe('formatFinishLabel', () => {
 });
 
 describe('getRestockSuggestions', () => {
+  // History for Milk: 6 units over 6 days => 1/day, so qty 2 finishes in 2 days.
+  const milkHistory = [
+    log({ inventory_id: 'a', qty: 2, consumed_at: daysAgo(6) }),
+    log({ inventory_id: 'a', qty: 2, consumed_at: daysAgo(3) }),
+    log({ inventory_id: 'a', qty: 2, consumed_at: daysAgo(0) }),
+  ];
+
   const inventory: PredictionItem[] = [
-    item({ id: 'a', name: 'Milk', qty: 2, category: 'Dairy' }), // 2 days
-    item({ id: 'b', name: 'Rice', qty: 1, category: 'Grains' }), // 3 days
-    item({ id: 'c', name: 'Flour', qty: 10, category: 'Grains' }), // 30 days
-    item({ id: 'd', name: 'Spinach', qty: 1, category: 'Vegetables' }), // 1 day, queued by name
-    item({ id: 'e', name: 'Cheese', qty: 1, category: 'Dairy' }), // 1 day, queued by id
+    item({ id: 'a', name: 'Milk', qty: 2, category: 'Dairy' }),
+    item({ id: 'c', name: 'Flour', qty: 10, category: 'Grains' }),
+    item({ id: 'd', name: 'Spinach', qty: 1, category: 'Vegetables' }),
+    item({ id: 'e', name: 'Cheese', qty: 1, category: 'Dairy' }),
   ];
   const queued = [
     { name: 'spinach' },
     { name: 'Cheese', inventory_id: 'e' },
   ];
 
-  it('surfaces only within-threshold, non-queued items, soonest first', () => {
-    const result = getRestockSuggestions(inventory, [], queued, NOW);
-    expect(result.map(s => s.name)).toEqual(['Milk', 'Rice']);
-    expect(result[0]).toMatchObject({ itemId: 'a', daysUntilFinish: 2, label: 'in 2 days' });
+  it('suggests what the history actually predicts', () => {
+    const result = getRestockSuggestions(inventory, milkHistory, queued, NOW);
+    expect(result.map(s => s.name)).toEqual(['Milk']);
+    expect(result[0]).toMatchObject({ itemId: 'a', daysUntilFinish: 2, evidence: 'history', label: 'in 2 days' });
+  });
+
+  it('never suggests on a category guess alone', () => {
+    // No logs, no stale restock: Spinach would be "1 day" on the perishable
+    // fallback, which is a guess, not evidence.
+    const result = getRestockSuggestions(inventory, [], [], NOW);
+    expect(result).toEqual([]);
+  });
+
+  it('suggests a pantry that has not been touched in three weeks', () => {
+    const stale = [item({ id: 's', name: 'Yeast', qty: 5, category: 'Other', last_restocked: daysAgo(30) })];
+    const result = getRestockSuggestions(stale, [], [], NOW);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ evidence: 'stale' });
+    expect(result[0].label).toContain('not restocked');
   });
 
   it('excludes queued items and out-of-stock items', () => {
     const result = getRestockSuggestions(
       [...inventory, item({ id: 'z', name: 'Eggs', qty: 0, category: 'Dairy' })],
-      [],
+      milkHistory,
       queued,
       NOW,
     );
+    expect(result.map(s => s.name)).toContain('Milk');
     expect(result.map(s => s.name)).not.toContain('Eggs');
     expect(result.map(s => s.name)).not.toContain('Spinach');
     expect(result.map(s => s.name)).not.toContain('Cheese');

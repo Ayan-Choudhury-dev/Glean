@@ -137,7 +137,11 @@ const SuggestionRow = React.memo(function SuggestionRow({
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: theme.type.md, fontWeight: '500', color: C.text }}>{suggestion.name}</Text>
-        <Text style={{ fontSize: theme.type.caption, color: C.warning, marginTop: 2 }}>Predicted to finish {suggestion.label}</Text>
+        <Text style={{ fontSize: theme.type.caption, color: C.warning, marginTop: 2 }}>
+          {suggestion.evidence === 'stale'
+            ? 'Not restocked in three weeks'
+            : `Usually finishes ${suggestion.label}`}
+        </Text>
       </View>
       <Tappable
         onPress={() => onAdd(suggestion)}

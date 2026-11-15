@@ -32,7 +32,18 @@ export interface RestockSuggestion {
   name: string;
   daysUntilFinish: number;
   label: string;
+  /** Why this is being suggested. Only 'history' and 'stale' ever surface. */
+  evidence: RestockEvidence;
 }
+
+/**
+ * Where a prediction comes from.
+ *
+ * 'history'  two or more `used` logs — an actual rate, worth acting on
+ * 'stale'    no restock for three weeks, whatever the history says
+ * 'none'     a category guess; not evidence, so it is never suggested
+ */
+export type RestockEvidence = 'history' | 'stale' | 'none';
 
 function usedLogsFor(itemId: string, logs: ConsumptionLog[]): ConsumptionLog[] {
   return logs
@@ -55,15 +66,16 @@ function usedLogsFor(itemId: string, logs: ConsumptionLog[]): ConsumptionLog[] {
  * 2. Otherwise fall back to a category rate (perishable 1/day, staple 1/3 per day).
  * 3. If the item has not been restocked in over 21 days, clamp to the surface window.
  */
-export function estimateDaysUntilFinish(
+export function predictRestock(
   item: PredictionItem,
   logs: ConsumptionLog[],
   now: number = Date.now(),
-): number {
-  if (item.qty <= 0) return 0;
+): { days: number; evidence: RestockEvidence } {
+  if (item.qty <= 0) return { days: 0, evidence: 'history' };
 
   const used = usedLogsFor(item.id, logs);
   let rate: number;
+  let evidence: RestockEvidence = 'none';
 
   if (used.length >= 2) {
     const first = new Date(used[0].consumed_at).getTime();
@@ -71,7 +83,9 @@ export function estimateDaysUntilFinish(
     const spanDays = Math.max((last - first) / DAY_MS, 1);
     const total = used.reduce((sum, log) => sum + log.qty, 0);
     rate = total / spanDays;
+    evidence = 'history';
   } else {
+    // A guess, kept for the number but never a reason to suggest.
     rate = PERISHABLE_CATEGORIES.has(item.category)
       ? PERISHABLE_RATE
       : STAPLE_RATE;
@@ -85,10 +99,19 @@ export function estimateDaysUntilFinish(
     const sinceRestock = (now - new Date(item.last_restocked).getTime()) / DAY_MS;
     if (sinceRestock > STALE_RESTOCK_DAYS) {
       days = Math.min(days, SURFACE_THRESHOLD_DAYS);
+      if (evidence === 'none') evidence = 'stale';
     }
   }
 
-  return days;
+  return { days, evidence };
+}
+
+export function estimateDaysUntilFinish(
+  item: PredictionItem,
+  logs: ConsumptionLog[],
+  now: number = Date.now(),
+): number {
+  return predictRestock(item, logs, now).days;
 }
 
 export function formatFinishLabel(daysUntilFinish: number): string {
@@ -114,15 +137,22 @@ export function getRestockSuggestions(
       item =>
         !queuedIds.has(item.id) && !queuedNames.has(item.name.toLowerCase()),
     )
-    .map(item => ({
-      itemId: item.id,
-      name: item.name,
-      daysUntilFinish: estimateDaysUntilFinish(item, logs, now),
-    }))
+    .map(item => {
+      const { days, evidence } = predictRestock(item, logs, now);
+      return { itemId: item.id, name: item.name, daysUntilFinish: days, evidence };
+    })
+    // Only what we can actually back up: a measured rate, or a pantry that has
+    // not been touched in three weeks. Category guesses never surface.
+    .filter(s => s.evidence !== 'none')
     .filter(s => s.daysUntilFinish <= SURFACE_THRESHOLD_DAYS)
     .sort(
       (a, b) =>
         a.daysUntilFinish - b.daysUntilFinish || a.name.localeCompare(b.name),
     )
-    .map(s => ({ ...s, label: formatFinishLabel(s.daysUntilFinish) }));
+    .map(s => ({
+      ...s,
+      label: s.evidence === 'stale'
+        ? `not restocked in ${STALE_RESTOCK_DAYS} days`
+        : formatFinishLabel(s.daysUntilFinish),
+    }));
 }
