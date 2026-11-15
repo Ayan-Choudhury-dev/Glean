@@ -22,14 +22,33 @@ Description: |
 RepoType: git
 Repo: https://github.com/Ayan-Choudhury-dev/Glean
 
-# TODO: add a Builds entry once a tagged release exists. Expo / React Native
-# apps need the JS bundle produced before Gradle runs; see
-# https://f-droid.org/en/docs/Build_Metadata_Reference/ and the Expo build docs.
+# Build recipe.
 #
-# Builds:
-#   - versionName: 1.0.0
-#     versionCode: 1
-#     commit: <tag or commit>
-#     subdir: android/app
-#     gradle:
-#       - yes
+# Expo / React Native apps need the JS bundle produced before Gradle runs, so
+# `prebuild` is not used (android/ is committed and carries the bundle task) —
+# the bundle step is `createBundleReleaseJsAndAssets`, which assembleRelease
+# depends on. If the buildserver disagrees, `gradle: - assembleRelease` plus an
+# explicit `npx expo export` is the fallback.
+#
+# nodejs is pinned because the lockfile is regenerated against 22; npm ci fails
+# on older majors for some Expo packages.
+Builds:
+  - versionName: 1.0.13
+    versionCode: 14
+    commit: v1.0.13
+    subdir: android/app
+    sudo:
+      - apt-get update
+      - apt-get install -y openjdk-17-jdk-headless
+    init: npm ci
+    gradle:
+      - yes
+    ndk: r27c
+    output: app/build/outputs/apk/release/app-release.apk
+    srclibs:
+      - nodejs@22
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 1.0.13
+CurrentVersionCode: 14

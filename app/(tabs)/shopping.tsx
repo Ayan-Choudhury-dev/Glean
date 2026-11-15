@@ -300,6 +300,7 @@ export default function ShoppingScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [snackbar, setSnackbar] = useState<{ message: string; canUndo?: boolean } | null>(null);
   const [stampCount, setStampCount] = useState<number | null>(null);
+  const tearOff = useRef(new Animated.Value(0)).current;
 
   const toBuy = shoppingList.filter(i => i.status === 'to_buy');
   const purchased = shoppingList.filter(i => i.status === 'purchased');
@@ -361,9 +362,20 @@ export default function ShoppingScreen() {
       message: `Remove ${purchased.length} purchased item${purchased.length !== 1 ? 's' : ''}?`,
       confirmLabel: 'Clear',
       destructive: true,
-      onConfirm: () => clearPurchased(),
+      onConfirm: () => {
+        // Tear the receipt off: it slides down and fades, then the rows go.
+        Animated.timing(tearOff, {
+          toValue: 1,
+          duration: 240,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }).start(() => {
+          tearOff.setValue(0);
+          clearPurchased();
+        });
+      },
     });
-  }, [purchased.length, clearPurchased]);
+  }, [purchased.length, clearPurchased, tearOff]);
 
   const shareList = useCallback(async () => {
     if (toBuy.length === 0) return;
@@ -498,6 +510,15 @@ export default function ShoppingScreen() {
             <Text style={{ fontSize: theme.type.lg, fontWeight: '600', color: C.text }}>No purchased items</Text>
           </View>
         ) : (
+          <Animated.View
+            style={{
+              opacity: tearOff.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+              transform: [
+                { translateY: tearOff.interpolate({ inputRange: [0, 1], outputRange: [0, 80] }) },
+                { rotate: tearOff.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '2deg'] }) },
+              ],
+            }}
+          >
           <ReceiptCard count={purchased.length}>
             {purchased.map((s, i) => (
               <View key={s.id}>
@@ -506,6 +527,7 @@ export default function ShoppingScreen() {
               </View>
             ))}
           </ReceiptCard>
+          </Animated.View>
         )}
       </Animated.ScrollView>
 
@@ -604,7 +626,6 @@ export default function ShoppingScreen() {
                   onPress={() => {
                     if (alreadyQueued) return;
                     addToShoppingList(item.name, item.id);
-                    addSheetRef.current?.dismiss();
                   }}
                   disabled={alreadyQueued}
                 >
@@ -630,7 +651,6 @@ export default function ShoppingScreen() {
                 style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16 }}
                 onPress={() => {
                   addToShoppingList(addItemSearch.trim());
-                  addSheetRef.current?.dismiss();
                 }}
               >
                 <View style={{ flex: 1 }}>

@@ -8,10 +8,10 @@ one needs and what is still missing.
 
 | Channel | Artifact | Version control | Status |
 |---|---|---|---|
-| GitHub releases (direct APK) | `glean-<version>-arm64-v8a.apk`, `glean-<version>-armeabi-v7a.apk` | `app.json` `version` + `versionCode` in `android/app/build.gradle` | **Live** — v1.0.0 through v1.0.3 |
+| GitHub releases (direct APK) | `glean-<version>-arm64-v8a.apk`, `glean-<version>-armeabi-v7a.apk` | `app.json` `version` + `versionCode` in `android/app/build.gradle` | **Live** — v1.0.0 through v1.0.13, built by GitHub Actions |
 | Google Play | `.aab` from the `production` EAS profile | Play version code (Play Console) | **Not started** — no release keystore, no listing |
-| F-Droid | source build from a tagged commit | `versionName` / `versionCode` in the metadata file | **Not started** — metadata exists, no `Builds:` entry |
-| Apple App Store | `.ipa` | App Store Connect | **Not started** — iOS has never been built |
+| F-Droid | source build from a tagged commit | `versionName` / `versionCode` in the metadata file | **Recipe drafted** — `metadata/*.yml` has a `Builds:` entry for v1.0.13, untested on their buildserver |
+
 
 ## 1. Direct APK (current channel)
 
@@ -77,55 +77,37 @@ Requirements, none of which are done yet:
 
 ## 3. F-Droid
 
-`metadata/io.github.ayanchoudhurydev.glean.yml` already carries the listing:
-categories Household/Food, `License: Apache-2.0`, source and issue tracker URLs,
-summary, description, `RepoType: git`.
+F-Droid builds from source and **signs with its own key**, so the debug keystore
+in `android/app/build.gradle` does not block this channel. It does mean a user
+cannot move between the GitHub APK and the F-Droid build without uninstalling —
+different signing keys, same package name.
 
-**The `Builds:` entry is missing** — it is a commented TODO. F-Droid builds from
-source in a clean environment, and an Expo/React Native app needs its JS bundle
-produced *before* Gradle runs, which the default recipe does not do. A working
-recipe looks roughly like this (not yet validated):
+The recipe is drafted in `metadata/io.github.ayanchoudhurydev.glean.yml` for
+v1.0.13 and has **not** been run on their buildserver:
 
-```yaml
-Builds:
-  - versionName: 1.0.3
-    versionCode: 4
-    commit: v1.0.3
-    subdir: android/app
-    sudo:
-      - npm install -g npm@10
-    init: npm ci
-    prebuild:
-      - npm run --if-present prebuild
-      - npx expo export:embed --platform android --dev false \
-          --entry-file node_modules/expo-router/entry.js \
-          --bundle-output android/app/src/main/assets/index.android.bundle \
-          --assets-dest android/app/src/main/res
-    gradle:
-      - yes
-    antifeatures:
-      - UpstreamNonFree   # only if a non-free dependency is added later
+```
+subdir      android/app     android/ is committed, so no expo prebuild
+init        npm ci          lockfile is against Node 22
+srclibs     nodejs@22
+sudo        openjdk-17-jdk-headless
+gradle      yes             assembleRelease also produces the JS bundle
+ndk         r27c
+output      app/build/outputs/apk/release/app-release.apk
+auto-update Version + Tags, so a new tag is a new release
 ```
 
-Open questions before submitting: `node_modules` and the Gradle/NDK toolchain
-must be fetched inside the F-Droid build VM, `expo export:embed` needs a
-deterministic output, and the Android SDK/NDK versions must be pinned. Expect
-iteration with F-Droid reviewers.
+Known risks, in the order they usually bite:
 
-Inclusion policy fit:
+1. **NDK version** — Expo SDK 58 expects a specific r-version; `ndk:` is the knob.
+2. **`npm ci` offline** — the buildserver has no network; every dependency must
+   install from the local cache.
+3. **Gradle plugin downloads** — same constraint; relies on their plugin cache
+   carrying AGP 8.x and the Expo modules.
+4. **Proprietary bits** — there are none: no Play Services, no Firebase, no
+   Crashlytics. `expo-notifications` uses the OS scheduler locally.
 
-- **No tracking** — no analytics, ads, crash reporting, or account. The only
-  network calls are the optional self-hosted backend the user configures and the
-  GitHub release check. F-Droid reviewers may ask for the update check to be
-  removable or made opt-in; be ready to answer.
-- **License** — Apache-2.0, GPL-compatible, accepted by F-Droid. `NOTICE` and
-  `LICENSE` are in the repo.
-- **Reproducibility** — F-Droid rebuilds from the tagged commit. The APK it
-  ships is signed by F-Droid's key, so it cannot be installed over a
-  GitHub-release APK; users switching channels must uninstall first (which wipes
-  local data).
-- **Version parity** — each F-Droid build needs a matching tag and a `Builds`
-  entry, otherwise the listing goes stale.
+Expect `scanner`/`scanignore` entries for the prebuilt `.aar`s under `android/`,
+and two or three iterations before the recipe is accepted.
 
 ## 4. iOS
 
