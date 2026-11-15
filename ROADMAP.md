@@ -41,10 +41,12 @@ Deferred work, roughly in priority order. Nothing here is started.
 
 - **Shared token** — done (`GLEAN_TOKEN` in nginx). Empty disables the gate.
 - **Backups** — `scripts/backend-backup.sh` / `backend-restore.sh`.
-- **PocketBase** — phases 1–2 done and verified against a live instance
-  (`backend/pocketbase/`, `lib/pocketbase.ts`, `scripts/pocketbase-*.mjs`).
-  Left: realtime on a device, a release that speaks both protocols, and deleting
-  the Postgres bundle once that release has shipped.
+- **PocketBase** — shipped as the recommended backend. Phases 1–2 verified
+  against a live instance, the app speaks both protocols from 1.0.10, and the
+  README/SELF_HOSTING now lead with it. Left: confirm realtime on a device, then
+  delete `backend/` (Postgres + PostgREST + nginx) and the token gate with it.
+- **Postgres bundle** — legacy. Kept for installs that already run it; no new
+  install should start here.
 
 ## Web
 

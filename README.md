@@ -19,7 +19,7 @@ list — all stored on your device. No account, no server, no tracking.
 - [expo-sqlite](https://docs.expo.dev/versions/latest/sdk/sqlite/) — local storage
 - [Zustand](https://zustand-demo.pmnd.rs) — state management
 - [NativeWind](https://www.nativewind.dev) + Tailwind CSS — styling
-- Optional self-hosted backend: Postgres + PostgREST in Docker
+- Optional self-hosted backend: PocketBase in Docker (one container)
 
 ## Download
 
@@ -66,17 +66,25 @@ This builds the APK, installs it on the connected device, and starts Metro.
 ### 3. Run the backend (optional)
 
 ```bash
-cd backend
-cp .env.example .env        # set POSTGRES_PASSWORD
-docker compose pull         # prebuilt images from GHCR (or: up -d --build)
-docker compose up -d        # or: make backend-up
+cd backend/pocketbase
+cp .env.example .env
+docker compose up -d          # http://<host>:8090
 ```
 
-The dashboard + API are at `http://<host>:8000`; the schema applies automatically
-on first boot. See [`backend/README.md`](backend/README.md) and
-[`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md) (HTTPS, Tunnel, Tailscale).
+Open `http://<host>:8090/_/`, create the superuser, then create the collections
+and a household account:
 
-Then in the app: **Settings → Add member → your server's address**.
+```bash
+PB_URL=http://<host>:8090 PB_ADMIN_EMAIL=you@example.com PB_ADMIN_PASSWORD=... \
+  node scripts/pocketbase-bootstrap.mjs
+```
+
+See [`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md) for TLS, backups and
+Tailscale. Then in the app: **Settings → Add member → the address → your
+account**.
+
+The older Postgres + PostgREST bundle in `backend/` still works and is
+documented in the same guide, but new installs should use PocketBase.
 
 ### Checks
 
@@ -97,12 +105,13 @@ store/
   useGleanStore.ts   # Zustand store (profile, pantry, shopping list, logs)
 lib/
   db/                # SQLite schema + local client
-  sync.ts            # push/pull to the self-hosted backend
+  sync.ts            # push/pull, routed to whichever backend is configured
+  pocketbase.ts      # PocketBase client: auth, push/pull, realtime
   predictions.ts     # Restock prediction logic
 components/
   NativeSheet.tsx    # JS bottom sheet
   ui/                # Thin NativeWind primitives
-backend/             # Self-contained Docker backend (optional)
+backend/             # Self-hosted backends (optional): pocketbase/ + legacy Postgres
 metadata/
   *.yml              # F-Droid listing metadata
 Makefile             # Developer shortcuts (make install / android / backend-up)
@@ -111,8 +120,9 @@ Makefile             # Developer shortcuts (make install / android / backend-up)
 ## Self-hosting (optional)
 
 Glean is local-first and needs no server. To sync across devices, run the
-bundled backend on any Docker host — see [Install → step 3](#3-run-the-backend-optional)
-and [`backend/README.md`](backend/README.md).
+bundled PocketBase on any Docker host — see
+[Install → step 3](#3-run-the-backend-optional) and
+[`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md).
 
 ## Data & Privacy
 
