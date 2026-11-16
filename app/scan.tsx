@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tappable } from '../components/ui/tappable';
 import { Text } from '../components/ui/text';
 import { PickerSheet } from '../components/PickerSheet';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useGleanStore, type InventoryItem } from '../store/useGleanStore';
 import { lookupProduct } from '../lib/productLookup';
 import { theme } from '@/constants/theme';
@@ -220,6 +221,7 @@ export default function ScanScreen() {
   const newCount = pending.length - topupCount;
 
   return (
+    <BottomSheetModalProvider>
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       <CameraView
         style={{ flex: 1 }}
@@ -406,8 +408,8 @@ export default function ScanScreen() {
         </Tappable>
       </View>
 
+      {locationTarget !== null && (
       <PickerSheet
-        visible={locationTarget !== null}
         title="Location"
         type="location"
         options={locationOptions}
@@ -427,6 +429,8 @@ export default function ScanScreen() {
         }}
         onClose={() => setLocationTarget(null)}
       />
+      )}
     </View>
+    </BottomSheetModalProvider>
   );
 }

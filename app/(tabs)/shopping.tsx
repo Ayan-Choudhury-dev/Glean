@@ -305,6 +305,8 @@ export default function ShoppingScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [snackbar, setSnackbar] = useState<{ message: string; canUndo?: boolean } | null>(null);
   const [stampCount, setStampCount] = useState<number | null>(null);
+  /** Suggestions are a hint, not the list: collapsed until asked for. */
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const tearOff = useRef(new Animated.Value(0)).current;
 
   const toBuy = shoppingList.filter(i => i.status === 'to_buy');
@@ -489,13 +491,32 @@ export default function ShoppingScreen() {
             <>
               {suggestions.length > 0 && (
                 <>
-                  <SectionLabel label="Suggested" />
-                  {suggestions.map((s, i) => (
-                    <View key={s.itemId}>
-                      <SuggestionRow suggestion={s} onAdd={handleAddSuggestion} />
-                      {i < suggestions.length - 1 && <RowSeparator />}
+                  <Tappable
+                    onPress={() => setSuggestionsOpen(open => !open)}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: suggestionsOpen }}
+                    accessibilityLabel={`Suggested, ${suggestions.length} item${suggestions.length === 1 ? '' : 's'}`}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: PAD, paddingTop: 16, paddingBottom: 4 }}
+                  >
+                    <Text style={{ fontSize: theme.type.caption, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                      Suggested
+                    </Text>
+                    <View style={{ minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, backgroundColor: C.chipBg, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ fontSize: theme.type.micro, fontWeight: '700', color: C.text, fontVariant: ['tabular-nums'] }}>{suggestions.length}</Text>
                     </View>
-                  ))}
+                    <View style={{ flex: 1 }} />
+                    <Ionicons name={suggestionsOpen ? 'chevron-up' : 'chevron-down'} size={15} color={C.muted} />
+                  </Tappable>
+                  {suggestionsOpen && (
+                    <PaperCard>
+                      {suggestions.map((s, i) => (
+                        <View key={s.itemId}>
+                          <SuggestionRow suggestion={s} onAdd={handleAddSuggestion} />
+                          {i < suggestions.length - 1 && <PaperRule />}
+                        </View>
+                      ))}
+                    </PaperCard>
+                  )}
                 </>
               )}
               {toBuy.length > 0 && (

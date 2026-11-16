@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeSheet } from '../components/NativeSheet';
 import { PickerSheet } from '../components/PickerSheet';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { DEFAULT_HOUSE_OPTIONS, HouseOption, HouseOptionType, useGleanStore } from '../store/useGleanStore';
 import { Tappable } from '../components/ui/tappable';
 import { Text } from '../components/ui/text';
@@ -213,6 +214,7 @@ export default function ItemFormScreen() {
   };
 
   return (
+    <BottomSheetModalProvider>
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.surface }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -431,8 +433,8 @@ export default function ItemFormScreen() {
       </View>
 
       {/* Category bottom sheet */}
+      {categorySheet && (
       <PickerSheet
-        visible={categorySheet}
         title="Category"
         type="category"
         options={categoryOptions}
@@ -441,10 +443,11 @@ export default function ItemFormScreen() {
         onCreate={value => { const option = addHouseOption('category', value, 'pricetag-outline'); if (option) { setCategory(option.name); setCategorySheet(false); } }}
         onClose={() => setCategorySheet(false)}
       />
+      )}
 
       {/* Location bottom sheet */}
+      {locationSheet && (
       <PickerSheet
-        visible={locationSheet}
         title="Location"
         type="location"
         options={locationOptions}
@@ -453,6 +456,7 @@ export default function ItemFormScreen() {
         onCreate={value => { const option = addHouseOption('location', value, 'location-outline'); if (option) { setLocation(option.name); setLocationSheet(false); } }}
         onClose={() => setLocationSheet(false)}
       />
+      )}
 
       {/* Photo expanded view */}
       <NativeSheet visible={photoOpen} onClose={() => setPhotoOpen(false)}>
@@ -531,6 +535,7 @@ export default function ItemFormScreen() {
         </View>
       </Animated.View>
     </KeyboardAvoidingView>
+    </BottomSheetModalProvider>
   );
 }
 
