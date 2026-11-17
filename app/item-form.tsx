@@ -28,6 +28,7 @@ import { useColors } from '@/lib/appearance';
 import { categoryImage } from '@/constants/categoryImages';
 import { RECENT_ACTIVITY_DISPLAY_LIMIT } from '@/constants/config';
 import { showDialog } from '@/lib/overlay';
+import { categorize, predictLocation } from '@/lib/categorize';
 import { StockSparkline } from '@/components/StockSparkline';
 import { buildStockSeries, usageLabel } from '@/lib/stockHistory';
 
@@ -78,6 +79,12 @@ export default function ItemFormScreen() {
   const [photoOpen, setPhotoOpen] = useState(false);
   /** Dismissed the stock suggestion for this visit — it must not keep popping back. */
   const [suggestionDismissed, setSuggestionDismissed] = useState(false);
+  /** New items are captured first, then filed: two steps, not one long form. */
+  const [step, setStep] = useState<'item' | 'details'>('item');
+  /** True once the person chose a category/location themselves. */
+  const [categoryTouched, setCategoryTouched] = useState(isEdit);
+  const [locationTouched, setLocationTouched] = useState(isEdit);
+  const [categoryGuess, setCategoryGuess] = useState('');
   const [locationSheet, setLocationSheet] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [zeroQtySheet, setZeroQtySheet] = useState(false);
@@ -222,11 +229,17 @@ export default function ItemFormScreen() {
       {/* Header */}
       <View style={{ paddingTop: insets.top + 8 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, gap: 8 }}>
-          <Tappable onPress={() => router.dismiss()} hitSlop={12} accessibilityRole="button" accessibilityLabel="Go back" style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
+          <Tappable
+            onPress={() => { if (!isEdit && step === 'details') setStep('item'); else router.dismiss(); }}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={!isEdit && step === 'details' ? 'Back to the item' : 'Go back'}
+            style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}
+          >
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Tappable>
           <Text style={{ flex: 1, fontSize: theme.type.xl, color: colors.text, fontFamily: theme.fonts.display }}>
-            {isEdit ? existing!.name : 'Add new item'}
+            {isEdit ? existing!.name : step === 'item' ? 'Add new item' : name.trim() || 'Where does it live?'}
           </Text>
           {isEdit && (
             <Tappable onPress={handleDelete} hitSlop={12} accessibilityRole="button" accessibilityLabel="Delete item" style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
@@ -282,7 +295,20 @@ export default function ItemFormScreen() {
             placeholder='"Atta" or "Rice"'
             placeholderTextColor={colors.textFaint}
             value={name}
-            onChangeText={v => { setName(v); setNameError(null); }}
+            onChangeText={v => {
+              setName(v);
+              setNameError(null);
+              if (categoryTouched) return;
+              const guess = categorize({ name: v });
+              setCategoryGuess(guess === 'Other' ? '' : guess);
+              if (guess !== 'Other') {
+                setCategory(guess);
+                if (!locationTouched) {
+                  const where = predictLocation(guess);
+                  if (where) setLocation(where);
+                }
+              }
+            }}
             autoFocus={!isEdit}
             autoCorrect={false}
             accessibilityLabel="Item name"
@@ -317,8 +343,15 @@ export default function ItemFormScreen() {
           </View>
         </View>
 
+        {(isEdit || step === 'details') && (
+        <>
         {/* Category */}
         <Field label="Category">
+          {categoryGuess && !categoryTouched ? (
+            <Text style={{ fontSize: theme.type.caption, color: colors.textMuted, marginBottom: 8 }}>
+              Suggested from the name — tap to change
+            </Text>
+          ) : null}
           <Tappable
             onPress={() => setCategorySheet(true)}
             accessibilityRole="button"
@@ -393,25 +426,44 @@ export default function ItemFormScreen() {
             </View>
           );
         })()}
+        </>
+        )}
+
       </ScrollView>
 
       {/* Sticky footer — Save (left) + Revert changes (right) */}
       <View style={{ flexDirection: 'row', paddingHorizontal: 24, paddingBottom: insets.bottom + 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.surfaceSunken, gap: 10 }}>
+        {!isEdit && step === 'item' ? (
+          <Tappable
+            onPress={() => { if (name.trim()) { setNameError(null); setStep('details'); } else setNameError('Enter an item name.'); }}
+            haptic
+            accessibilityRole="button"
+            accessibilityLabel="Continue to category and location"
+            style={{ flex: 1, backgroundColor: name.trim() ? colors.accent : colors.border, borderRadius: theme.radii.md, paddingVertical: 14, alignItems: 'center' }}
+          >
+            <Text style={{ color: name.trim() ? colors.surface : colors.textFaint, fontWeight: '600', fontSize: theme.type.md }}>
+              Continue
+            </Text>
+          </Tappable>
+        ) : (
+        <>
         <Tappable
           onPress={handleSave}
-          disabled={!isDirty}
+          disabled={isEdit ? !isDirty : !name.trim()}
           haptic
           hapticStyle="confirm"
           style={{
             flex: 1,
-            backgroundColor: isDirty ? colors.accent : colors.border,
+            backgroundColor: (isEdit ? isDirty : !!name.trim()) ? colors.accent : colors.border,
             borderRadius: theme.radii.md,
             paddingVertical: 14,
             alignItems: 'center',
-            opacity: isDirty ? 1 : 0.5,
+            opacity: (isEdit ? isDirty : !!name.trim()) ? 1 : 0.5,
           }}
         >
-          <Text style={{ color: isDirty ? colors.surface : colors.textFaint, fontWeight: '600', fontSize: theme.type.md }}>Save</Text>
+          <Text style={{ color: (isEdit ? isDirty : !!name.trim()) ? colors.surface : colors.textFaint, fontWeight: '600', fontSize: theme.type.md }}>
+            {isEdit ? 'Save' : 'Add item'}
+          </Text>
         </Tappable>
         {isEdit && (
           <Tappable
@@ -430,6 +482,8 @@ export default function ItemFormScreen() {
             <Text style={{ color: colors.text, fontWeight: '500', fontSize: theme.type.md }}>Revert changes</Text>
           </Tappable>
         )}
+        </>
+        )}
       </View>
 
       {/* Category bottom sheet */}
@@ -439,7 +493,7 @@ export default function ItemFormScreen() {
         type="category"
         options={categoryOptions}
         selected={category}
-        onSelect={v => { setCategory(v); setCategorySheet(false); }}
+        onSelect={v => { setCategory(v); setCategoryTouched(true); setCategorySheet(false); }}
         onCreate={value => { const option = addHouseOption('category', value, 'pricetag-outline'); if (option) { setCategory(option.name); setCategorySheet(false); } }}
         onClose={() => setCategorySheet(false)}
       />
@@ -452,7 +506,7 @@ export default function ItemFormScreen() {
         type="location"
         options={locationOptions}
         selected={location}
-        onSelect={v => { setLocation(v); setLocationSheet(false); }}
+        onSelect={v => { setLocation(v); setLocationTouched(true); setLocationSheet(false); }}
         onCreate={value => { const option = addHouseOption('location', value, 'location-outline'); if (option) { setLocation(option.name); setLocationSheet(false); } }}
         onClose={() => setLocationSheet(false)}
       />

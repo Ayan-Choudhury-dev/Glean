@@ -122,3 +122,29 @@ export function categorize(input: {
 
   return best;
 }
+
+/**
+ * Where a category usually lives.
+ *
+ * A guess, shown as one, and only used until the person picks something else.
+ * Empty string means "no idea" rather than a wrong answer.
+ */
+export function predictLocation(category: string): string {
+  switch (category) {
+    case 'Dairy':
+    case 'Vegetables':
+    case 'Fruits':
+    case 'Meat & Fish':
+      return 'Fridge';
+    case 'Grains':
+    case 'Spices':
+    case 'Beverages':
+    case 'Snacks':
+      return 'Pantry';
+    case 'Cleaning':
+    case 'Personal Care':
+      return 'Cupboard';
+    default:
+      return '';
+  }
+}
