@@ -265,9 +265,12 @@ export default function ItemFormScreen() {
             so changing the quantity never reflows the form. */}
         <View style={{ marginTop: 8, marginBottom: 20 }}>
           <Tappable
-            onPress={() => setPhotoOpen(true)}
+            onPress={() => { void pickImage(); }}
+            onLongPress={() => setPhotoOpen(true)}
+            delayLongPress={350}
             accessibilityRole="button"
-            accessibilityLabel="Item photo — tap to view or change"
+            accessibilityLabel={imageUri ? 'Change the photo' : 'Add a photo'}
+            accessibilityHint="Long press to view or remove the photo"
           >
             {imageUri ? (
               <Image
@@ -371,9 +374,41 @@ export default function ItemFormScreen() {
           >
             {category && <Ionicons name={(categoryOptions.find(option => option.name === category)?.icon ?? 'pricetag-outline') as React.ComponentProps<typeof Ionicons>['name']} size={18} color={colors.textMuted} style={{ marginRight: 10 }} />}
             <Text style={{ flex: 1, fontSize: theme.type.label, color: category ? colors.text : colors.textFaint }}>{category || 'Select a category'}</Text>
+            <Text style={{ fontSize: theme.type.caption, color: colors.accent, fontFamily: theme.fonts.medium, marginRight: 6 }}>Change</Text>
             <Ionicons name="chevron-down" size={16} color={colors.textFaint} />
           </Tappable>
         </Field>
+
+        {/* Quick picks: the guess is usually right, so changing it is one tap */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: -6, marginBottom: 16 }}>
+          {categoryOptions.slice(0, 6).map(option => {
+            const on = category === option.name;
+            return (
+              <Tappable
+                key={option.id}
+                onPress={() => { setCategory(option.name); setCategoryTouched(true); }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={`Category ${option.name}`}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  minHeight: 36,
+                  paddingHorizontal: 12,
+                  borderRadius: theme.radii.pill,
+                  borderWidth: 1,
+                  borderColor: on ? colors.accent : colors.border,
+                  backgroundColor: on ? colors.accentSoft : colors.surface,
+                }}
+              >
+                <Text style={{ fontSize: theme.type.caption, color: on ? colors.accent : colors.text, fontFamily: theme.fonts.medium }}>
+                  {option.name}
+                </Text>
+              </Tappable>
+            );
+          })}
+        </View>
 
         {/* Location */}
         <Field label="Location">
@@ -385,9 +420,40 @@ export default function ItemFormScreen() {
           >
             {location && <Ionicons name={(locationOptions.find(option => option.name === location)?.icon ?? 'location-outline') as React.ComponentProps<typeof Ionicons>['name']} size={18} color={colors.textMuted} style={{ marginRight: 10 }} />}
             <Text style={{ flex: 1, fontSize: theme.type.label, color: location ? colors.text : colors.textFaint }}>{location || 'Where is it stored?'}</Text>
+            <Text style={{ fontSize: theme.type.caption, color: colors.accent, fontFamily: theme.fonts.medium, marginRight: 6 }}>Change</Text>
             <Ionicons name="chevron-down" size={16} color={colors.textFaint} />
           </Tappable>
         </Field>
+
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: -6, marginBottom: 16 }}>
+          {locationOptions.slice(0, 5).map(option => {
+            const on = location === option.name;
+            return (
+              <Tappable
+                key={option.id}
+                onPress={() => { setLocation(option.name); setLocationTouched(true); }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={`Location ${option.name}`}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  minHeight: 36,
+                  paddingHorizontal: 12,
+                  borderRadius: theme.radii.pill,
+                  borderWidth: 1,
+                  borderColor: on ? colors.accent : colors.border,
+                  backgroundColor: on ? colors.accentSoft : colors.surface,
+                }}
+              >
+                <Text style={{ fontSize: theme.type.caption, color: on ? colors.accent : colors.text, fontFamily: theme.fonts.medium }}>
+                  {option.name}
+                </Text>
+              </Tappable>
+            );
+          })}
+        </View>
 
         {/* Stock over time, from the log — explains the restock suggestion */}
         {isEdit && (() => {
