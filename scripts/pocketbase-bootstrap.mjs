@@ -165,6 +165,30 @@ async function main() {
     console.log(`ok    ${collection.name}`);
   }
 
+  // Invites: a code an admin hands out so someone can set their own password
+  // without ever receiving one. Two fields on the user record.
+  const usersCollection = await api('/api/collections/users', { headers });
+  if (usersCollection.ok) {
+    const fields = usersCollection.body.fields ?? [];
+    const hasInvite = fields.some(f => f.name === 'invite_code');
+    if (!hasInvite) {
+      const patched = await api('/api/collections/users', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          fields: [
+            ...fields,
+            { name: 'invite_code', type: 'text', max: 12 },
+            { name: 'invite_expires', type: 'date' },
+          ],
+        }),
+      });
+      console.log(patched.ok ? 'ok    invite fields' : `fail  invite fields ${patched.status}`);
+    } else {
+      console.log('skip  invite fields (exist)');
+    }
+  }
+
   // Household management happens in the web UI, so members may read and add
   // each other. Any account on the server can do this; that is the single
   // household model.

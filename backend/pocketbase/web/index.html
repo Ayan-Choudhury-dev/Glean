@@ -143,6 +143,22 @@
     <p class="foot">This account lives on this server — the same one the phones use.</p>
   </section>
 
+  <!-- Claim an account -->
+  <section id="claim" class="hidden">
+    <h2>Set your password</h2>
+    <div class="card pad">
+      <form id="claim-form">
+        <p class="meta" style="margin:0 0 4px">You were invited to this household. Choose a password and you are in.</p>
+        <label for="claim-password">Password</label>
+        <input id="claim-password" type="password" autocomplete="new-password" minlength="8" required>
+        <label for="claim-confirm">Again</label>
+        <input id="claim-confirm" type="password" autocomplete="new-password" minlength="8" required>
+        <div style="margin-top:18px"><button class="primary" type="submit" id="claim-button">Set password</button></div>
+        <p class="error" id="claim-error"></p>
+      </form>
+    </div>
+  </section>
+
   <!-- Loading -->
   <section id="loading" class="hidden">
     <h2>Household</h2>
@@ -179,12 +195,17 @@
       </form>
 
       <div id="add-result" class="hidden" style="border-top:1px solid var(--line);padding:16px">
-        <p class="meta" style="margin:0 0 6px">Account created. Passphrase, shown once:</p>
+        <p class="meta" style="margin:0 0 6px">Account created. Send them this link — they choose their own password.</p>
         <div class="copy" style="margin-top:0">
-          <span class="mono" id="add-passphrase" style="font-size:16px;color:var(--ink)"></span>
-          <button class="quiet" id="copy-passphrase">Copy</button>
+          <span class="mono" id="add-link" style="font-size:13px;color:var(--ink)"></span>
+          <button class="quiet" id="copy-link">Copy link</button>
         </div>
-        <p class="meta" style="margin:10px 0 0">They open Glean, choose <strong>I run the server</strong>, sign in with this, then change it in Settings.</p>
+        <div class="copy">
+          <span class="meta">or the code</span>
+          <span class="code" id="add-code" style="font-size:20px;letter-spacing:.18em"></span>
+          <button class="quiet" id="copy-invite">Copy</button>
+        </div>
+        <p class="meta" style="margin:10px 0 0">Valid 24 hours, one use. They can also type it in the app: Settings → Add member → I have a code.</p>
       </div>
     </div>
 
@@ -223,6 +244,14 @@ const el = id => document.getElementById(id);
 const show = (id, on = true) => el(id).classList.toggle('hidden', !on);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtDate = iso => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+/** Six characters, same alphabet as the joining codes: no I/O/0/1. */
+function makeCode() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for (let i = 0; i < 6; i += 1) out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  return out;
+}
 
 /** Three words and a number: long enough for PocketBase, easy to read aloud. */
 function makePassphrase() {
@@ -287,13 +316,20 @@ el('add-form').querySelector('form').addEventListener('submit', async event => {
   event.preventDefault();
   el('add-error').textContent = '';
   const email = el('new-email').value.trim();
-  const password = makePassphrase();
+  // A password nobody is told: the account is opened by claiming the code.
+  const password = makePassphrase() + '-' + makeCode();
   try {
-    await pb.collection('users').create({
+    const created = await pb.collection('users').create({
       email, password, passwordConfirm: password, emailVisibility: true, verified: true,
     });
+    const code = makeCode();
+    await pb.collection('users').update(created.id, {
+      invite_code: code,
+      invite_expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    });
     el('new-email').value = '';
-    el('add-passphrase').textContent = password;
+    el('add-code').textContent = code;
+    el('add-link').textContent = `${window.location.origin}/?invite=${code}`;
     show('add-result');
     toast('Account created');
     await render();
@@ -353,7 +389,8 @@ el('make-code').addEventListener('click', async () => {
   }
 });
 
-el('copy-passphrase').addEventListener('click', () => copy(el('add-passphrase').textContent, 'Passphrase'));
+el('copy-link').addEventListener('click', () => copy(el('add-link').textContent, 'Link'));
+el('copy-invite').addEventListener('click', () => copy(el('add-code').textContent, 'Code'));
 
 el('copy-code').addEventListener('click', () => copy(el('code').textContent, 'Code'));
 el('copy-address').addEventListener('click', () => copy(window.location.origin, 'Address'));
@@ -440,10 +477,57 @@ function askRemove(button, members) {
   });
 }
 
+/* ── Claim an invite ─────────────────────────────────────────────────────── */
+el('claim-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = el('claim-button');
+  el('claim-error').textContent = '';
+
+  const password = el('claim-password').value;
+  const confirm = el('claim-confirm').value;
+  if (password !== confirm) {
+    el('claim-error').textContent = 'The two passwords do not match.';
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = 'Setting…';
+  try {
+    const res = await fetch(`/api/glean/claim?code=${encodeURIComponent(invite)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: invite, password }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      el('claim-error').textContent = body.message || 'That did not work. Ask for a new link.';
+      return;
+    }
+    await pb.collection('users').authWithPassword(body.email, password);
+    history.replaceState({}, '', '/');
+    show('claim', false);
+    toast('Welcome to the household');
+    await render();
+  } catch {
+    el('claim-error').textContent = 'Could not reach the server.';
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Set password';
+  }
+});
+
 /* ── Boot ────────────────────────────────────────────────────────────────── */
 el('foot').textContent = `Glean · ${window.location.host}`;
-if (pb.authStore.isValid) render();
-else show('signin');
+
+const invite = new URLSearchParams(window.location.search).get('invite') || '';
+if (invite) {
+  show('claim');
+  el('claim-password').focus();
+} else if (pb.authStore.isValid) {
+  render();
+} else {
+  show('signin');
+}
 </script>
 </body>
 </html>

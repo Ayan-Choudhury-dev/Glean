@@ -42,6 +42,16 @@ Members     who can sign in; add an account, remove one
 Join        create a six-character code and a QR for it
 ```
 
+Adding a member does not involve a password. You enter their email, the page
+makes the account and hands you a link (and a code). They open the link, choose
+their own password, and the invite is burned. The code lives 24 hours and is
+single use.
+
+That one call is a server-side hook: `backend/pocketbase/hooks/main.pb.js`
+exposes `POST /api/glean/claim`, which is what lets someone set a password
+without ever holding one. The container already runs with `--hooksDir=/pb_hooks`,
+and `docker-compose.yml` mounts `./hooks` there.
+
 Served from `backend/pocketbase/web/` mounted at `/pb_public` (read-only). The
 admin UI at `/_/` is separate and needs the superuser: that is where you would
 look at raw rows or take a backup.
