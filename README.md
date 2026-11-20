@@ -140,6 +140,7 @@ removes the data.
 - [`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md) — running your own server
 - [`docs/DATA_IMPORTS.md`](docs/DATA_IMPORTS.md) — CSV import/export format
 - [`docs/FAQ.md`](docs/FAQ.md) — common questions
+- [`docs/LAUNCH.md`](docs/LAUNCH.md) — what is ready and what is not
 
 ## Roadmap
 
