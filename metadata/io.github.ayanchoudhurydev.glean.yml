@@ -33,9 +33,9 @@ Repo: https://github.com/Ayan-Choudhury-dev/Glean
 # nodejs is pinned because the lockfile is regenerated against 22; npm ci fails
 # on older majors for some Expo packages.
 Builds:
-  - versionName: 1.0.13
-    versionCode: 14
-    commit: v1.0.13
+  - versionName: 1.0.18
+    versionCode: 19
+    commit: v1.0.18
     subdir: android/app
     sudo:
       - apt-get update
@@ -50,5 +50,5 @@ Builds:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.0.13
-CurrentVersionCode: 14
+CurrentVersion: 1.0.18
+CurrentVersionCode: 19

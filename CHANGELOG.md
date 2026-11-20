@@ -1,22 +1,60 @@
 # Changelog
 
-## Unreleased
+## 1.0.18
 
-- Dropped the Capacitor/React web rewrite; Glean stays a native Expo app.
-- Docs: architecture, mobile builds, store status, API, CSV format, FAQ, design
-  tokens.
-- `scripts/release.sh` cuts a per-ABI APK release; `scripts/screenshots.mjs`
-  captures store screenshots from a device.
-- Play/F-Droid listing copy under `fastlane/metadata/android/en-US/`.
-- Cleanup: removed the unused `expo-clipboard` dependency and the legacy
-  auth-based `supabase/` schema.
+- Saving an edit keeps you on the item instead of throwing you back to the list.
+- Tap the item photo to replace it; long press still opens the viewer.
+- Category and location on a new item now say "Change" and carry quick-pick
+  chips, so the suggestion can be corrected without opening a sheet.
 
-## Unreleased
+## 1.0.17
 
-- The Postgres + PostgREST bundle is gone; `backend/pocketbase/` is the backend.
-  Its compose file stays in git history at `v1.0.13`.
-- Restock suggestions are on, the add-item sheet stays open across adds, and
-  clearing purchased tears the receipt away.
+- The household has a web UI at the server: sign in, see members, add or remove
+  an account, and make a joining code with a QR.
+- Scanning that QR with the camera app opens Glean with the address and code
+  filled in.
+- Restock suggestions only appear when there is evidence: a measured rate from
+  two or more uses, or a pantry untouched for three weeks. Category guesses no
+  longer count.
+- Item detail shows a 30-day stock sparkline and the measured usage rate.
+- Adding an item is two steps: name and quantity, then where it lives, with the
+  category guessed from the name.
+
+## 1.0.16
+
+- Fixed: connecting to a PocketBase server showed no sign-in fields, and the
+  "this server is empty → upload" card was missing. Both were regressions from
+  the 1.0.14 rebuild.
+- Releases now run a preflight (types, tests, a real bundle, and a check that
+  every screen state actually renders) before a tag is pushed.
+
+## 1.0.15
+
+- Category and location pickers open again inside the item form.
+
+## 1.0.14
+
+- Add member asks one question first — I have a code, I run the server, or I
+  haven't set one up — and shows only that path's fields.
+- The self-hosted backend is PocketBase. The Postgres bundle is gone from the
+  repo; its compose file remains in git at v1.0.13.
+- Restock suggestions can be turned on again; the add-item sheet stays open
+  across adds; clearing purchased tears the receipt away.
+
+## 1.0.13
+
+- The "stocked" stamp stays on screen before the shopping list switches tabs.
+
+## 1.0.12
+
+- Tap feedback uses a 12 ms vibration, which is what the phone can actually feel.
+- Category and location pickers use the gesture sheet.
+
+## 1.0.11
+
+- Haptics moved off the vibrator buzz and onto the system gesture constants, with
+  a bench in Developer to compare them.
+- Sheets let go: a downward drag hands off from a scrolled list.
 
 ## 1.0.10
 

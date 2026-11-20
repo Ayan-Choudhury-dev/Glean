@@ -24,7 +24,7 @@ store/               Zustand store: every mutation lives here
 lib/db/              SQLite client and DDL (client.ts, schema.ts)
 lib/                 sync.ts, serverConfig.ts, appearance.ts, upload.ts
 constants/           theme tokens (theme.ts), feature flags (config.ts)
-backend/             Docker bundle: Postgres + PostgREST + nginx dashboard
+backend/pocketbase/  PocketBase container + the household web UI
 docs/                this file, API.md, self-hosting notes
 ```
 
@@ -58,7 +58,7 @@ theme from `useColors()`, the sync error banner, and the overlay host.
  └──────┬───────────────────┬───┘
         │ localSaveHouse    │ pushHouse (only if a server is configured)
  ┌──────▼──────────┐  ┌─────▼──────────────────┐
- │ glean.db SQLite │  │ PostgREST over HTTP(S) │
+ │ glean.db SQLite │  │ PocketBase over HTTP(S) │
  │ WAL, 7 tables   │  │ self-hosted, anon key  │
  └─────────────────┘  └────────────────────────┘
 ```

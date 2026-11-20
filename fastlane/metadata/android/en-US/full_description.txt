@@ -16,7 +16,8 @@ Recent activity
 See what was used and restocked recently, per item.
 
 Barcode scanning
-Scan a product barcode with the camera when adding an item.
+Scan a product barcode with the camera when adding an item. The category and
+storage location are filled in from the name, and can be changed in one tap.
 
 Import and export
 Bring an existing list in as CSV, and export your inventory as CSV to back it
@@ -26,10 +27,17 @@ Works offline
 Everything lives in a local SQLite database on the phone. No internet
 connection is required, there is no sign-in, and nothing is uploaded.
 
+Restock suggestions that mean something
+Glean watches what you actually use and only suggests buying something again
+when the history says it will run out - not just because the count is low. Each
+item shows its stock over the last month and how fast it goes.
+
 Optional self-hosted sync
-If you want the same pantry on more than one device, you can point the app at
-your own server running the bundled Docker setup. This is entirely optional;
-the app works fully without it.
+If you want the same pantry on more than one device, point the app at your own
+server: one Docker command runs PocketBase, which keeps the pantry and syncs it
+live. That server also serves a small household page for managing accounts and
+adding a phone with a QR code. Entirely optional - the app works fully without
+it.
 
 PRIVACY
 
