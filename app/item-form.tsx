@@ -66,13 +66,17 @@ export default function ItemFormScreen() {
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const [toastMsg, setToastMsg] = useState('');
 
-  const showToastAndDismiss = (msg: string) => {
+  /**
+   * `dismiss` is false when editing: saving an item you are looking at should
+   * confirm in place, not throw you back to the list you came from.
+   */
+  const showToast = (msg: string, dismiss = true) => {
     setToastMsg(msg);
     Animated.sequence([
       Animated.timing(toastOpacity, { toValue: 1, duration: 150, useNativeDriver: true }),
       Animated.delay(900),
       Animated.timing(toastOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-    ]).start(() => router.dismiss());
+    ]).start(() => { if (dismiss) router.dismiss(); });
   };
 
   const [categorySheet, setCategorySheet] = useState(false);
@@ -162,6 +166,13 @@ export default function ItemFormScreen() {
       });
       commitImage(existing.id);
 
+      // Stay on the page, so the form must now agree with what was stored —
+      // otherwise Save stays enabled on values that are already saved.
+      setName(trimmedName);
+      setQty(String(parsedQty));
+      setCategory(category || 'Other');
+      setImageDirty(false);
+
       if (prevQty > 0 && parsedQty === 0) {
         setPendingZeroQty({ itemId: existing.id, itemName: trimmedName, prevQty });
         setZeroQtySheet(true);
@@ -171,7 +182,7 @@ export default function ItemFormScreen() {
         } else if (parsedQty > prevQty) {
           logConsumption(existing.id, trimmedName, parsedQty - prevQty, 'restocked');
         }
-        showToastAndDismiss('Changes saved');
+        showToast('Changes saved', false);
       }
     } else {
       const newId = addInventoryItem({
@@ -182,7 +193,7 @@ export default function ItemFormScreen() {
       });
       commitImage(newId);
       if (parsedQty > 0) logConsumption(newId, trimmedName, parsedQty, 'added');
-      showToastAndDismiss('Item added');
+      showToast('Item added');
     }
   };
 
