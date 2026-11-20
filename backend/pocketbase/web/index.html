@@ -170,15 +170,22 @@
       <form class="pad">
         <label for="new-email">Email</label>
         <input id="new-email" type="email" autocomplete="off" required>
-        <label for="new-password">Temporary password</label>
-        <input id="new-password" type="text" autocomplete="off" minlength="8" required>
-        <p class="meta" style="margin:8px 0 0">They sign in on their phone with these, then change it here.</p>
+        <p class="meta" style="margin:8px 0 0">Glean makes a one-time passphrase. Give it to them; they set their own password on the phone.</p>
         <div style="margin-top:18px;display:flex;gap:8px">
           <button class="primary" type="submit">Create account</button>
           <button type="button" id="add-cancel">Cancel</button>
         </div>
         <p class="error" id="add-error"></p>
       </form>
+
+      <div id="add-result" class="hidden" style="border-top:1px solid var(--line);padding:16px">
+        <p class="meta" style="margin:0 0 6px">Account created. Passphrase, shown once:</p>
+        <div class="copy" style="margin-top:0">
+          <span class="mono" id="add-passphrase" style="font-size:16px;color:var(--ink)"></span>
+          <button class="quiet" id="copy-passphrase">Copy</button>
+        </div>
+        <p class="meta" style="margin:10px 0 0">They open Glean, choose <strong>I run the server</strong>, sign in with this, then change it in Settings.</p>
+      </div>
     </div>
 
     <h2>Add someone to a phone</h2>
@@ -216,6 +223,13 @@ const el = id => document.getElementById(id);
 const show = (id, on = true) => el(id).classList.toggle('hidden', !on);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtDate = iso => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+/** Three words and a number: long enough for PocketBase, easy to read aloud. */
+function makePassphrase() {
+  const words = ['otter', 'maple', 'pepper', 'ladder', 'copper', 'willow', 'harbor', 'thistle', 'amber', 'quartz', 'meadow', 'cobalt', 'saffron', 'pebble', 'juniper', 'cinder'];
+  const pick = () => words[Math.floor(Math.random() * words.length)];
+  return `${pick()}-${pick()}-${1000 + Math.floor(Math.random() * 9000)}`;
+}
 
 let toastTimer;
 function toast(message) {
@@ -273,14 +287,14 @@ el('add-form').querySelector('form').addEventListener('submit', async event => {
   event.preventDefault();
   el('add-error').textContent = '';
   const email = el('new-email').value.trim();
-  const password = el('new-password').value;
+  const password = makePassphrase();
   try {
     await pb.collection('users').create({
       email, password, passwordConfirm: password, emailVisibility: true, verified: true,
     });
     el('new-email').value = '';
-    el('new-password').value = '';
-    show('add-form', false);
+    el('add-passphrase').textContent = password;
+    show('add-result');
     toast('Account created');
     await render();
   } catch (error) {
@@ -338,6 +352,8 @@ el('make-code').addEventListener('click', async () => {
     button.textContent = 'Create a code';
   }
 });
+
+el('copy-passphrase').addEventListener('click', () => copy(el('add-passphrase').textContent, 'Passphrase'));
 
 el('copy-code').addEventListener('click', () => copy(el('code').textContent, 'Code'));
 el('copy-address').addEventListener('click', () => copy(window.location.origin, 'Address'));
