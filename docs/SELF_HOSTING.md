@@ -20,41 +20,20 @@ cp .env.example .env
 docker compose up -d          # http://<host>:8090
 ```
 
-Open `http://<host>:8090/_/` and create the superuser, then:
+That is the whole install. Two things remain, both in the browser:
 
-```bash
-PB_URL=http://<host>:8090 PB_ADMIN_EMAIL=you@example.com PB_ADMIN_PASSWORD=... \
-  node scripts/pocketbase-bootstrap.mjs
-```
+1. Open `http://<host>:8090/_/`. PocketBase asks you to create its superuser —
+   that is the admin password, not a household one.
+2. Settings → **Import collections**, and drop in
+   `backend/pocketbase/collections.json`. That creates the six tables, their
+   rules, and the invite fields.
 
-That creates the six collections. Finally, in the UI, create one **users**
-record — the account each phone signs in with. Accounts live on your server, not
-ours.
+Then open `http://<host>:8090/` and use **Add a member** to create the first
+household account. Send that link to the people you live with; they choose their
+own passwords.
 
-## The web UI
-
-Open `http://<host>:8090/` and sign in with a household account. It manages the
-household, not the pantry:
-
-```
-Household   name and how many items are shared
-Members     who can sign in; add an account, remove one
-Join        create a six-character code and a QR for it
-```
-
-Adding a member does not involve a password. You enter their email, the page
-makes the account and hands you a link (and a code). They open the link, choose
-their own password, and the invite is burned. The code lives 24 hours and is
-single use.
-
-That one call is a server-side hook: `backend/pocketbase/hooks/main.pb.js`
-exposes `POST /api/glean/claim`, which is what lets someone set a password
-without ever holding one. The container already runs with `--hooksDir=/pb_hooks`,
-and `docker-compose.yml` mounts `./hooks` there.
-
-Served from `backend/pocketbase/web/` mounted at `/pb_public` (read-only). The
-admin UI at `/_/` is separate and needs the superuser: that is where you would
-look at raw rows or take a backup.
+No Node, no CLI, nothing to run from another machine. `collections.json` is
+generated from a working server, so it always matches the app.
 
 ## Point the app at it
 
