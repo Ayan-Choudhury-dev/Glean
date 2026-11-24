@@ -19,6 +19,14 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
     dbPromise = SQLite.openDatabaseAsync(DB_NAME).then(async (db) => {
       await db.execAsync(DDL);
+      // result_qty arrived after the first release; old databases need the
+      // column added by hand because CREATE TABLE IF NOT EXISTS will not.
+      const columns = await db.getAllAsync<{ name: string }>(
+        "PRAGMA table_info(consumption_logs)"
+      );
+      if (!columns.some(c => c.name === 'result_qty')) {
+        await db.execAsync('ALTER TABLE consumption_logs ADD COLUMN result_qty INTEGER');
+      }
       return db;
     });
   }

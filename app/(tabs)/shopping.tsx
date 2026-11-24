@@ -16,6 +16,7 @@ import { FEATURES } from '@/constants/config';
 import { useC, useColors } from '@/lib/appearance';
 import { showDialog } from '@/lib/overlay';
 import { useDevFlags } from '@/lib/devFlags';
+import { SyncStatusChip } from '@/components/SyncStatusChip';
 import { toggleHaptic, confirmHaptic } from '@/lib/haptics';
 
 const PAD = 24;
@@ -413,6 +414,7 @@ export default function ShoppingScreen() {
         scrollY={scrollY}
         right={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <SyncStatusChip />
             <Tappable
               onPress={shareList}
               hitSlop={10}

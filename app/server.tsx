@@ -146,6 +146,7 @@ export default function ServerScreen() {
         backend: 'pocketbase',
         token: pocketBaseToken(),
       });
+      useGleanStore.setState({ serverConfigured: true });
       const houseId = pairCode.trim()
         ? await redeemPairingCode(pairCode)
         : await firstServerHouseId();
@@ -217,6 +218,7 @@ export default function ServerScreen() {
   const finish = async (direction: 'upload' | 'adopt') => {
     const config = cfg();
     await saveServerConfig(config);
+    useGleanStore.setState({ serverConfigured: true });
     initSupabase(config);
 
     if (direction === 'adopt' && remote?.houseId) {
@@ -255,6 +257,7 @@ export default function ServerScreen() {
       onConfirm: () => {
         clearSupabase();
         void clearServerConfig().then(() => {
+          useGleanStore.setState({ serverConfigured: false });
           setPhase('idle');
           setSavedAddress(null);
           setRemote(null);

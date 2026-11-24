@@ -98,6 +98,7 @@ export default function RootLayout() {
   useEffect(() => {
     getServerConfig().then(cfg => {
       if (!cfg) return;
+      useGleanStore.setState({ serverConfigured: true });
       if (cfg.backend === 'pocketbase') {
         initPocketBase(cfg.url);
         restorePocketBaseAuth(cfg.token ?? '');

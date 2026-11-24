@@ -30,11 +30,13 @@ import { RECENT_ACTIVITY_DISPLAY_LIMIT } from '@/constants/config';
 import { showDialog } from '@/lib/overlay';
 import { categorize, predictLocation } from '@/lib/categorize';
 import { StockSparkline } from '@/components/StockSparkline';
+import { useOnline } from '@/lib/netStatus';
 import { buildStockSeries, usageLabel } from '@/lib/stockHistory';
 
 export default function ItemFormScreen() {
   const insets = useSafeAreaInsets();
   const colors = useColors();
+  const online = useOnline();
   const { itemId } = useLocalSearchParams<{ itemId?: string }>();
   const { inventory, consumptionLogs, addInventoryItem, editInventoryItem, deleteInventoryItem,
           addToShoppingList, logConsumption, houseOptions, addHouseOption, shoppingList, house } = useGleanStore();
@@ -89,6 +91,9 @@ export default function ItemFormScreen() {
   const [categoryTouched, setCategoryTouched] = useState(isEdit);
   const [locationTouched, setLocationTouched] = useState(isEdit);
   const [categoryGuess, setCategoryGuess] = useState('');
+  /** The count sheet: the way reality gets written back into the app. */
+  const [countOpen, setCountOpen] = useState(false);
+  const [countDraft, setCountDraft] = useState(0);
   const [locationSheet, setLocationSheet] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [zeroQtySheet, setZeroQtySheet] = useState(false);
@@ -182,7 +187,9 @@ export default function ItemFormScreen() {
         } else if (parsedQty > prevQty) {
           logConsumption(existing.id, trimmedName, parsedQty - prevQty, 'restocked');
         }
-        showToast('Changes saved', false);
+        showToast(online === false
+          ? 'Saved on this phone — syncs when back online'
+          : 'Changes saved', false);
       }
     } else {
       const newId = addInventoryItem({
@@ -334,7 +341,24 @@ export default function ItemFormScreen() {
 
         {/* Quantity */}
         <View style={{ backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: theme.radii.lg, padding: 20, marginBottom: 16 }}>
-          <Text style={{ fontSize: theme.type.caption, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>Quantity</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <Text style={{ flex: 1, fontSize: theme.type.caption, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+              Quantity
+            </Text>
+            {isEdit && (
+              <Tappable
+                onPress={() => { setCountDraft(parseInt(qty, 10) || 0); setCountOpen(true); }}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Count what is actually left"
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+              >
+                <Ionicons name="checkmark-done-outline" size={15} color={colors.accent} />
+                <Text style={{ fontSize: theme.type.caption, color: colors.accent, fontFamily: theme.fonts.medium }}>Count</Text>
+              </Tappable>
+            )}
+          </View>
+          <CountAge />
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Tappable
               onPress={() => setQty(String(Math.max(0, (parseInt(qty, 10) || 0) - 1)))}
@@ -478,7 +502,9 @@ export default function ItemFormScreen() {
               {logs.map((log, i) => {
                 const action = log.action ?? 'used';
                 const dotColor = action === 'added' ? colors.info : action === 'restocked' ? colors.success : colors.primary;
-                const label = action === 'added' ? `Added ${log.qty} unit${log.qty !== 1 ? 's' : ''}` :
+                const label = action === 'counted'
+                  ? `Counted ${log.result_qty ?? log.qty} ${log.result_qty === 1 || log.qty === 1 ? 'unit' : 'units'}`
+                  : action === 'added' ? `Added ${log.qty} unit${log.qty !== 1 ? 's' : ''}` :
                   action === 'restocked' ? `Restocked ${log.qty} unit${log.qty !== 1 ? 's' : ''}` :
                     `Used ${log.qty} unit${log.qty !== 1 ? 's' : ''}`;
                 return (
@@ -589,6 +615,94 @@ export default function ItemFormScreen() {
       />
       )}
 
+      {/* Count sheet — reality, written down */}
+      <NativeSheet visible={countOpen} onClose={() => setCountOpen(false)}>
+        <View style={{ paddingHorizontal: 24, paddingTop: 4, paddingBottom: 32 }}>
+          <Text style={{ fontSize: theme.type.heading, color: colors.text, fontFamily: theme.fonts.display }}>
+            Count what is actually there
+          </Text>
+          <Text style={{ color: colors.textMuted, fontSize: theme.type.label, marginTop: 8, lineHeight: 21 }}>
+            Look in {location || 'the cupboard'} and type what you see. This replaces the number for everyone, not just this phone.
+          </Text>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 18, marginTop: 24 }}>
+            <Tappable
+              onPress={() => setCountDraft(Math.max(0, countDraft - 1))}
+              accessibilityRole="button"
+              accessibilityLabel="One less"
+              style={{ width: 52, height: 52, borderRadius: theme.radii.xl, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="remove" size={22} color={colors.text} />
+            </Tappable>
+            <Text style={{ minWidth: 72, textAlign: 'center', fontSize: 44, color: colors.text, fontFamily: theme.fonts.monoMedium, fontVariant: ['tabular-nums'] }}>
+              {countDraft}
+            </Text>
+            <Tappable
+              onPress={() => setCountDraft(countDraft + 1)}
+              accessibilityRole="button"
+              accessibilityLabel="One more"
+              style={{ width: 52, height: 52, borderRadius: theme.radii.xl, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="add" size={22} color={colors.accent} />
+            </Tappable>
+          </View>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 20 }}>
+            {[0, 1, 2, 3, 5, 10].map(n => (
+              <Tappable
+                key={n}
+                onPress={() => setCountDraft(n)}
+                accessibilityRole="button"
+                accessibilityLabel={`Count ${n}`}
+                style={{
+                  minWidth: 44,
+                  height: 40,
+                  paddingHorizontal: 12,
+                  borderRadius: theme.radii.pill,
+                  borderWidth: 1,
+                  borderColor: countDraft === n ? colors.accent : colors.border,
+                  backgroundColor: countDraft === n ? colors.accentSoft : colors.surface,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: countDraft === n ? colors.accent : colors.text, fontFamily: theme.fonts.medium, fontSize: theme.type.label }}>{n}</Text>
+              </Tappable>
+            ))}
+          </View>
+
+          <Tappable
+            onPress={() => {
+              const previous = parseInt(qty, 10) || 0;
+              setQty(String(countDraft));
+              logConsumption(
+                existing!.id,
+                existing!.name,
+                countDraft - previous,
+                'counted',
+                countDraft,
+              );
+              setCountOpen(false);
+              showToast(
+                online === false
+                  ? `Counted ${countDraft} — saved here, syncs when back online`
+                  : `Counted ${countDraft}`,
+                false,
+              );
+            }}
+            haptic
+            hapticStyle="confirm"
+            accessibilityRole="button"
+            accessibilityLabel={`Save the count of ${countDraft}`}
+            style={{ marginTop: 24, backgroundColor: colors.accent, borderRadius: theme.radii.md, minHeight: 52, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Text style={{ color: colors.onAccent, fontSize: theme.type.md, fontFamily: theme.fonts.medium }}>
+              Counted {countDraft}
+            </Text>
+          </Tappable>
+        </View>
+      </NativeSheet>
+
       {/* Photo expanded view */}
       <NativeSheet visible={photoOpen} onClose={() => setPhotoOpen(false)}>
         <View style={{ paddingHorizontal: 24, paddingTop: 4, paddingBottom: 24, alignItems: 'center' }}>
@@ -667,6 +781,34 @@ export default function ItemFormScreen() {
       </Animated.View>
     </KeyboardAvoidingView>
     </BottomSheetModalProvider>
+  );
+}
+
+/** How much to trust the number: when it was last counted, and whether the
+ *  phone is offline right now. */
+function CountAge() {
+  const colors = useColors();
+  const online = useOnline();
+  const { consumptionLogs } = useGleanStore();
+  const { itemId } = useLocalSearchParams<{ itemId?: string }>();
+
+  const lastCount = consumptionLogs
+    .filter(l => l.inventory_id === itemId && l.action === 'counted')
+    .sort((a, b) => new Date(b.consumed_at).getTime() - new Date(a.consumed_at).getTime())[0];
+
+  if (!online) {
+    return (
+      <Text style={{ fontSize: theme.type.caption, color: colors.warning, marginTop: 10 }}>
+        Not connected — this may be out of date
+      </Text>
+    );
+  }
+  if (!lastCount) return null;
+  const days = Math.floor((Date.now() - new Date(lastCount.consumed_at).getTime()) / 86400000);
+  return (
+    <Text style={{ fontSize: theme.type.caption, color: colors.textMuted, marginTop: 10 }}>
+      Counted {days <= 0 ? 'today' : `${days} day${days === 1 ? '' : 's'} ago`}
+    </Text>
   );
 }
 

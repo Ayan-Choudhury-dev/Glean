@@ -20,6 +20,7 @@ import { theme } from '@/constants/theme';
 import { useC, useColors } from '@/lib/appearance';
 import { showMenu } from '@/lib/overlay';
 import { categoryImage } from '@/constants/categoryImages';
+import { SyncStatusChip } from '@/components/SyncStatusChip';
 import type { ImageSourcePropType } from 'react-native';
 import { Tappable } from '../../components/ui/tappable';
 import { Text } from '../../components/ui/text';
@@ -424,6 +425,7 @@ export default function InventoryScreen() {
         scrollY={scrollY}
         right={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <SyncStatusChip />
             <Tappable
               onPress={openSort}
               hitSlop={10}

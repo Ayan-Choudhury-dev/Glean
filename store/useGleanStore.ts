@@ -75,9 +75,11 @@ export interface ConsumptionLog {
   house_id:     string;
   consumed_at:  string;
   qty:          number;
-  action:       'used' | 'restocked' | 'added';
+  action:       'used' | 'restocked' | 'added' | 'counted';
   /** Member who made the change (null on rows written before attribution existed). */
   user_id?:     string | null;
+  /** Absolute level after a 'counted' entry; absent for the other actions. */
+  result_qty?:  number;
 }
 
 export type HouseOptionType = 'category' | 'location';
@@ -151,6 +153,8 @@ interface GleanState {
   /** True once the persisted session has been restored (or confirmed absent). */
   sessionLoaded: boolean;
   syncError: string | null;
+  /** True when a self-hosted server is configured (drives the sync chips). */
+  serverConfigured: boolean;
   /** ISO timestamp of the last successful push to the self-hosted server. */
   lastSyncedAt: string | null;
   lastPantryUpdate: {
@@ -200,7 +204,7 @@ interface GleanState {
   deleteInventoryItem: (id: string)                                         => void;
 
   // Consumption log
-  logConsumption: (inventoryId: string, itemName: string, qty: number, action?: 'used' | 'restocked' | 'added') => void;
+  logConsumption: (inventoryId: string, itemName: string, qty: number, action?: ConsumptionLog['action'], resultQty?: number) => void;
 
   // Shopping list
   addToShoppingList:   (name: string, inventoryId?: string, targetQty?: number) => void;
@@ -260,6 +264,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
   loading: false,
   sessionLoaded: false,
   syncError: null,
+  serverConfigured: false,
   lastSyncedAt: null,
   lastPantryUpdate: null,
 
@@ -560,7 +565,7 @@ export const useGleanStore = create<GleanState>((set, get) => ({
 
   // ── Consumption log ───────────────────────────────────────────────────────
 
-  logConsumption: (inventoryId, itemName, qty, action = 'used') => {
+  logConsumption: (inventoryId, itemName, qty, action = 'used', resultQty) => {
     const { profile } = get();
     const log: ConsumptionLog = {
       id:           uid(),

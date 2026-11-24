@@ -17,6 +17,9 @@ export interface StockPoint {
 
 /** How a log entry moved the stock. */
 function delta(log: ConsumptionLog): number {
+  // A count is stored as the change it represents (new minus old), so it is
+  // already signed. Everything else keeps its convention: used is negative.
+  if ((log.action ?? '') === 'counted') return log.qty ?? 0;
   const qty = Math.abs(log.qty ?? 0);
   return (log.action ?? 'used') === 'used' ? -qty : qty;
 }

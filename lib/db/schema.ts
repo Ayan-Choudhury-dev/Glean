@@ -54,7 +54,8 @@ CREATE TABLE IF NOT EXISTS consumption_logs (
   consumed_at  TEXT NOT NULL,
   qty          INTEGER NOT NULL DEFAULT 1,
   action       TEXT NOT NULL DEFAULT 'used',
-  user_id      TEXT
+  user_id      TEXT,
+  result_qty   INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS house_options (
